@@ -135,11 +135,12 @@ async function* mockReply(contents: Content[]): AsyncGenerator<AgentStreamEvent>
   const last = ([...contents].reverse().find((c) => c.role === "user")?.parts[0]?.text ?? "").split("\n\n").at(-1) ?? "";
   if (last.includes("[fail]")) throw new AgentError("Mock failure: the message asked for it.");
 
-  const idea = last.replace(/\[noshots\]/g, "").trim().slice(0, 80);
+  const pause = last.includes("[slow]") ? 700 : 40; // "[slow]" lets a test press Stop mid-reply
+  const idea = last.replace(/\[noshots\]|\[slow\]/g, "").trim().slice(0, 80);
   const pieces = [`Here is a plan for "${idea}". `, "It opens wide to set the place, ", "then moves in to the detail that carries the mood."];
   for (const piece of pieces) {
     yield { type: "text", delta: piece };
-    await sleep(40);
+    await sleep(pause);
   }
 
   if (!last.includes("[noshots]")) {

@@ -4,6 +4,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { toast } from "sonner";
 import { AssetDialog } from "@/components/media/asset-dialog";
+import { refinePromptRequest } from "@/features/agent/api";
 import { generate, uploadReference, type GenerateInput } from "@/features/generations/api";
 import { MAX_REFERENCES } from "@/features/generations/schemas";
 import { deleteAsset, setFavorite } from "@/features/library/api";
@@ -42,10 +43,34 @@ export function StudioWorkspace({ initial, notice }: { initial: StudioInitial | 
   const [batches, setBatches] = useState<Batch[]>([]);
   const [uploading, setUploading] = useState(0);
   const [openId, setOpenId] = useState<string | null>(null);
+  const [refining, setRefining] = useState(false);
+  const [beforeRefine, setBeforeRefine] = useState<string | null>(null); // the prompt as it was, for Undo
 
   const openAsset = batches.flatMap((b) => b.result?.assets ?? []).find((a) => a.id === openId) ?? null;
 
-  const patch = (p: Partial<ComposerValues>) => setValues((v) => ({ ...v, ...p }));
+  const patch = (p: Partial<ComposerValues>) => {
+    setValues((v) => ({ ...v, ...p }));
+    if (p.prompt !== undefined) setBeforeRefine(null); // typing by hand ends the Undo window
+  };
+
+  async function refine() {
+    setRefining(true);
+    try {
+      const result = await refinePromptRequest(values.prompt, values.aspectRatio);
+      setBeforeRefine(values.prompt);
+      setValues((v) => ({ ...v, prompt: result.prompt }));
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "The agent couldn't refine that prompt.");
+    } finally {
+      setRefining(false);
+    }
+  }
+
+  function undoRefine() {
+    if (beforeRefine === null) return;
+    setValues((v) => ({ ...v, prompt: beforeRefine }));
+    setBeforeRefine(null);
+  }
   const updateAsset = (id: string, fn: (a: AssetDto) => AssetDto) =>
     setBatches((all) =>
       all.map((b) => (b.result ? { ...b, result: { ...b.result, assets: b.result.assets.map((a) => (a.id === id ? fn(a) : a)) } } : b)),
@@ -130,7 +155,7 @@ export function StudioWorkspace({ initial, notice }: { initial: StudioInitial | 
   return (
     <div className="flex min-h-0 flex-1 flex-col lg:flex-row">
       <section aria-label="Controls" className="flex min-h-0 shrink-0 flex-col border-b border-border bg-card lg:w-[26rem] lg:border-b-0 lg:border-r">
-        <Composer values={values} onChange={patch} onSubmit={submit} onAddFiles={addFiles} uploading={uploading} busy={busy} notice={notice} />
+        <Composer values={values} onChange={patch} onSubmit={submit} onAddFiles={addFiles} uploading={uploading} busy={busy} notice={notice} refining={refining} canUndoRefine={beforeRefine !== null} onRefine={() => void refine()} onUndoRefine={undoRefine} />
       </section>
       <section aria-label="Results" className="flex min-h-[24rem] min-w-0 flex-1 flex-col lg:overflow-hidden">
         <Results batches={batches} onOpen={(a) => setOpenId(a.id)} onFavorite={favorite} onRetry={(b) => void run(b.input, b.key)} />

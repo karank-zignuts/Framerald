@@ -7,6 +7,11 @@ describe("formatCost", () => {
     expect(formatCost(0.078)).toBe("≈ $0.078");
     expect(formatCost(0)).toBe("≈ $0.000");
   });
+  it("never rounds a real but tiny cost down to zero", () => {
+    expect(formatCost(0.00114)).toBe("≈ $0.001");
+    expect(formatCost(0.0004)).toBe("< $0.001");
+    expect(formatCost(0.001)).toBe("≈ $0.001");
+  });
   it("shows cents from a dollar up", () => {
     expect(formatCost(1.5)).toBe("≈ $1.50");
     expect(formatCost(12.345)).toBe("≈ $12.35");

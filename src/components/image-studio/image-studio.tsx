@@ -3,18 +3,20 @@
 import { useQuery } from "@tanstack/react-query";
 import { useSearchParams } from "next/navigation";
 import { Skeleton } from "@/components/ui/skeleton";
+import { parsePrefill } from "@/features/agent/prefill";
 import { fetchAsset, fetchReRunSettings } from "@/features/generations/api";
 import { StudioWorkspace, type StudioInitial } from "./studio-workspace";
 
 /**
- * Reads `?from=<generation>` (re-run its settings) or `?edit=<asset>` (use it as
- * a reference), loads what that needs, then mounts the workspace with those
- * values. Mounting after the load keeps the form's state out of effects.
+ * Reads `?from=<generation>` (re-run its settings), `?edit=<asset>` (use it as
+ * a reference) or `?prompt=&ratio=` (a shot sent from the agent), loads what
+ * that needs, then mounts the workspace with those values. Mounting after the load keeps the form's state out of effects.
  */
 export function ImageStudio() {
   const params = useSearchParams();
   const from = params.get("from");
   const edit = params.get("edit");
+  const prefill = from || edit ? null : parsePrefill(params);
 
   const initialQuery = useQuery({
     queryKey: ["studio-initial", from, edit],
@@ -37,5 +39,11 @@ export function ImageStudio() {
   }
 
   const notice = initialQuery.isError ? `Couldn't load those settings: ${initialQuery.error.message}` : null;
-  return <StudioWorkspace key={`${from}-${edit}`} initial={initialQuery.data ?? null} notice={notice} />;
+  return (
+    <StudioWorkspace
+      key={`${from}-${edit}-${prefill?.prompt}-${prefill?.aspectRatio}`}
+      initial={initialQuery.data ?? prefill}
+      notice={notice}
+    />
+  );
 }

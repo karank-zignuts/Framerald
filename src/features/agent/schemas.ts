@@ -65,3 +65,6 @@ export const messageDtoSchema = z.object({
 export type AgentMessageDto = z.infer<typeof messageDtoSchema>;
 
 export type ThreadDto = { id: string; title: string; updatedAt: string };
+
+/** A new chat is named after its first message. Used by the server and, for an instant list update, the browser. */
+export const titleFromMessage = (text: string): string => text.replace(/\s+/g, " ").trim().slice(0, 60);

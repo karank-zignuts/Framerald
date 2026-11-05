@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { refinePromptSchema, sendMessageSchema, shotListSchema, shotListToolSchema } from "./schemas";
+import { refinePromptSchema, sendMessageSchema, shotListSchema, shotListToolSchema, titleFromMessage } from "./schemas";
 
 const shot = { prompt: "A lighthouse in a storm", aspectRatio: "16:9" };
 
@@ -42,5 +42,12 @@ describe("request schemas", () => {
   it("refine takes a prompt and an optional aspect ratio", () => {
     expect(refinePromptSchema.parse({ prompt: "a door" })).toEqual({ prompt: "a door" });
     expect(refinePromptSchema.safeParse({ prompt: "a door", aspectRatio: "7:3" }).success).toBe(false);
+  });
+});
+
+describe("titleFromMessage", () => {
+  it("collapses whitespace and cuts to 60 characters", () => {
+    expect(titleFromMessage("  a   lighthouse\n\nin a storm ")).toBe("a lighthouse in a storm");
+    expect(titleFromMessage("x".repeat(100))).toHaveLength(60);
   });
 });

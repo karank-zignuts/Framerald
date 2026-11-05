@@ -5,7 +5,7 @@ import { HttpError } from "@/lib/http";
 import { AGENT_MODEL, agentErrorMessage, refinePrompt, streamAgentReply } from "@/lib/ai/agent";
 import { textCostUsd, type TextUsage } from "@/lib/ai/cost";
 import { buildContents, type StoredMessage } from "./history";
-import { shotListSchema, type AgentMessageDto, type ShotList, type ThreadDto } from "./schemas";
+import { shotListSchema, titleFromMessage, type AgentMessageDto, type ShotList, type ThreadDto } from "./schemas";
 import { encodeEvent, type AgentEvent } from "./stream";
 
 const DEFAULT_TITLE = "New chat";
@@ -203,7 +203,7 @@ async function recordUsage(messageId: string, usage: TextUsage | undefined, cost
 export async function streamReply(threadId: string, text: string): Promise<ReadableStream<Uint8Array>> {
   const thread = await getThread(threadId);
   await insertUserMessage(threadId, text);
-  if (thread.title === DEFAULT_TITLE) await renameThread(threadId, text.replace(/\s+/g, " ").slice(0, 60));
+  if (thread.title === DEFAULT_TITLE) await renameThread(threadId, titleFromMessage(text));
   const history = await loadHistory(threadId);
 
   const encoder = new TextEncoder();

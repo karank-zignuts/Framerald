@@ -1,6 +1,6 @@
 "use client";
 
-import { Plus, X } from "lucide-react";
+import { PenLine, Plus, X } from "lucide-react";
 import { useRef, useState } from "react";
 import { BorderBeam } from "@/components/ui/border-beam";
 import { Button } from "@/components/ui/button";
@@ -33,6 +33,12 @@ type Props = {
   uploading: number;
   /** A generation is running: block a second paid request from a double click or key repeat. */
   busy: boolean;
+  /** Asks the agent to rewrite the prompt. */
+  onRefine: () => void;
+  refining: boolean;
+  /** The last refine can be undone until the prompt is edited by hand. */
+  canUndoRefine: boolean;
+  onUndoRefine: () => void;
   notice?: string | null;
 };
 
@@ -56,7 +62,19 @@ function RatioShape({ ratio }: { ratio: string }) {
   );
 }
 
-export function Composer({ values, onChange, onSubmit, onAddFiles, uploading, busy, notice }: Props) {
+export function Composer({
+  values,
+  onChange,
+  onSubmit,
+  onAddFiles,
+  uploading,
+  busy,
+  onRefine,
+  refining,
+  canUndoRefine,
+  onUndoRefine,
+  notice,
+}: Props) {
   const fileInput = useRef<HTMLInputElement>(null);
   const [dragging, setDragging] = useState(false);
   const sizes = MODELS.image[values.model].imageSizes as readonly ImageSize[];
@@ -105,11 +123,24 @@ export function Composer({ values, onChange, onSubmit, onAddFiles, uploading, bu
               maxLength={4000}
             />
           </BorderBeam>
-          <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
-            <Kbd>Ctrl</Kbd>
-            <Kbd>Enter</Kbd>
-            to generate
-          </p>
+          <div className="flex items-center justify-between gap-2">
+            <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
+              <Kbd>Ctrl</Kbd>
+              <Kbd>Enter</Kbd>
+              to generate
+            </p>
+            <div className="flex items-center gap-1">
+              {canUndoRefine && (
+                <Button type="button" variant="ghost" size="sm" onClick={onUndoRefine}>
+                  Undo
+                </Button>
+              )}
+              <Button type="button" variant="ghost" size="sm" onClick={onRefine} disabled={!hasPrompt || refining} aria-busy={refining}>
+                <PenLine aria-hidden className="size-3.5" />
+                {refining ? "Refining" : "Refine with agent"}
+              </Button>
+            </div>
+          </div>
         </div>
 
         <div className="flex flex-col gap-2">
