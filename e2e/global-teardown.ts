@@ -31,4 +31,26 @@ export default async function globalTeardown() {
   if (found.size) await sb.from("assets").delete().in("id", [...found.keys()]);
   if (genIds.length) await sb.from("generations").delete().in("id", genIds);
   if (existsSync(ASSET_LOG)) rmSync(ASSET_LOG);
+
+  // Agent chats: threads titled "[e2e]...", any message whose text starts with "[e2e]" (refinements land
+  // in the shared "Prompt refinements" chat), their usage rows, and a refinements chat left empty.
+  const { data: threads } = await sb.from("agent_threads").select("id").like("title", "[e2e]%");
+  const threadIds = (threads ?? []).map((t) => t.id as string);
+  const messageIds = new Set<string>();
+  if (threadIds.length) {
+    const { data } = await sb.from("agent_messages").select("id").in("thread_id", threadIds);
+    for (const m of data ?? []) messageIds.add(m.id as string);
+  }
+  const { data: tagged } = await sb.from("agent_messages").select("id").like("content->>text", "[e2e]%");
+  for (const m of tagged ?? []) messageIds.add(m.id as string);
+  if (messageIds.size) {
+    await sb.from("usage_events").delete().in("agent_message_id", [...messageIds]);
+    await sb.from("agent_messages").delete().in("id", [...messageIds]);
+  }
+  if (threadIds.length) await sb.from("agent_threads").delete().in("id", threadIds);
+  const { data: refinements } = await sb.from("agent_threads").select("id").eq("title", "Prompt refinements");
+  for (const t of refinements ?? []) {
+    const { count } = await sb.from("agent_messages").select("id", { count: "exact", head: true }).eq("thread_id", t.id);
+    if (!count) await sb.from("agent_threads").delete().eq("id", t.id);
+  }
 }
