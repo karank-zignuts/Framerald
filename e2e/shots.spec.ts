@@ -46,6 +46,23 @@ test("screenshots", async ({ page, request }) => {
   await expect(page.getByText("No favourites yet")).toBeVisible();
   await shot("library-favourites-empty");
 
+  // Agent: empty, then a conversation with a shot list.
+  await page.goto("/agent");
+  await expect(page.getByRole("textbox", { name: "Message" })).toBeVisible(FIRST_PAINT);
+  await page.waitForTimeout(500);
+  await shot("agent-empty");
+  await page.getByRole("textbox", { name: "Message" }).fill(tag("a lighthouse keeper in a storm, 35mm film look"));
+  await page.getByRole("button", { name: "Send", exact: true }).click();
+  await expect(page.getByTestId("shot-card")).toHaveCount(3, { timeout: 30_000 });
+  await page.waitForTimeout(600);
+  await shot("agent-conversation");
+
+  // Image studio with a prompt sent from a shot.
+  await page.getByTestId("shot-card").first().getByRole("link", { name: /Send to Image/ }).click();
+  await expect(page.getByRole("textbox", { name: "Prompt" })).not.toHaveValue("", FIRST_PAINT);
+  await page.waitForTimeout(900);
+  await shot("studio-prefilled");
+
   // Phone width.
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/image");
@@ -55,4 +72,8 @@ test("screenshots", async ({ page, request }) => {
   await page.goto("/library");
   await expect(page.getByTestId("asset-tile").first()).toBeVisible(FIRST_PAINT);
   await shot("library-mobile");
+  await page.goto("/agent");
+  await expect(page.getByRole("textbox", { name: "Message" })).toBeVisible(FIRST_PAINT);
+  await page.waitForTimeout(500);
+  await shot("agent-mobile");
 });

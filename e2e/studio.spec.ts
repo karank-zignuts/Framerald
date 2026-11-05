@@ -33,7 +33,8 @@ test("the home page sends you to the Image studio, and the nav works", async ({ 
   await page.getByRole("link", { name: /^Video/ }).first().click();
   await expect(page.getByText("Video isn't built yet")).toBeVisible(FIRST_PAINT);
   await page.getByRole("link", { name: /^Agent/ }).first().click();
-  await expect(page.getByText("The agent isn't built yet")).toBeVisible(FIRST_PAINT);
+  await expect(page.getByText("What are you making?")).toBeVisible(FIRST_PAINT);
+  await expect(page.getByRole("textbox", { name: "Message" })).toBeVisible();
 });
 
 test("make an image and see what it cost", async ({ page }) => {

@@ -8,7 +8,7 @@ import { cn } from "@/lib/utils";
 const ITEMS = [
   { href: "/image", label: "Image", icon: ImageIcon, soon: false },
   { href: "/video", label: "Video", icon: Film, soon: true },
-  { href: "/agent", label: "Agent", icon: MessageSquareText, soon: true },
+  { href: "/agent", label: "Agent", icon: MessageSquareText, soon: false },
   { href: "/library", label: "Library", icon: LayoutGrid, soon: false },
 ] as const;
 
