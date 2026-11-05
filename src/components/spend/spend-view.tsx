@@ -99,7 +99,13 @@ export function SpendView() {
   const query = useSpend();
 
   return (
-    <div className="mx-auto flex w-full max-w-4xl flex-col gap-10 p-5 lg:overflow-y-auto">
+    // Focusable and named, so a keyboard user can scroll this region even though nothing inside it is a control.
+    <div
+      role="region"
+      aria-label="Spend"
+      tabIndex={0}
+      className="mx-auto flex w-full max-w-4xl flex-col gap-10 p-5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring lg:overflow-y-auto"
+    >
       <header className="flex flex-col gap-1">
         <h1 className="text-lg font-medium text-foreground">Spend</h1>
         <p className="text-sm text-muted-foreground">Estimated from Google&apos;s list prices. Your real bill can differ.</p>

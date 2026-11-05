@@ -15,8 +15,7 @@ const eslintConfig = defineConfig([
     "src/components/ui/**",
     // Default ignores of eslint-config-next:
     ".next/**",
-    ".next-e2e/**",
-    ".next-e2e-auth/**",
+    ".next-*/**", // build folders of other dev servers (e2e, the gate server, anything else)
     "out/**",
     "build/**",
     "next-env.d.ts",

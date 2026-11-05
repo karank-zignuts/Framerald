@@ -66,7 +66,7 @@ test("make a clip, watch it run, play it, and find it in the Library", async ({ 
   await expect(page.getByRole("heading", { name: "Library", level: 1 })).toBeVisible(FIRST_PAINT);
   await page.getByRole("radio", { name: "Videos" }).click();
   await expect(page).toHaveURL(/view=videos/);
-  const tile = page.getByRole("button", { name: new RegExp(`^Open video: ${esc(text)}$`) });
+  const tile = page.getByRole("button", { name: new RegExp(`^Open video: ${esc(text)}(, \\d+ seconds)?$`) });
   await expect(tile).toBeVisible();
 
   await tile.click();
@@ -175,7 +175,7 @@ test("Animate this image from the Library, and re-running a clip's settings", as
   const text = tag("animated still");
   await makeClip(page, text);
   await page.goto("/library?view=videos");
-  await page.getByRole("button", { name: new RegExp(`^Open video: ${esc(text)}$`) }).click(FIRST_PAINT);
+  await page.getByRole("button", { name: new RegExp(`^Open video: ${esc(text)}(, \\d+ seconds)?$`) }).click(FIRST_PAINT);
   await page.getByRole("link", { name: "Re-run these settings" }).click();
   await expect(page).toHaveURL(/\/video\?from=/);
   await expect(prompt(page)).toHaveValue(text, FIRST_PAINT);

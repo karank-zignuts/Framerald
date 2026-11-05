@@ -2,6 +2,7 @@
 
 import { Play, Star } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { LazyVideo } from "./lazy-video";
 import type { AssetDto } from "@/features/library/types";
 
 const focusRing = "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
@@ -26,31 +27,23 @@ export function AssetTile({ asset, onOpen, onFavorite, fit = "native", eager = f
       <button
         type="button"
         onClick={onOpen}
-        aria-label={`Open ${isVideo ? "video" : "image"}: ${prompt.slice(0, 80)}`}
+        aria-label={`Open ${isVideo ? "video" : "image"}: ${prompt.slice(0, 80)}${isVideo && seconds !== null ? `, ${seconds} seconds` : ""}`}
         className={cn("relative block w-full", focusRing)}
         style={{ aspectRatio: fit === "square" ? 1 : ratio }}
       >
         {isVideo ? (
           <>
             {/* A clip's first frame is shown by the browser itself, so no thumbnail file is needed. */}
-            <video
+            <LazyVideo
               src={`${asset.url}#t=0.1`}
               poster={asset.thumbnailUrl !== asset.url ? asset.thumbnailUrl : undefined}
-              muted
-              playsInline
-              preload="metadata"
-              className="size-full object-cover"
+              className="size-full"
             />
             <span aria-hidden className="absolute inset-0 flex items-center justify-center">
               <span className="flex size-10 items-center justify-center rounded-full bg-background/70 text-foreground">
                 <Play className="size-4 fill-current" />
               </span>
             </span>
-            {seconds !== null && (
-              <span className="absolute bottom-2 left-2 rounded bg-background/80 px-1.5 py-0.5 text-xs tabular-nums text-foreground">
-                0:{String(seconds).padStart(2, "0")}
-              </span>
-            )}
           </>
         ) : (
           <>
@@ -58,7 +51,7 @@ export function AssetTile({ asset, onOpen, onFavorite, fit = "native", eager = f
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={asset.thumbnailUrl}
-              alt={prompt}
+              alt="" // decorative: the button around it already has the name
               width={asset.width ?? undefined}
               height={asset.height ?? undefined}
               loading={eager ? "eager" : "lazy"}
@@ -69,6 +62,13 @@ export function AssetTile({ asset, onOpen, onFavorite, fit = "native", eager = f
           </>
         )}
       </button>
+      {isVideo && seconds !== null && (
+        // Outside the button on purpose: the length is already in the button's name, and text inside a
+        // button that its name doesn't contain fails accessibility checks.
+        <span aria-hidden className="pointer-events-none absolute bottom-2 left-2 rounded bg-background/80 px-1.5 py-0.5 text-xs tabular-nums text-foreground">
+          0:{String(seconds).padStart(2, "0")}
+        </span>
+      )}
       <button
         type="button"
         onClick={() => onFavorite(!asset.isFavorite)}
