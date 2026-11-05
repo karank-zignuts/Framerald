@@ -11,6 +11,7 @@ import { MAX_REFERENCES } from "@/features/generations/schemas";
 import { deleteAsset, setFavorite } from "@/features/library/api";
 import { libraryKeys } from "@/features/library/queries";
 import { usePresets } from "@/features/presets/queries";
+import { useCurrentProject } from "@/features/projects/queries";
 import { applyPresets } from "@/features/presets/templates";
 import type { AssetDto, ReRunSettings } from "@/features/library/types";
 import type { ImageSize } from "@/lib/ai/models";
@@ -36,6 +37,7 @@ const nextKey = () => `batch-${Date.now()}-${batchCounter++}`;
 export function StudioWorkspace({ initial, notice }: { initial: StudioInitial | null; notice?: string | null }) {
   const qc = useQueryClient();
   const presets = usePresets("image");
+  const [projectId, setProjectId] = useCurrentProject();
   const [values, setValues] = useState<ComposerValues>({
     ...BLANK,
     ...(initial?.prompt !== undefined && { prompt: initial.prompt }),
@@ -112,6 +114,7 @@ export function StudioWorkspace({ initial, notice }: { initial: StudioInitial | 
       count: values.count,
       referenceAssetIds: values.references.map((r) => r.id),
       sourceGenerationId: initial?.sourceGenerationId,
+      projectId: projectId ?? undefined,
     });
   }
 
@@ -166,7 +169,7 @@ export function StudioWorkspace({ initial, notice }: { initial: StudioInitial | 
   return (
     <div className="flex min-h-0 flex-1 flex-col lg:flex-row">
       <section aria-label="Controls" className="flex min-h-0 shrink-0 flex-col border-b border-border bg-card lg:w-[26rem] lg:border-b-0 lg:border-r">
-        <Composer values={values} onChange={patch} onSubmit={submit} onAddFiles={addFiles} uploading={uploading} busy={busy} notice={notice} refining={refining} canUndoRefine={beforeRefine !== null} onRefine={() => void refine()} onUndoRefine={undoRefine} />
+        <Composer values={values} onChange={patch} onSubmit={submit} onAddFiles={addFiles} uploading={uploading} busy={busy} projectId={projectId} onProjectChange={setProjectId} notice={notice} refining={refining} canUndoRefine={beforeRefine !== null} onRefine={() => void refine()} onUndoRefine={undoRefine} />
       </section>
       <section aria-label="Results" className="flex min-h-[24rem] min-w-0 flex-1 flex-col lg:overflow-hidden">
         <Results batches={batches} onOpen={(a) => setOpenId(a.id)} onFavorite={favorite} onRetry={(b) => void run(b.input, b.key)} />

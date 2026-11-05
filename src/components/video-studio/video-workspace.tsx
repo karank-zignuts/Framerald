@@ -9,6 +9,7 @@ import { uploadReference } from "@/features/generations/api";
 import { libraryKeys } from "@/features/library/queries";
 import { applyPresets } from "@/features/presets/templates";
 import { usePresets } from "@/features/presets/queries";
+import { useCurrentProject } from "@/features/projects/queries";
 import { fetchVideoJob, fetchVideoReRunSettings, startVideo, type StartVideoInput } from "@/features/videos/api";
 import { MAX_VIDEO_PROMPT } from "@/features/videos/schemas";
 import { useVideoJobs, videoKeys } from "@/features/videos/queries";
@@ -37,6 +38,7 @@ export function VideoWorkspace({ initial, notice }: { initial: VideoInitial | nu
   const qc = useQueryClient();
   const jobs = useVideoJobs();
   const presets = usePresets("video");
+  const [projectId, setProjectId] = useCurrentProject();
   const [values, setValues] = useState<VideoValues>({ ...BLANK, ...(initial && Object.fromEntries(Object.entries(initial).filter(([, v]) => v !== undefined))) });
   const [submitting, setSubmitting] = useState(false);
   const [retrying, setRetrying] = useState<string[]>([]); // clips whose Try again is in flight
@@ -119,6 +121,7 @@ export function VideoWorkspace({ initial, notice }: { initial: VideoInitial | nu
       firstFrameAssetId: values.firstFrame?.id,
       lastFrameAssetId: values.lastFrame?.id,
       sourceGenerationId: initial?.sourceGenerationId,
+      projectId: projectId ?? undefined,
     });
     setSubmitting(false);
   }
@@ -142,6 +145,7 @@ export function VideoWorkspace({ initial, notice }: { initial: VideoInitial | nu
         firstFrameAssetId: s.firstFrame?.id,
         lastFrameAssetId: s.lastFrame?.id,
         sourceGenerationId: job.id,
+        projectId: projectId ?? undefined,
       });
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Couldn't start the clip again.");
@@ -191,6 +195,8 @@ export function VideoWorkspace({ initial, notice }: { initial: VideoInitial | nu
           onUploadFrame={(slot, file) => void uploadFrame(slot, file)}
           uploadingSlot={uploadingSlot}
           submitting={submitting}
+          projectId={projectId}
+          onProjectChange={setProjectId}
           onRefine={() => void refine()}
           refining={refining}
           canUndoRefine={beforeRefine !== null}

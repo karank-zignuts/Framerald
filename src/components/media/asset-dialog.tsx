@@ -6,7 +6,8 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { modelLabel } from "@/lib/ai/models";
-import { downloadUrl, formatCost, formatDate } from "@/lib/format";
+import { downloadUrl, extensionFor, formatCost, formatDate } from "@/lib/format";
+import { ProjectSelect } from "@/components/projects/project-select";
 import type { AssetDto } from "@/features/library/types";
 
 type Props = {
@@ -14,10 +15,12 @@ type Props = {
   onClose: () => void;
   onFavorite: (value: boolean) => void;
   onDelete: () => Promise<void> | void;
+  /** When given, the dialog offers to move the item to a project. */
+  onMove?: (projectId: string | null) => Promise<void> | void;
 };
 
 /** One image, large, with what made it and what to do next. Mount with key={asset.id}. */
-export function AssetDialog({ asset, onClose, onFavorite, onDelete }: Props) {
+export function AssetDialog({ asset, onClose, onFavorite, onDelete, onMove }: Props) {
   const [confirming, setConfirming] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const g = asset.generation;
@@ -103,6 +106,13 @@ export function AssetDialog({ asset, onClose, onFavorite, onDelete }: Props) {
             </dl>
           )}
 
+          {onMove && (
+            <div className="flex flex-col gap-2">
+              <span className="text-sm text-muted-foreground">Project</span>
+              <ProjectSelect label="Move to project" value={asset.projectId} onChange={(id) => void onMove(id)} />
+            </div>
+          )}
+
           <div className="mt-auto flex flex-col gap-2">
             <Button variant="secondary" onClick={() => onFavorite(!asset.isFavorite)} aria-pressed={asset.isFavorite}>
               <Star aria-hidden className={asset.isFavorite ? "size-4 fill-brand text-brand" : "size-4"} />
@@ -142,7 +152,7 @@ export function AssetDialog({ asset, onClose, onFavorite, onDelete }: Props) {
               </>
             )}
             <Button variant="secondary" asChild>
-              <a href={downloadUrl(asset.url, `framerald-${asset.id.slice(0, 8)}.${isVideo ? "mp4" : "png"}`)}>
+              <a href={downloadUrl(asset.url, `framerald-${asset.id.slice(0, 8)}.${extensionFor(asset.mimeType)}`)}>
                 <Download aria-hidden className="size-4" />
                 Download
               </a>

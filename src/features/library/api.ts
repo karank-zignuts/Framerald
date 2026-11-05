@@ -2,12 +2,19 @@ import { readJson } from "@/features/generations/api";
 import type { LibraryPage } from "./types";
 import { parseLibraryView, type LibraryView } from "./view";
 
-export function fetchLibraryPage(opts: { cursor: string | null; view: LibraryView }): Promise<LibraryPage> {
+export function fetchLibraryPage(opts: {
+  cursor: string | null;
+  view: LibraryView;
+  q?: string | null;
+  projectId?: string | null;
+}): Promise<LibraryPage> {
   const { kind, favoritesOnly } = parseLibraryView(opts.view);
   const p = new URLSearchParams({ limit: "24" });
   if (opts.cursor) p.set("cursor", opts.cursor);
   if (favoritesOnly) p.set("favorites", "1");
   if (kind) p.set("kind", kind);
+  if (opts.q) p.set("q", opts.q);
+  if (opts.projectId) p.set("project", opts.projectId);
   return fetch(`/api/library?${p}`).then((r) => readJson<LibraryPage>(r));
 }
 
@@ -16,6 +23,14 @@ export function setFavorite(assetId: string, isFavorite: boolean): Promise<void>
     method: "PATCH",
     headers: { "content-type": "application/json" },
     body: JSON.stringify({ isFavorite }),
+  }).then((r) => readJson<unknown>(r).then(() => undefined));
+}
+
+export function moveAssetRequest(assetId: string, projectId: string | null): Promise<void> {
+  return fetch(`/api/assets/${assetId}`, {
+    method: "PATCH",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ projectId }),
   }).then((r) => readJson<unknown>(r).then(() => undefined));
 }
 

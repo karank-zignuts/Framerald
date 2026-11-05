@@ -4,6 +4,7 @@ import { PenLine, Plus, X } from "lucide-react";
 import { useRef, useState } from "react";
 import { ImagePickerDialog } from "@/components/media/image-picker-dialog";
 import { PresetPicker } from "@/components/presets/preset-picker";
+import { ProjectSelect } from "@/components/projects/project-select";
 import { BorderBeam } from "@/components/ui/border-beam";
 import { Button } from "@/components/ui/button";
 import { Kbd } from "@/components/ui/kbd";
@@ -41,6 +42,9 @@ type Props = {
   onUploadFrame: (slot: Slot, file: File) => void;
   uploadingSlot: Slot | null;
   submitting: boolean;
+  /** The project new clips go into. */
+  projectId: string | null;
+  onProjectChange: (id: string | null) => void;
   onRefine: () => void;
   refining: boolean;
   canUndoRefine: boolean;
@@ -133,6 +137,8 @@ export function VideoComposer({
   onUploadFrame,
   uploadingSlot,
   submitting,
+  projectId,
+  onProjectChange,
   onRefine,
   refining,
   canUndoRefine,
@@ -232,6 +238,11 @@ export function VideoComposer({
               ))}
             </SelectContent>
           </Select>
+        </div>
+
+        <div className="flex flex-col gap-2">
+          <span className="text-sm text-muted-foreground">Project</span>
+          <ProjectSelect label="Project" value={projectId} onChange={onProjectChange} />
         </div>
 
         <div className="flex flex-col gap-2">

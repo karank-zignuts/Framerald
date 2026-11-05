@@ -3,6 +3,7 @@
 import { PenLine, Plus, X } from "lucide-react";
 import { useRef, useState } from "react";
 import { PresetPicker } from "@/components/presets/preset-picker";
+import { ProjectSelect } from "@/components/projects/project-select";
 import { BorderBeam } from "@/components/ui/border-beam";
 import { Button } from "@/components/ui/button";
 import { Kbd } from "@/components/ui/kbd";
@@ -37,6 +38,9 @@ type Props = {
   /** A generation is running: block a second paid request from a double click or key repeat. */
   busy: boolean;
   /** Asks the agent to rewrite the prompt. */
+  /** The project new images go into. */
+  projectId: string | null;
+  onProjectChange: (id: string | null) => void;
   onRefine: () => void;
   refining: boolean;
   /** The last refine can be undone until the prompt is edited by hand. */
@@ -72,6 +76,8 @@ export function Composer({
   onAddFiles,
   uploading,
   busy,
+  projectId,
+  onProjectChange,
   onRefine,
   refining,
   canUndoRefine,
@@ -249,6 +255,11 @@ export function Composer({
               ))}
             </SelectContent>
           </Select>
+        </div>
+
+        <div className="flex flex-col gap-2">
+          <span className="text-sm text-muted-foreground">Project</span>
+          <ProjectSelect label="Project" value={projectId} onChange={onProjectChange} />
         </div>
 
         <div className="flex flex-col gap-2">

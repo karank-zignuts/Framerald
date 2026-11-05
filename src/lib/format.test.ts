@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { downloadUrl, extensionFor, formatCost, formatCount } from "./format";
+import { downloadUrl, extensionFor, formatCost, formatCount, formatUsd } from "./format";
 
 describe("formatCost", () => {
   it("shows three decimals under a dollar", () => {
@@ -43,5 +43,18 @@ describe("extensionFor", () => {
     expect(extensionFor("image/webp")).toBe("webp");
     expect(extensionFor("video/mp4")).toBe("mp4");
     expect(extensionFor("application/x-whatever")).toBe("bin");
+  });
+});
+
+describe("formatUsd", () => {
+  it("shows money with the precision that matters at that size", () => {
+    expect(formatUsd(0)).toBe("$0.00");
+    expect(formatUsd(12.3456)).toBe("$12.35");
+    expect(formatUsd(1)).toBe("$1.00");
+    expect(formatUsd(0.163)).toBe("$0.163");
+    expect(formatUsd(0.0049)).toBe("$0.0049");
+  });
+  it("never shows a real cost as zero", () => {
+    expect(formatUsd(0.00004)).toBe("< $0.0001");
   });
 });

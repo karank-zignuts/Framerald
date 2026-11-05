@@ -1,17 +1,19 @@
 import { useInfiniteQuery, useQueryClient, type InfiniteData } from "@tanstack/react-query";
-import { deleteAsset, fetchLibraryPage, setFavorite } from "./api";
+import { deleteAsset, fetchLibraryPage, moveAssetRequest, setFavorite } from "./api";
 import type { AssetDto, LibraryPage } from "./types";
 import type { LibraryView } from "./view";
 
+export type LibraryFilters = { q?: string | null; projectId?: string | null };
+
 export const libraryKeys = {
   all: ["library"] as const,
-  list: (view: LibraryView) => ["library", "list", { view }] as const,
+  list: (view: LibraryView, filters: LibraryFilters = {}) => ["library", "list", { view, ...filters }] as const,
 };
 
-export function useLibrary(view: LibraryView) {
+export function useLibrary(view: LibraryView, filters: LibraryFilters = {}) {
   return useInfiniteQuery({
-    queryKey: libraryKeys.list(view),
-    queryFn: ({ pageParam }) => fetchLibraryPage({ cursor: pageParam, view }),
+    queryKey: libraryKeys.list(view, filters),
+    queryFn: ({ pageParam }) => fetchLibraryPage({ cursor: pageParam, view, ...filters }),
     initialPageParam: null as string | null,
     getNextPageParam: (last) => last.nextCursor,
     // Signed image links last an hour. Refetching on focus after 10 minutes keeps a long-open tab from showing broken thumbnails.
@@ -38,11 +40,16 @@ export function useAssetActions() {
       try {
         await setFavorite(asset.id, value);
         // The favourites view must gain or lose this image.
-        await qc.invalidateQueries({ queryKey: libraryKeys.list("favourites") });
+        await qc.invalidateQueries({ queryKey: ["library", "list", { view: "favourites" }] });
       } catch (error) {
         for (const [key, data] of snapshot) qc.setQueryData(key, data);
         throw error;
       }
+    },
+    /** Moves an item to a project (or none). Every list is refetched, since filters may now include or drop it. */
+    async move(asset: AssetDto, projectId: string | null) {
+      await moveAssetRequest(asset.id, projectId);
+      await qc.invalidateQueries({ queryKey: libraryKeys.all });
     },
     async remove(asset: AssetDto) {
       const snapshot = qc.getQueriesData<Cache>({ queryKey: libraryKeys.all });

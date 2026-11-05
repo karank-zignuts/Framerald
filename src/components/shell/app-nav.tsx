@@ -1,7 +1,7 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { Film, Image as ImageIcon, LayoutGrid, LogOut, MessageSquareText } from "lucide-react";
+import { Film, Image as ImageIcon, LayoutGrid, LogOut, MessageSquareText, Wallet } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
@@ -11,6 +11,7 @@ const ITEMS = [
   { href: "/video", label: "Video", icon: Film, soon: false },
   { href: "/agent", label: "Agent", icon: MessageSquareText, soon: false },
   { href: "/library", label: "Library", icon: LayoutGrid, soon: false },
+  { href: "/spend", label: "Spend", icon: Wallet, soon: false },
 ] as const;
 
 const focusRing = "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";

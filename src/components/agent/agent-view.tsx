@@ -10,7 +10,9 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
-import { createThread, deleteThread, renameThread, streamMessage } from "@/features/agent/api";
+import { createThread, deleteThread, renameThread, setThreadProject, streamMessage } from "@/features/agent/api";
+import { ProjectSelect } from "@/components/projects/project-select";
+import { useCurrentProject } from "@/features/projects/queries";
 import { agentKeys, useMessages, useThreads } from "@/features/agent/queries";
 import { titleFromMessage, type AgentMessageDto, type Shot, type ThreadDto } from "@/features/agent/schemas";
 import { MessageList, type LiveReply } from "./message-list";
@@ -39,7 +41,11 @@ export function AgentView() {
   const abort = useRef<AbortController | null>(null);
   const input = useRef<HTMLTextAreaElement>(null);
 
-  const title = threads.data?.find((t) => t.id === threadId)?.title ?? "New chat";
+  const [currentProject, setCurrentProject] = useCurrentProject();
+  const thread = threads.data?.find((t) => t.id === threadId);
+  const title = thread?.title ?? "New chat";
+  // An open chat shows its own project; a new chat shows the one it will be created in.
+  const activeProject = threadId ? (thread?.projectId ?? null) : currentProject;
   const sending = live !== null;
 
   function open(id: string | null) {
@@ -58,7 +64,7 @@ export function AgentView() {
     try {
       if (!id) {
         // Created under its real name, so the placeholder "New chat" never reaches the list.
-        const created = await createThread(titleFromMessage(message));
+        const created = await createThread(titleFromMessage(message), currentProject);
         id = created.id;
         qc.setQueryData<ThreadDto[]>(agentKeys.threads, (old = []) => [created, ...old.filter((t) => t.id !== created.id)]);
         // If the list was still loading, its late answer would erase this entry. Asking again cancels that answer.
@@ -95,8 +101,8 @@ export function AgentView() {
     } finally {
       abort.current = null;
       if (id) await qc.invalidateQueries({ queryKey: agentKeys.messages(id) });
+      setLive(null); // the saved reply is in now; showing both would repeat it for a moment
       await qc.invalidateQueries({ queryKey: agentKeys.threads });
-      setLive(null);
       // The server saves a stopped reply a moment after the connection closes; look again once it has.
       const savedId = id;
       if (stopped && savedId) setTimeout(() => void qc.invalidateQueries({ queryKey: agentKeys.messages(savedId) }), 1500);
@@ -106,6 +112,17 @@ export function AgentView() {
   function refineShot(shot: Shot, index: number) {
     setDraft(`Refine shot ${index + 1}: "${shot.prompt}"\n\n`);
     input.current?.focus();
+  }
+
+  async function changeProject(id: string | null) {
+    setCurrentProject(id);
+    if (!threadId) return;
+    try {
+      await setThreadProject(threadId, id);
+      await qc.invalidateQueries({ queryKey: agentKeys.threads });
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Couldn't move the chat.");
+    }
   }
 
   async function saveTitle() {
@@ -150,6 +167,9 @@ export function AgentView() {
       <section aria-label="Conversation" className="flex min-h-[28rem] min-w-0 flex-1 flex-col lg:min-h-0">
         <header className="flex flex-col gap-2 border-b border-border px-5 py-3">
           <ThreadSelect threads={threads.data} activeId={threadId} onSelect={open} />
+          <div className="w-full max-w-xs">
+            <ProjectSelect label="Project" value={activeProject} onChange={(id) => void changeProject(id)} />
+          </div>
           <div className="flex min-h-9 items-center justify-between gap-3">
             {renaming !== null ? (
               <form

@@ -6,7 +6,7 @@ import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Skeleton } from "@/components/ui/skeleton";
-import { downloadUrl, formatCost } from "@/lib/format";
+import { downloadUrl, extensionFor, formatCost } from "@/lib/format";
 import type { VideoJobDto } from "@/features/videos/types";
 
 type Props = {
@@ -100,7 +100,7 @@ function JobCard({ job, onTryAgain, retrying }: { job: VideoJobDto; onTryAgain: 
           />
           <div className="flex flex-wrap gap-2">
             <Button asChild variant="secondary" size="sm">
-              <a href={downloadUrl(job.asset.url, `framerald-${job.id.slice(0, 8)}.mp4`)}>
+              <a href={downloadUrl(job.asset.url, `framerald-${job.id.slice(0, 8)}.${extensionFor(job.asset.mimeType)}`)}>
                 <Download aria-hidden className="size-3.5" />
                 Download
               </a>
