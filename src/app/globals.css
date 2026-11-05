@@ -7,32 +7,32 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
-  --background: oklch(0.1417 0.0044 285.82);
+  --background: oklch(0.1881 0.006 285.81); /* zinc, #131316 */
   --foreground: oklch(1 0 0);
 
-  --card: oklch(0.1763 0.0058 285.79);
+  --card: oklch(0.2103 0.0059 285.89); /* zinc-900, #18181B */
   --card-foreground: oklch(0.9848 0 0);
 
-  --popover: oklch(0.1641 0.0064 285.68);
+  --popover: oklch(0.241 0.0076 285.82); /* #1F1F23 */
   --popover-foreground: oklch(1 0 0);
 
   --primary: oklch(1 0 0);
-  --primary-foreground: oklch(0.1417 0.0044 285.82);
+  --primary-foreground: oklch(0.1881 0.006 285.81);
 
-  --secondary: oklch(0.2323 0.0058 285.94);
+  --secondary: oklch(0.2739 0.0055 286.03); /* zinc-800, #27272A */
   --secondary-foreground: oklch(0.7652 0 0);
 
-  --muted: oklch(0.2531 0.0067 285.91);
-  --muted-foreground: oklch(0.6255 0.0171 285.9);
+  --muted: oklch(0.2739 0.0055 286.03);
+  --muted-foreground: oklch(0.7118 0.0129 286.07); /* zinc-400 */
 
-  --accent: oklch(0.2734 0.0075 285.9);
+  --accent: oklch(0.3187 0.007 285.99); /* #323236 */
   --accent-foreground: oklch(0.9848 0 0);
 
   --destructive: oklch(0.5786 0.2137 27.17);
   --destructive-foreground: oklch(1 0 0);
 
-  --border: oklch(0.2747 0.006 286);
-  --input: oklch(0.2102 0.006 285.87);
+  --border: oklch(0.3703 0.0119 285.81 / 0.7); /* zinc-700 */
+  --input: oklch(0.2739 0.0055 286.03);
   --ring: oklch(1 0 0);
   --radius: 0.75rem;
 
@@ -191,15 +191,15 @@
   --layout-card-padding: calc(var(--spacing, 0.25rem) * 5);
 }
 
-/* ─── Framerald brand accent: green #00d062 ───
+/* ─── Framerald brand accent: green #7ad950 ───
    Added on top of Cinematic Dark. `--accent` stays the DS hover surface,
    so the brand color has its own token. Use it for the main call to action
    (Generate), active states and the brand mark. Never as a large fill. */
 :root {
-  --brand: oklch(0.7497 0.2054 150.21); /* #00d062 */
-  --brand-strong: oklch(0.69 0.195 150.21); /* a step darker, for hover and pressed */
-  --brand-muted: oklch(0.7497 0.2054 150.21 / 0.14); /* tinted surfaces */
-  --brand-foreground: oklch(0.1417 0.0044 285.82); /* = --background */
+  --brand: oklch(0.7985 0.1953 137.46); /* #7ad950 */
+  --brand-strong: oklch(0.73 0.18 137.46); /* a step darker, for hover and pressed */
+  --brand-muted: oklch(0.7985 0.1953 137.46 / 0.14); /* tinted surfaces */
+  --brand-foreground: oklch(0.1881 0.006 285.81); /* = --background */
 }
 
 @theme inline {
@@ -226,5 +226,131 @@ html {
 @media (prefers-reduced-motion: reduce) {
   .animate-pulse {
     animation: none;
+  }
+}
+
+/* Clickable things show a pointer (Tailwind 4's reset leaves buttons on the default arrow). Disabled ones don't. */
+a[href],
+button:not(:disabled),
+summary,
+select:not(:disabled),
+label[for],
+[role="button"]:not([aria-disabled="true"]),
+[role="tab"]:not([aria-disabled="true"]),
+[role="radio"]:not([aria-disabled="true"]):not([data-disabled]),
+[role="menuitem"]:not([data-disabled]),
+[role="menuitemcheckbox"]:not([data-disabled]),
+[role="option"]:not([data-disabled]),
+[role="combobox"]:not(:disabled),
+[role="switch"]:not(:disabled),
+input[type="checkbox"]:not(:disabled),
+input[type="file"]:not(:disabled) {
+  cursor: pointer;
+}
+
+button:disabled,
+[aria-disabled="true"],
+[role="radio"][data-disabled],
+[role="option"][data-disabled] {
+  cursor: not-allowed;
+}
+
+/* Loading placeholders shimmer: a soft highlight sweeps across. Reduced motion gets a still block. */
+.skeleton {
+  background-color: var(--muted);
+  background-image: linear-gradient(90deg, transparent 0%, color-mix(in oklab, var(--foreground) 9%, transparent) 50%, transparent 100%);
+  background-size: 200% 100%;
+  background-repeat: no-repeat;
+  animation: skeleton-shimmer 1.6s ease-in-out infinite;
+}
+@keyframes skeleton-shimmer {
+  from {
+    background-position: 200% 0;
+  }
+  to {
+    background-position: -100% 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .skeleton {
+    animation: none;
+  }
+}
+
+/* Generating: soft blobs drift slowly and out of step with each other. Still when motion is reduced. */
+.gen-blob {
+  background: radial-gradient(circle at 50% 50%, color-mix(in oklab, var(--foreground) 22%, transparent) 0%, transparent 68%);
+  filter: blur(18px);
+  animation-name: gen-drift;
+  animation-timing-function: ease-in-out;
+  animation-iteration-count: infinite;
+  animation-direction: alternate;
+}
+@keyframes gen-drift {
+  0% {
+    transform: translate(0, 0) scale(1);
+  }
+  33% {
+    transform: translate(var(--x1), var(--y1)) scale(var(--s1));
+  }
+  66% {
+    transform: translate(var(--x2), var(--y2)) scale(var(--s2));
+  }
+  100% {
+    transform: translate(var(--x3), var(--y3)) scale(var(--s1));
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .gen-blob {
+    animation: none;
+  }
+}
+
+
+/* Agent mode. The glow stays inside the dock (never outside it) and fades in and out. A bright arc runs once around
+   the edge when it turns on. */
+@property --dock-angle {
+  syntax: "<angle>";
+  inherits: false;
+  initial-value: 0deg;
+}
+.dock-glow {
+  box-shadow:
+    inset 0 0 28px -8px color-mix(in oklab, var(--brand) 38%, transparent),
+    inset 0 1px 0 0 color-mix(in oklab, var(--brand) 22%, transparent);
+  background: radial-gradient(120% 90% at 50% 120%, color-mix(in oklab, var(--brand) 12%, transparent), transparent 70%);
+}
+.dock-sweep {
+  padding: 1.5px;
+  background: conic-gradient(from var(--dock-angle), transparent 0deg, transparent 250deg, color-mix(in oklab, var(--brand) 90%, white) 320deg, transparent 360deg);
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
+  animation:
+    dock-spin 1.8s cubic-bezier(0.45, 0, 0.25, 1) 1 forwards,
+    dock-sweep-fade 1.8s ease-in-out 1 forwards;
+}
+@keyframes dock-spin {
+  to {
+    --dock-angle: 360deg;
+  }
+}
+@keyframes dock-sweep-fade {
+  0% {
+    opacity: 0;
+  }
+  15% {
+    opacity: 1;
+  }
+  80% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .dock-sweep {
+    display: none;
   }
 }

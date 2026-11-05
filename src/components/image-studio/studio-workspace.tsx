@@ -15,6 +15,7 @@ import { useCurrentProject } from "@/features/projects/queries";
 import { applyPresets } from "@/features/presets/templates";
 import type { AssetDto, ReRunSettings } from "@/features/library/types";
 import type { ImageSize } from "@/lib/ai/models";
+import { useViewSettings } from "@/features/view/settings";
 import { Composer, type ComposerValues } from "./composer";
 import { Results, type Batch } from "./results";
 
@@ -48,6 +49,7 @@ export function StudioWorkspace({ initial, notice }: { initial: StudioInitial | 
     ...(initial?.references && { references: initial.references }),
   });
   const [batches, setBatches] = useState<Batch[]>([]);
+  const view = useViewSettings();
   const [uploading, setUploading] = useState(0);
   const [openId, setOpenId] = useState<string | null>(null);
   const [refining, setRefining] = useState(false);
@@ -105,6 +107,11 @@ export function StudioWorkspace({ initial, notice }: { initial: StudioInitial | 
     if (prompt.length > 4000) {
       toast.error(`With the preset added, the prompt is ${prompt.length} characters. The limit is 4,000.`);
       return;
+    }
+    // The box clears once the request is on its way. A failed batch keeps its own input for Try again.
+    if (view.clearOnSubmit) {
+      setValues((v) => ({ ...v, prompt: "" }));
+      setBeforeRefine(null);
     }
     void run({
       prompt,
@@ -167,12 +174,13 @@ export function StudioWorkspace({ initial, notice }: { initial: StudioInitial | 
   }
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col lg:flex-row">
-      <section aria-label="Controls" className="flex min-h-0 shrink-0 flex-col border-b border-border bg-card lg:w-[26rem] lg:border-b-0 lg:border-r">
-        <Composer values={values} onChange={patch} onSubmit={submit} onAddFiles={addFiles} uploading={uploading} busy={busy} projectId={projectId} onProjectChange={setProjectId} notice={notice} refining={refining} canUndoRefine={beforeRefine !== null} onRefine={() => void refine()} onUndoRefine={undoRefine} />
+    <div className="flex min-h-0 flex-1 flex-col">
+      <h1 className="sr-only">Image</h1>
+      <section aria-label="Results" className="flex min-h-[20rem] min-w-0 flex-1 flex-col lg:overflow-y-auto">
+        <Results batches={batches} onOpen={(a) => setOpenId(a.id)} onFavorite={favorite} onDelete={remove} onRetry={(b) => void run(b.input, b.key)} />
       </section>
-      <section aria-label="Results" className="flex min-h-[24rem] min-w-0 flex-1 flex-col lg:overflow-hidden">
-        <Results batches={batches} onOpen={(a) => setOpenId(a.id)} onFavorite={favorite} onRetry={(b) => void run(b.input, b.key)} />
+      <section aria-label="Controls" className="sticky bottom-0 z-10 shrink-0 bg-gradient-to-t from-background from-70% to-transparent px-3 pb-3 pt-6 sm:px-5 sm:pb-5">
+        <Composer values={values} onChange={patch} onSubmit={submit} onAddFiles={addFiles} uploading={uploading} busy={busy} projectId={projectId} onProjectChange={setProjectId} notice={notice} refining={refining} canUndoRefine={beforeRefine !== null} onRefine={() => void refine()} onUndoRefine={undoRefine} />
       </section>
       {openAsset && (
         <AssetDialog

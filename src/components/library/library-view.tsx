@@ -234,7 +234,8 @@ export function LibraryView() {
                     setOpenId(asset.id);
                     setPinned(asset);
                   }}
-                  onFavorite={(v) => void favorite(asset, v)} />
+                  onFavorite={(v) => void favorite(asset, v)}
+                  onDelete={() => remove(asset)} />
               ))}
             </div>
             <div ref={sentinel} className="flex justify-center py-6">

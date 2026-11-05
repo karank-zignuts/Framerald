@@ -17,8 +17,11 @@ test("screenshots", async ({ page, request }) => {
   await shot("studio-empty");
 
   // Studio with a two-image batch and a failed one.
-  await page.getByRole("radio", { name: "16:9" }).click();
-  await page.getByRole("radio", { name: "2", exact: true }).click();
+  await page.getByRole("button", { name: /^Aspect ratio/ }).click();
+  await page.getByRole("radio", { name: "Aspect ratio 16:9" }).click();
+  await shot("studio-aspect-menu");
+  await page.keyboard.press("Escape");
+  await page.getByRole("button", { name: "More images" }).click();
   await page.getByRole("textbox", { name: "Prompt" }).fill(tag("A slow dolly shot through a rain-soaked neon street at night"));
   await page.getByRole("button", { name: /^Generate/ }).click();
   await expect(page.getByTestId("asset-tile")).toHaveCount(2, { timeout: 30_000 });

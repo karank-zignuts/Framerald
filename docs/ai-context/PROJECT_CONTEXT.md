@@ -78,4 +78,7 @@ Going paid later means: Supabase Auth, RLS policies per owner, Stripe (credit pa
 | 2026-11-05 | Name: Framerald. Vertex AI on Google Cloud. New Supabase project. Local first, Vercel-ready. |
 | 2026-11-05 | Design: Cinematic Dark + BorderBeam from Beam Lib + emerald brand accent. |
 | 2026-11-05 | No sign-in in v1. Browser never talks to Supabase; server uses the secret key. |
-| 2026-11-05 | Brand color changed from emerald to #00d062 (`--brand` tokens in `globals.css`). |
+| 2026-11-05 | Brand color changed from emerald to #7ad950 (`--brand` tokens in `globals.css`). |
+| 2026-11-05 | Accent changed to green #7ad950. BorderBeam removed from the prompt fields. Pointer cursor on clickable controls. Layout rebuilt: collapsible sidebar, docked Image composer, narrower Video panel. |
+| 2026-11-05 | Accent changed again to green #7ad950. Dark palette follows Higgsfield: page #0F1113, panels #131517, composer and menus #1C1E21. |
+| 2026-11-05 | Dark palette retuned to stepped zinc (page #131316, panels #18181B, menus #1F1F23, chips #27272A, borders #3F3F46) after the Higgsfield blue-grey read as flat. |

@@ -3,7 +3,13 @@ import { deleteAsset, fetchLibraryPage, moveAssetRequest, setFavorite } from "./
 import type { AssetDto, LibraryPage } from "./types";
 import type { LibraryView } from "./view";
 
-export type LibraryFilters = { q?: string | null; projectId?: string | null };
+export type LibraryFilters = {
+  q?: string | null;
+  projectId?: string | null;
+  source?: "generated" | "upload";
+  order?: "newest" | "oldest";
+  limit?: number;
+};
 
 export const libraryKeys = {
   all: ["library"] as const,

@@ -1,20 +1,17 @@
 import { describe, expect, it } from "vitest";
-import { downloadUrl, extensionFor, formatCost, formatCount, formatUsd } from "./format";
+import { downloadUrl, extensionFor, formatCost, formatCount, formatMoney } from "./format";
 
 describe("formatCost", () => {
-  it("shows three decimals under a dollar", () => {
-    expect(formatCost(0.039)).toBe("≈ $0.039");
-    expect(formatCost(0.078)).toBe("≈ $0.078");
-    expect(formatCost(0)).toBe("≈ $0.000");
+  it("shows rupees at the default rate of 88 per dollar", () => {
+    expect(formatCost(0.039)).toBe("≈ ₹3.43");
+    expect(formatCost(0.078)).toBe("≈ ₹6.86");
+    expect(formatCost(0)).toBe("≈ ₹0.00");
   });
   it("never rounds a real but tiny cost down to zero", () => {
-    expect(formatCost(0.00114)).toBe("≈ $0.001");
-    expect(formatCost(0.0004)).toBe("< $0.001");
-    expect(formatCost(0.001)).toBe("≈ $0.001");
+    expect(formatCost(0.0000001)).toBe("≈ < ₹0.01");
   });
-  it("shows cents from a dollar up", () => {
-    expect(formatCost(1.5)).toBe("≈ $1.50");
-    expect(formatCost(12.345)).toBe("≈ $12.35");
+  it("groups digits the Indian way", () => {
+    expect(formatCost(1500)).toBe("≈ ₹1,32,000.00");
   });
   it("says so when the cost is unknown", () => {
     expect(formatCost(null)).toBe("Cost unknown");
@@ -46,15 +43,13 @@ describe("extensionFor", () => {
   });
 });
 
-describe("formatUsd", () => {
-  it("shows money with the precision that matters at that size", () => {
-    expect(formatUsd(0)).toBe("$0.00");
-    expect(formatUsd(12.3456)).toBe("$12.35");
-    expect(formatUsd(1)).toBe("$1.00");
-    expect(formatUsd(0.163)).toBe("$0.163");
-    expect(formatUsd(0.0049)).toBe("$0.0049");
+describe("formatMoney", () => {
+  it("converts USD to rupees", () => {
+    expect(formatMoney(0)).toBe("₹0.00");
+    expect(formatMoney(1)).toBe("₹88.00");
+    expect(formatMoney(0.163)).toBe("₹14.34");
   });
   it("never shows a real cost as zero", () => {
-    expect(formatUsd(0.00004)).toBe("< $0.0001");
+    expect(formatMoney(0.0000004)).toBe("< ₹0.01");
   });
 });

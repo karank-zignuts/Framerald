@@ -122,6 +122,10 @@ export async function listAssets(opts: {
   projectId?: string | null;
   /** Text to look for in the prompt that made the item. */
   q?: string | null;
+  /** What made the item. The Library shows generated ones; the media picker also lists uploads. */
+  source?: "generated" | "upload";
+  /** Newest first by default. */
+  order?: "newest" | "oldest";
 }): Promise<LibraryPage> {
   await failStuckGenerations();
   const limit = Math.min(Math.max(Math.floor(opts.limit ?? DEFAULT_PAGE_SIZE), 1), MAX_PAGE_SIZE);
@@ -129,21 +133,23 @@ export async function listAssets(opts: {
   if (opts.cursor && !cursor) throw new HttpError(400, "That page link isn't valid.");
 
   const search = normalizeSearch(opts.q);
+  const oldest = opts.order === "oldest";
   let q = db()
     .from("assets")
     .select(search ? ASSET_SELECT_WITH_PROMPT_FILTER : ASSET_SELECT)
     .eq("owner_id", OWNER_ID)
-    .eq("source", "generated")
+    .eq("source", opts.source ?? "generated")
     .is("deleted_at", null)
-    .order("created_at", { ascending: false })
-    .order("id", { ascending: false })
+    .order("created_at", { ascending: oldest })
+    .order("id", { ascending: oldest })
     .limit(limit + 1);
   if (opts.favoritesOnly) q = q.eq("is_favorite", true);
   if (opts.kind) q = q.eq("kind", opts.kind);
   if (opts.projectId) q = q.eq("project_id", opts.projectId);
   if (search) q = q.ilike("generation.prompt", likePattern(search)); // a parameter, not part of a filter string
   if (cursor) {
-    q = q.or(`created_at.lt."${cursor.createdAt}",and(created_at.eq."${cursor.createdAt}",id.lt.${cursor.id})`);
+    const [before, ties] = oldest ? ["gt", "gt"] : ["lt", "lt"]; // the next page is older when newest first, newer when oldest first
+    q = q.or(`created_at.${before}."${cursor.createdAt}",and(created_at.eq."${cursor.createdAt}",id.${ties}.${cursor.id})`);
   }
   const { data, error } = await q;
   if (error) {

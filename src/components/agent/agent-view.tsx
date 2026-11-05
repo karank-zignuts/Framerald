@@ -34,7 +34,7 @@ export function AgentView() {
   const threads = useThreads();
   const messages = useMessages(threadId);
 
-  const [draft, setDraft] = useState("");
+  const [draft, setDraft] = useState(() => params.get("idea")?.slice(0, 4000) ?? ""); // set when the Image dock's Agent mode hands an idea over
   const [live, setLive] = useState<LiveReply | null>(null);
   const [renaming, setRenaming] = useState<string | null>(null); // the draft title while renaming
   const [confirmingDelete, setConfirmingDelete] = useState(false);

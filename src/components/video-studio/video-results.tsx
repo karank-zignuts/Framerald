@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Skeleton } from "@/components/ui/skeleton";
+import { GeneratingBackdrop, GeneratingCorners } from "@/components/media/generating";
 import { downloadUrl, extensionFor, formatCost } from "@/lib/format";
 import type { VideoJobDto } from "@/features/videos/types";
 
@@ -68,12 +69,14 @@ function JobCard({ job, onTryAgain, retrying }: { job: VideoJobDto; onTryAgain: 
         <div
           role="status"
           aria-label="Generating"
-          className={`${frame(job.aspectRatio)} flex flex-col items-center justify-center gap-2 rounded-lg border border-border bg-secondary p-6 text-center motion-safe:animate-pulse`}
+          className={`${frame(job.aspectRatio)} flex flex-col items-center justify-center gap-2 relative overflow-hidden rounded-2xl border border-border p-6 text-center`}
         >
-          <p className="text-sm text-foreground">
+          <GeneratingBackdrop />
+          <GeneratingCorners startedAt={job.createdAt} expectedSeconds={120} />
+          <p className="relative text-sm text-foreground">
             Generating <Elapsed since={job.createdAt} />
           </p>
-          <p className="max-w-xs text-xs text-muted-foreground">Usually 1 to 3 minutes. It keeps going if you leave this page.</p>
+          <p className="relative max-w-xs text-xs text-muted-foreground">Usually 1 to 3 minutes. It keeps going if you leave this page.</p>
         </div>
       )}
 

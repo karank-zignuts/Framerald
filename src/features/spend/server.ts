@@ -89,3 +89,9 @@ export async function getSpend(now = new Date()): Promise<SpendDto> {
     generatedAt: now.toISOString(),
   };
 }
+
+/** Everything the app spent on paid calls since a moment, in USD. Powers the balance chip. */
+export async function getSpentSince(sinceIso: string): Promise<number> {
+  const rows = await fetchUsage(sinceIso);
+  return rows.reduce((sum, r) => sum + Number(r.cost_usd ?? 0), 0);
+}

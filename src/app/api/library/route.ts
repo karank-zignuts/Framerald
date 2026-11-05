@@ -13,6 +13,8 @@ export const GET = handle(async (request: NextRequest) => {
       favoritesOnly: p.get("favorites") === "1",
       projectId: z.uuid().safeParse(p.get("project")).success ? p.get("project") : null,
       q: p.get("q"),
+      source: p.get("source") === "upload" ? "upload" : "generated",
+      order: p.get("order") === "oldest" ? "oldest" : "newest",
       kind: p.get("kind") === "image" || p.get("kind") === "video" ? (p.get("kind") as "image" | "video") : null,
     }),
   );

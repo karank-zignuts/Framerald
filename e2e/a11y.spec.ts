@@ -9,6 +9,7 @@ const FIRST_PAINT = { timeout: 45_000 };
 const tag = (s: string) => `[e2e] ${s} ${Math.random().toString(36).slice(2, 8)}`;
 
 async function scan(page: Page, label: string) {
+  await page.waitForTimeout(450); // let dialogs and menus finish fading in, or axe measures half-transparent text
   const results = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"]).analyze();
   const summary = results.violations.map(
     (v) => `${label}: ${v.id} (${v.impact}) ${v.help}\n    ${v.nodes.slice(0, 3).map((n) => n.target.join(" ")).join("\n    ")}`,

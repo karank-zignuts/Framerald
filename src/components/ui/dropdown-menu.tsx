@@ -60,46 +60,33 @@ function DropdownMenuSubContent({
 }
 DropdownMenuSubContent.displayName = DropdownMenuPrimitive.SubContent.displayName
 
+// Radix mounts the content only while the menu is open. (This used to force-mount it, which made Radix hide the
+// whole page from screen readers even when the menu was closed.)
 function DropdownMenuContent({
   className,
   sideOffset = 4,
   children,
   ...props
 }: React.ComponentProps<typeof DropdownMenuPrimitive.Content>) {
-  const ref = React.useRef<HTMLDivElement>(null)
-  const dataState = useDataState(ref)
-  const isOpen = dataState === "open"
-
   return (
-    <DropdownMenuPrimitive.Portal forceMount>
+    <DropdownMenuPrimitive.Portal>
       <DropdownMenuPrimitive.Content
-        ref={ref}
         sideOffset={sideOffset}
-        forceMount
         className={cn(
           "z-50 min-w-[8rem] overflow-hidden rounded-lg border border-border bg-popover p-1 text-popover-foreground",
           "shadow-[0_0.25rem_0.375rem_-0.0625rem_rgba(0,0,0,0.4),0_0.5rem_1.5rem_-0.25rem_rgba(0,0,0,0.5),0_0_0_0.0625rem_rgba(255,255,255,0.04)]",
-          "data-[state=closed]:pointer-events-none",
           className
         )}
         {...props}
       >
-        <AnimatePresence initial={false}>
-          {isOpen && (
-            <motion.div
-              key="dropdown-content"
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              transition={springInteraction}
-              style={{
-                transformOrigin: "var(--radix-dropdown-menu-content-transform-origin)",
-              }}
-            >
-              {children}
-            </motion.div>
-          )}
-        </AnimatePresence>
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={springInteraction}
+          style={{ transformOrigin: "var(--radix-dropdown-menu-content-transform-origin)" }}
+        >
+          {children}
+        </motion.div>
       </DropdownMenuPrimitive.Content>
     </DropdownMenuPrimitive.Portal>
   )

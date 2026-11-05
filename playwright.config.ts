@@ -43,7 +43,7 @@ export default defineConfig({
       reuseExistingServer: false,
       timeout: 180_000,
       // AI calls are mocked in e2e so tests never spend Vertex AI credits.
-      env: { E2E_MOCK_AI: "1" },
+      env: { E2E_MOCK_AI: "1", NEXT_PUBLIC_USD_INR: "88" },
     },
     {
       command: `next dev -p ${AUTH_PORT}`,
@@ -52,6 +52,7 @@ export default defineConfig({
       timeout: 180_000,
       env: {
         E2E_MOCK_AI: "1",
+        NEXT_PUBLIC_USD_INR: "88",
         NEXT_DIST_DIR: ".next-e2e-auth", // its own build folder, so the two dev servers don't share a lock
         APP_PASSWORD: "e2e-password-123",
         CRON_SECRET: "e2e-cron-secret",

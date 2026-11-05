@@ -14,6 +14,7 @@ import { fetchVideoJob, fetchVideoReRunSettings, startVideo, type StartVideoInpu
 import { MAX_VIDEO_PROMPT } from "@/features/videos/schemas";
 import { useVideoJobs, videoKeys } from "@/features/videos/queries";
 import type { VideoJobDto } from "@/features/videos/types";
+import { useViewSettings } from "@/features/view/settings";
 import { VideoComposer, type VideoValues } from "./video-composer";
 import { VideoResults } from "./video-results";
 
@@ -95,11 +96,16 @@ export function VideoWorkspace({ initial, notice }: { initial: VideoInitial | nu
     void qc.invalidateQueries({ queryKey: videoKeys.jobs });
   };
 
-  async function start(input: StartVideoInput) {
+  /** Returns whether the clip started, so the prompt is only cleared when it did. */
+  const view = useViewSettings();
+
+  async function start(input: StartVideoInput): Promise<boolean> {
     try {
       addJob(await startVideo(input));
+      return true;
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Couldn't start the clip.");
+      return false;
     }
   }
 
@@ -111,7 +117,8 @@ export function VideoWorkspace({ initial, notice }: { initial: VideoInitial | nu
       return;
     }
     setSubmitting(true);
-    await start({
+    const submitted = values.prompt;
+    const started = await start({
       prompt,
       model: values.model,
       aspectRatio: values.aspectRatio,
@@ -124,6 +131,11 @@ export function VideoWorkspace({ initial, notice }: { initial: VideoInitial | nu
       projectId: projectId ?? undefined,
     });
     setSubmitting(false);
+    if (started && view.clearOnSubmit) {
+      // Only if the box still holds what was sent: you may already be typing the next one.
+      setValues((v) => (v.prompt === submitted ? { ...v, prompt: "" } : v));
+      setBeforeRefine(null);
+    }
   }
 
   async function tryAgain(job: VideoJobDto) {
@@ -186,8 +198,8 @@ export function VideoWorkspace({ initial, notice }: { initial: VideoInitial | nu
   }
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col lg:flex-row">
-      <section aria-label="Controls" className="flex min-h-0 shrink-0 flex-col border-b border-border bg-card lg:w-[26rem] lg:border-b-0 lg:border-r">
+    <div className="flex min-h-0 flex-1 flex-col gap-3 lg:flex-row lg:p-3">
+      <section aria-label="Controls" className="flex min-h-0 shrink-0 flex-col border-b border-border bg-card lg:w-[22rem] lg:rounded-2xl lg:border">
         <VideoComposer
           values={values}
           onChange={patch}
@@ -204,7 +216,7 @@ export function VideoWorkspace({ initial, notice }: { initial: VideoInitial | nu
           notice={notice}
         />
       </section>
-      <section aria-label="Clips" className="flex min-h-[24rem] min-w-0 flex-1 flex-col lg:overflow-hidden">
+      <section aria-label="Clips" className="flex min-h-[24rem] min-w-0 flex-1 flex-col lg:overflow-hidden lg:rounded-2xl lg:border lg:border-border">
         <VideoResults
           jobs={jobs.data}
           isPending={jobs.isPending}

@@ -1,10 +1,24 @@
 // Display helpers. No server imports, so client components can use them.
 
-/** "≈ $0.039". The tilde is honest: costs are estimated from list prices. */
+/**
+ * Rupees per US dollar, used only to show amounts. Everything is stored and priced in USD (Google's list prices);
+ * this converts at display time. Set NEXT_PUBLIC_USD_INR to your current rate (Google bills at its own rate).
+ */
+export const USD_TO_INR = Number(process.env.NEXT_PUBLIC_USD_INR) > 0 ? Number(process.env.NEXT_PUBLIC_USD_INR) : 88;
+
+export const toInr = (usd: number) => usd * USD_TO_INR;
+
+/** Rupees with Indian digit grouping. Never shows a real amount as zero. */
+export function formatInr(inr: number): string {
+  if (inr === 0) return "₹0.00";
+  if (inr < 0.01) return "< ₹0.01";
+  return `₹${inr.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+}
+
+/** "≈ ₹3.43". The tilde is honest: costs are estimated from list prices. */
 export function formatCost(usd: number | null): string {
   if (usd === null) return "Cost unknown";
-  if (usd > 0 && usd < 0.001) return "< $0.001";
-  return `≈ $${usd >= 1 ? usd.toFixed(2) : usd.toFixed(3)}`;
+  return `≈ ${formatInr(toInr(usd))}`;
 }
 
 export function formatCount(n: number, noun: string): string {
@@ -34,11 +48,7 @@ export function extensionFor(mimeType: string): string {
   return EXTENSIONS[mimeType] ?? "bin";
 }
 
-/** Money for the Spend page: cents above a dollar, more digits below it, and never a real amount shown as zero. */
-export function formatUsd(usd: number): string {
-  if (usd === 0) return "$0.00";
-  if (usd < 0.0001) return "< $0.0001";
-  if (usd < 0.01) return `$${usd.toFixed(4)}`;
-  if (usd < 1) return `$${usd.toFixed(3)}`;
-  return `$${usd.toFixed(2)}`;
+/** Money for the Spend page, from a USD amount, shown in rupees. */
+export function formatMoney(usd: number): string {
+  return formatInr(toInr(usd));
 }

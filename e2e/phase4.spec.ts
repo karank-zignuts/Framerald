@@ -1,3 +1,4 @@
+import { openChip } from "./chips";
 import { test, expect } from "./fixtures";
 import type { Page } from "@playwright/test";
 
@@ -9,24 +10,31 @@ const tag = (s: string) => `[e2e] ${s} ${unique()}`;
 const esc = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 const FIRST_PAINT = { timeout: 45_000 };
 
+/** The Image studio keeps the project menu inside its Look chip; the Video studio shows it inline. */
+async function showProjectMenu(page: Page) {
+  const menu = page.getByRole("combobox", { name: "Project", exact: true });
+  if (!(await menu.isVisible())) await openChip(page, /^Look and project/);
+}
 const projectMenu = (page: Page) => page.getByRole("combobox", { name: "Project", exact: true });
 
 async function newProject(page: Page, name: string) {
+  await showProjectMenu(page);
   await projectMenu(page).click();
   await page.getByRole("option", { name: "New project" }).click();
   await page.getByRole("textbox", { name: "Project name" }).fill(name);
   await page.getByRole("button", { name: "Add", exact: true }).click();
+  await showProjectMenu(page);
   await expect(projectMenu(page)).toContainText(name);
 }
 
 test("Spend shows what you've spent, by day, kind and model", async ({ page }) => {
-  await page.request.post("/api/generations", { data: { prompt: tag("spend check") } }); // $0.039 on the mock
+  await page.request.post("/api/generations", { data: { prompt: tag("spend check") } }); // ₹3.43 (about $0.039) on the mock
   await page.goto("/image");
   await page.getByRole("link", { name: "Spend" }).first().click();
   await expect(page.getByRole("heading", { name: "Spend", level: 1 })).toBeVisible(FIRST_PAINT);
 
   await expect(page.getByText("Estimated from Google's list prices")).toBeVisible();
-  await expect(page.getByTestId("spend-month")).toHaveText(/^\$\d/, { timeout: 30_000 });
+  await expect(page.getByTestId("spend-month")).toHaveText(/^₹[\d,]/, { timeout: 30_000 });
   await expect(page.getByTestId("spend-30")).toContainText("in the last 30 days");
   await expect(page.getByTestId("spend-bars")).toHaveAttribute("aria-label", /Spend per day for the last 30 days/);
   await expect(page.getByRole("table", { name: "By kind" })).toContainText("Images");
@@ -52,6 +60,7 @@ test("make a project, put an image in it, and find it by that project in the Lib
   await expect(tile).toBeVisible(FIRST_PAINT);
 
   // Filter by the project: it's there. Another project: it isn't.
+  await showProjectMenu(page);
   await projectMenu(page).click();
   await page.getByRole("option", { name }).click();
   await expect(page).toHaveURL(/project=/);
@@ -68,6 +77,7 @@ test("make a project, put an image in it, and find it by that project in the Lib
   await page.keyboard.press("Escape");
   await expect(tile).toBeHidden(); // the filter is still the first project
 
+  await showProjectMenu(page);
   await projectMenu(page).click();
   await page.getByRole("option", { name: other }).click();
   await expect(tile).toBeVisible();
@@ -77,11 +87,13 @@ test("Enter in the new-project field never starts a generation", async ({ page }
   await page.goto("/image");
   await expect(page.getByRole("textbox", { name: "Prompt" })).toBeVisible(FIRST_PAINT);
   await page.getByRole("textbox", { name: "Prompt" }).fill(tag("do not generate"));
+  await showProjectMenu(page);
   await projectMenu(page).click();
   await page.getByRole("option", { name: "New project" }).click();
   const field = page.getByRole("textbox", { name: "Project name" });
   await field.fill(tag("enter test"));
   await field.press("Enter"); // saves the project
+  await showProjectMenu(page);
   await expect(projectMenu(page)).toContainText("[e2e] enter test");
   await page.waitForTimeout(800);
   await expect(page.getByTestId("batch")).toHaveCount(0); // no image was made
@@ -147,6 +159,7 @@ test("a chat started in a project belongs to it, and a reload shows that", async
 
   await page.reload();
   await expect(page.getByRole("textbox", { name: "Message" })).toBeVisible(FIRST_PAINT);
+  await showProjectMenu(page);
   await expect(projectMenu(page)).toContainText(name);
 });
 

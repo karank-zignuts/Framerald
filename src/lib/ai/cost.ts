@@ -29,6 +29,28 @@ export function imageCostUsd(modelId: string, usage: ImageUsage | undefined): nu
   return Math.round(usd * 10_000) / 10_000;
 }
 
+// What one image call used in the real 1K call this is based on (see cost.test.ts): 1120 image tokens, about 721
+// thinking tokens and a short prompt. 4K uses more image tokens (Google lists 2000 for its Pro image model).
+const IMAGE_OUT_TOKENS = { "1K": 1120, "2K": 1120, "4K": 2000 } as const;
+const THINKING_TOKENS = 721;
+const PROMPT_TOKENS = 14;
+const TOKENS_PER_REFERENCE = 560; // Google's count for one input image
+
+/**
+ * What a generation is likely to cost, before it runs, in USD. It uses the model's list prices and the token counts of a
+ * real call, so it is an estimate. Null when the model has no known price.
+ */
+export function estimateImageCostUsd(modelId: string, size: "1K" | "2K" | "4K", count: number, referenceCount: number): number | null {
+  const pricing = findPricing(modelId);
+  if (!pricing || pricing.imageOutPerM === undefined) return null;
+  const perImage =
+    ((PROMPT_TOKENS + referenceCount * TOKENS_PER_REFERENCE) * pricing.inputPerM +
+      THINKING_TOKENS * pricing.textOutPerM +
+      IMAGE_OUT_TOKENS[size] * pricing.imageOutPerM) /
+    PER_M;
+  return Math.round(perImage * count * 10_000) / 10_000;
+}
+
 export type TextUsage = {
   promptTokenCount?: number;
   candidatesTokenCount?: number;

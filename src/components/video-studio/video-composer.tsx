@@ -5,20 +5,34 @@ import { useRef, useState } from "react";
 import { ImagePickerDialog } from "@/components/media/image-picker-dialog";
 import { PresetPicker } from "@/components/presets/preset-picker";
 import { ProjectSelect } from "@/components/projects/project-select";
-import { BorderBeam } from "@/components/ui/border-beam";
 import { Button } from "@/components/ui/button";
 import { Kbd } from "@/components/ui/kbd";
 import { Label } from "@/components/ui/label";
 import { SegmentedControl } from "@/components/ui/ix-segmented-control";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { videoCostUsd } from "@/lib/ai/cost";
-import { MODELS, VIDEO_MODEL_KEYS, type VideoModelKey, type VideoResolution } from "@/lib/ai/models";
+import {
+  MODELS,
+  VIDEO_MODEL_KEYS,
+  type VideoModelKey,
+  type VideoResolution,
+} from "@/lib/ai/models";
 import { formatCost } from "@/lib/format";
 import { cn } from "@/lib/utils";
-import { VIDEO_DURATIONS, VIDEO_RATIOS, VIDEO_RESOLUTIONS } from "@/features/videos/schemas";
+import {
+  VIDEO_DURATIONS,
+  VIDEO_RATIOS,
+  VIDEO_RESOLUTIONS,
+} from "@/features/videos/schemas";
 import type { AssetDto } from "@/features/library/types";
 
 export type VideoValues = {
@@ -58,7 +72,8 @@ const MODEL_NOTES: Record<VideoModelKey, string> = {
   default: "Best quality. Costs the most.",
 };
 
-const focusRing = "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
+const focusRing =
+  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
 
 function FrameSlot({
   label,
@@ -82,14 +97,24 @@ function FrameSlot({
     <div className="flex flex-col gap-1.5">
       <span className="text-xs text-muted-foreground">{label}</span>
       {asset ? (
-        <div className="group relative aspect-video overflow-hidden rounded-md border border-border" data-testid="frame">
+        <div
+          className="group relative aspect-video overflow-hidden rounded-md border border-border"
+          data-testid="frame"
+        >
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={asset.thumbnailUrl} alt={label} className="size-full object-cover" />
+          <img
+            src={asset.thumbnailUrl}
+            alt={label}
+            className="size-full object-cover"
+          />
           <button
             type="button"
             aria-label={`Remove ${label.toLowerCase()}`}
             onClick={onRemove}
-            className={cn("absolute right-1 top-1 flex size-6 items-center justify-center rounded bg-background/80 text-foreground hover:bg-background", focusRing)}
+            className={cn(
+              "absolute right-1 top-1 flex size-6 items-center justify-center rounded bg-background/80 text-foreground hover:bg-background",
+              focusRing,
+            )}
           >
             <X aria-hidden className="size-3.5" />
           </button>
@@ -110,7 +135,14 @@ function FrameSlot({
         </button>
       )}
       {!asset && (
-        <Button type="button" variant="ghost" size="sm" className="h-7 w-fit px-1 text-xs text-muted-foreground" disabled={disabled} onClick={onPickLibrary}>
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          className="h-7 w-fit px-1 text-xs text-muted-foreground"
+          disabled={disabled}
+          onClick={onPickLibrary}
+        >
           From Library
         </Button>
       )}
@@ -149,16 +181,28 @@ export function VideoComposer({
   const spec = MODELS.video[values.model];
   const supported = spec.videoResolutions as readonly VideoResolution[];
   const hasPrompt = values.prompt.trim().length > 0;
-  const estimate = videoCostUsd(spec.id, { seconds: values.durationSeconds, resolution: values.resolution, audio: values.audio });
+  const estimate = videoCostUsd(spec.id, {
+    seconds: values.durationSeconds,
+    resolution: values.resolution,
+    audio: values.audio,
+  });
 
   function changeModel(key: VideoModelKey) {
-    const next = MODELS.video[key].videoResolutions as readonly VideoResolution[];
-    onChange({ model: key, resolution: next.includes(values.resolution) ? values.resolution : "720p" });
+    const next = MODELS.video[key]
+      .videoResolutions as readonly VideoResolution[];
+    onChange({
+      model: key,
+      resolution: next.includes(values.resolution) ? values.resolution : "720p",
+    });
   }
 
   function changeDuration(d: (typeof VIDEO_DURATIONS)[number]) {
     // 1080p and 4K clips are 8 seconds long, so any other length goes back to 720p.
-    onChange({ durationSeconds: d, ...(d !== 8 && values.resolution !== "720p" && { resolution: "720p" as const }) });
+    onChange({
+      durationSeconds: d,
+      ...(d !== 8 &&
+        values.resolution !== "720p" && { resolution: "720p" as const }),
+    });
   }
 
   return (
@@ -173,45 +217,66 @@ export function VideoComposer({
         <h1 className="text-lg font-medium text-foreground">Video</h1>
 
         {notice && (
-          <p role="status" className="rounded-lg border border-border bg-secondary px-3 py-2 text-sm text-muted-foreground">
+          <p
+            role="status"
+            className="rounded-lg border border-border bg-secondary px-3 py-2 text-sm text-muted-foreground"
+          >
             {notice}
           </p>
         )}
 
         <div className="flex flex-col gap-2">
-          <Label htmlFor="video-prompt" className="text-sm text-muted-foreground">
+          <Label
+            htmlFor="video-prompt"
+            className="text-sm text-muted-foreground"
+          >
             Prompt
           </Label>
-          <BorderBeam size="md" colorVariant="colorful" theme="dark" className="block w-full">
-            <Textarea
-              id="video-prompt"
-              value={values.prompt}
-              onChange={(e) => onChange({ prompt: e.target.value })}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" && (e.metaKey || e.ctrlKey) && hasPrompt && !submitting) {
-                  e.preventDefault();
-                  onSubmit();
-                }
-              }}
-              placeholder="Describe the clip: who, where, and how the camera moves"
-              rows={4}
-              maxLength={2000}
-              readOnly={refining}
-            />
-          </BorderBeam>
+          <Textarea
+            id="video-prompt"
+            value={values.prompt}
+            onChange={(e) => onChange({ prompt: e.target.value })}
+            onKeyDown={(e) => {
+              if (
+                e.key === "Enter" &&
+                (e.metaKey || e.ctrlKey) &&
+                hasPrompt &&
+                !submitting
+              ) {
+                e.preventDefault();
+                onSubmit();
+              }
+            }}
+            placeholder="Describe the clip: who, where, and how the camera moves"
+            rows={4}
+            maxLength={2000}
+            readOnly={refining}
+          />
           <div className="flex items-center justify-between gap-2">
-            <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
+            <p className="flex items-center gap-1.5 whitespace-nowrap text-xs text-muted-foreground">
               <Kbd>Ctrl</Kbd>
               <Kbd>Enter</Kbd>
               to generate
             </p>
             <div className="flex items-center gap-1">
               {canUndoRefine && (
-                <Button type="button" variant="ghost" size="sm" onClick={onUndoRefine}>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={onUndoRefine}
+                >
                   Undo
                 </Button>
               )}
-              <Button type="button" variant="ghost" size="sm" onClick={onRefine} disabled={!hasPrompt || refining} aria-busy={refining}>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={onRefine}
+                disabled={!hasPrompt || refining}
+                aria-busy={refining}
+              >
                 <PenLine aria-hidden className="size-3.5" />
                 {refining ? "Refining" : "Refine with agent"}
               </Button>
@@ -220,10 +285,16 @@ export function VideoComposer({
         </div>
 
         <div className="flex flex-col gap-2">
-          <Label htmlFor="video-model" className="text-sm text-muted-foreground">
+          <Label
+            htmlFor="video-model"
+            className="text-sm text-muted-foreground"
+          >
             Model
           </Label>
-          <Select value={values.model} onValueChange={(v) => changeModel(v as VideoModelKey)}>
+          <Select
+            value={values.model}
+            onValueChange={(v) => changeModel(v as VideoModelKey)}
+          >
             <SelectTrigger id="video-model" aria-label="Model">
               <SelectValue>{spec.label}</SelectValue>
             </SelectTrigger>
@@ -232,7 +303,9 @@ export function VideoComposer({
                 <SelectItem key={key} value={key}>
                   <span className="flex flex-col">
                     <span>{MODELS.video[key].label}</span>
-                    <span className="text-xs text-muted-foreground">{MODEL_NOTES[key]}</span>
+                    <span className="text-xs text-muted-foreground">
+                      {MODEL_NOTES[key]}
+                    </span>
                   </span>
                 </SelectItem>
               ))}
@@ -242,18 +315,27 @@ export function VideoComposer({
 
         <div className="flex flex-col gap-2">
           <span className="text-sm text-muted-foreground">Project</span>
-          <ProjectSelect label="Project" value={projectId} onChange={onProjectChange} />
+          <ProjectSelect
+            label="Project"
+            value={projectId}
+            onChange={onProjectChange}
+          />
         </div>
 
         <div className="flex flex-col gap-2">
-          <span id="video-ratio-label" className="text-sm text-muted-foreground">
+          <span
+            id="video-ratio-label"
+            className="text-sm text-muted-foreground"
+          >
             Aspect ratio
           </span>
           <ToggleGroup
             type="single"
             aria-labelledby="video-ratio-label"
             value={values.aspectRatio}
-            onValueChange={(v) => v && onChange({ aspectRatio: v as VideoValues["aspectRatio"] })}
+            onValueChange={(v) =>
+              v && onChange({ aspectRatio: v as VideoValues["aspectRatio"] })
+            }
             className="grid grid-cols-2 gap-1.5 border-0 bg-transparent p-0"
           >
             {VIDEO_RATIOS.map((r) => (
@@ -263,21 +345,34 @@ export function VideoComposer({
                 aria-label={`Aspect ratio ${r}`}
                 className="flex h-12 items-center justify-center gap-2 rounded-md border border-border px-0 text-xs text-muted-foreground data-[state=on]:border-brand data-[state=on]:bg-secondary data-[state=on]:text-foreground"
               >
-                <span aria-hidden className="block rounded-[3px] border border-current" style={r === "16:9" ? { width: 22, height: 12 } : { width: 12, height: 22 }} />
+                <span
+                  aria-hidden
+                  className="block rounded-[3px] border border-current"
+                  style={
+                    r === "16:9"
+                      ? { width: 22, height: 12 }
+                      : { width: 12, height: 22 }
+                  }
+                />
                 <span className="tabular-nums">{r}</span>
               </ToggleGroupItem>
             ))}
           </ToggleGroup>
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 gap-4">
           <div className="flex flex-col gap-2">
             <span className="text-sm text-muted-foreground">Length</span>
             <SegmentedControl
               label="Length in seconds"
               value={String(values.durationSeconds)}
-              onValueChange={(v) => changeDuration(Number(v) as (typeof VIDEO_DURATIONS)[number])}
-              options={VIDEO_DURATIONS.map((d) => ({ value: String(d), label: `${d} s` }))}
+              onValueChange={(v) =>
+                changeDuration(Number(v) as (typeof VIDEO_DURATIONS)[number])
+              }
+              options={VIDEO_DURATIONS.map((d) => ({
+                value: String(d),
+                label: `${d} s`,
+              }))}
             />
           </div>
           <div className="flex flex-col gap-2">
@@ -285,25 +380,37 @@ export function VideoComposer({
             <SegmentedControl
               label="Resolution"
               value={values.resolution}
-              onValueChange={(v) => onChange({ resolution: v as VideoResolution })}
+              onValueChange={(v) =>
+                onChange({ resolution: v as VideoResolution })
+              }
               options={VIDEO_RESOLUTIONS.map((r) => ({
                 value: r,
                 label: r === "4k" ? "4K" : r,
-                disabled: !supported.includes(r) || (r !== "720p" && values.durationSeconds !== 8),
+                disabled:
+                  !supported.includes(r) ||
+                  (r !== "720p" && values.durationSeconds !== 8),
               }))}
             />
           </div>
         </div>
-        <p className="-mt-3 text-xs text-muted-foreground">1080p and 4K need an 8 second clip.</p>
+        <p className="-mt-3 text-xs text-muted-foreground">
+          1080p and 4K need an 8 second clip.
+        </p>
 
         <div className="flex items-center justify-between gap-4">
           <div className="flex flex-col">
             <Label htmlFor="video-sound" className="text-sm text-foreground">
               Sound
             </Label>
-            <span className="text-xs text-muted-foreground">Adds speech and effects. Costs more.</span>
+            <span className="text-xs text-muted-foreground">
+              Adds speech and effects. Costs more.
+            </span>
           </div>
-          <Switch id="video-sound" checked={values.audio} onCheckedChange={(audio) => onChange({ audio })} />
+          <Switch
+            id="video-sound"
+            checked={values.audio}
+            onCheckedChange={(audio) => onChange({ audio })}
+          />
         </div>
 
         <div className="flex flex-col gap-2">
@@ -328,11 +435,17 @@ export function VideoComposer({
             />
           </div>
           <p className="text-xs text-muted-foreground">
-            {values.firstFrame ? "The clip starts from your first frame." : "Add a first frame to animate an image. Leave it empty for text to video."}
+            {values.firstFrame
+              ? "The clip starts from your first frame."
+              : "Add a first frame to animate an image. Leave it empty for text to video."}
           </p>
         </div>
 
-        <PresetPicker kind="video" selected={values.presetIds} onChange={(presetIds) => onChange({ presetIds })} />
+        <PresetPicker
+          kind="video"
+          selected={values.presetIds}
+          onChange={(presetIds) => onChange({ presetIds })}
+        />
       </div>
 
       <div className="sticky bottom-0 z-10 flex flex-col gap-3 border-t border-border bg-card p-5">
@@ -357,7 +470,11 @@ export function VideoComposer({
         <ImagePickerDialog
           onClose={() => setPicking(null)}
           onPick={(asset) => {
-            onChange(picking === "first" ? { firstFrame: asset } : { lastFrame: asset });
+            onChange(
+              picking === "first"
+                ? { firstFrame: asset }
+                : { lastFrame: asset },
+            );
             setPicking(null);
           }}
         />

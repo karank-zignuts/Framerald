@@ -19,6 +19,8 @@ type Props = {
   /** Selected preset ids, at most one per group. */
   selected: string[];
   onChange: (ids: string[]) => void;
+  /** Start expanded (for use inside a popover). */
+  defaultOpen?: boolean;
 };
 
 const GROUP_LABEL: Record<PresetGroup, string> = { camera: "Camera move", style: "Look" };
@@ -31,7 +33,7 @@ export function selectedPresets(all: PresetTemplate[] | undefined, ids: string[]
   return [...picked.filter((p) => p.group === "camera"), ...picked.filter((p) => p.group === "style")];
 }
 
-export function PresetPicker({ kind, selected, onChange }: Props) {
+export function PresetPicker({ kind, selected, onChange, defaultOpen }: Props) {
   const qc = useQueryClient();
   const query = usePresets(kind);
   const [adding, setAdding] = useState(false);
@@ -84,7 +86,7 @@ export function PresetPicker({ kind, selected, onChange }: Props) {
   const title = kind === "video" ? "Camera and look" : "Look";
 
   return (
-    <details className="group rounded-lg border border-border" data-testid="preset-picker">
+    <details className="group rounded-lg border border-border" data-testid="preset-picker" open={defaultOpen || undefined}>
       <summary className="flex cursor-pointer list-none items-center justify-between gap-3 rounded-lg px-3 py-2 text-sm text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring [&::-webkit-details-marker]:hidden">
         <span>{title}</span>
         <span className="flex min-w-0 items-center gap-2">

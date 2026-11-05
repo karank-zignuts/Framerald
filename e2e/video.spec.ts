@@ -28,25 +28,30 @@ async function makeClip(page: Page, text: string) {
   await expect(jobFor(page, text).getByTestId("job-video")).toBeVisible({ timeout: 40_000 });
 }
 
+// These tests read the grouped (Batch) layout: its cost line and per-generation alerts. Grid is the default and has its own spec in phase5.spec.ts.
+test.beforeEach(async ({ page }) => {
+  await page.addInitScript(() => localStorage.setItem("framerald.view", JSON.stringify({ mode: "batch" })));
+});
+
 test("the estimate follows the model, length, resolution and sound", async ({ page }) => {
   await openVideo(page);
-  await expect(estimate(page)).toHaveText("≈ $0.320"); // Fast, 4 s, 720p, no sound: 4 x $0.08
+  await expect(estimate(page)).toHaveText("≈ ₹28.16"); // Fast, 4 s, 720p, no sound: 4 x $0.08
 
   await page.getByRole("combobox", { name: "Model" }).click();
   await page.getByRole("option", { name: /Veo 3.1 Lite/ }).click();
-  await expect(estimate(page)).toHaveText("≈ $0.120"); // 4 x $0.03
+  await expect(estimate(page)).toHaveText("≈ ₹10.56"); // 4 x $0.03
 
   await expect(page.getByRole("radio", { name: "1080p" })).toBeDisabled(); // needs 8 seconds
   await page.getByRole("radio", { name: "8 s" }).click();
   await expect(page.getByRole("radio", { name: "1080p" })).toBeEnabled();
   await page.getByRole("radio", { name: "1080p" }).click();
-  await expect(estimate(page)).toHaveText("≈ $0.400"); // 8 x $0.05
+  await expect(estimate(page)).toHaveText("≈ ₹35.20"); // 8 x $0.05
 
   await page.getByRole("radio", { name: "4 s" }).click(); // shorter clips are 720p only
   await expect(page.getByRole("radio", { name: "720p" })).toHaveAttribute("aria-checked", "true");
 
   await page.getByRole("switch", { name: "Sound" }).click();
-  await expect(estimate(page)).toHaveText("≈ $0.200"); // 4 x $0.05 with sound
+  await expect(estimate(page)).toHaveText("≈ ₹17.60"); // 4 x $0.05 with sound
   await expect(page.getByRole("radio", { name: "4K" })).toBeDisabled(); // Lite can't make 4K
 });
 
@@ -58,9 +63,10 @@ test("make a clip, watch it run, play it, and find it in the Library", async ({ 
 
   const job = jobFor(page, text);
   await expect(job).toHaveAttribute("data-status", "running");
+  await expect(job).toContainText(/\d+%/); // the estimated progress
   await expect(job.getByRole("status", { name: "Generating" })).toBeVisible();
   await expect(job.getByTestId("job-video")).toBeVisible({ timeout: 40_000 });
-  await expect(job.getByTestId("job-cost")).toHaveText("≈ $0.320");
+  await expect(job.getByTestId("job-cost")).toHaveText("≈ ₹28.16");
 
   await page.getByRole("link", { name: "Library" }).first().click();
   await expect(page.getByRole("heading", { name: "Library", level: 1 })).toBeVisible(FIRST_PAINT);
@@ -72,7 +78,7 @@ test("make a clip, watch it run, play it, and find it in the Library", async ({ 
   await tile.click();
   const dialog = page.getByTestId("asset-dialog");
   await expect(dialog.getByTestId("asset-video")).toBeVisible();
-  await expect(dialog.getByTestId("asset-cost")).toHaveText("≈ $0.320");
+  await expect(dialog.getByTestId("asset-cost")).toHaveText("≈ ₹28.16");
   await expect(dialog).toContainText("16:9, 4 s, 720p");
   await expect(dialog.getByRole("link", { name: "Re-run these settings" })).toBeVisible();
   await expect(dialog.getByRole("link", { name: "Edit this image" })).toHaveCount(0); // that's for images
@@ -210,7 +216,7 @@ test("a style preset in the Image studio is added to the prompt when you generat
   await page.goto("/image");
   await expect(page.getByRole("textbox", { name: "Prompt" })).toBeVisible(FIRST_PAINT);
   await expect(page.locator("summary").filter({ hasText: "Camera and look" })).toHaveCount(0); // camera moves are for video
-  await openPresets(page, "Look");
+  await page.getByRole("button", { name: /^Look and project/ }).click(); // opens already expanded
   await expect(page.getByRole("radio", { name: "Slow dolly in" })).toHaveCount(0);
   await page.getByRole("radio", { name: "35mm film" }).click();
   await page.getByRole("textbox", { name: "Prompt" }).fill(text);

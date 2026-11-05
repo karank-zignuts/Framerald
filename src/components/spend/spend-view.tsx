@@ -3,7 +3,7 @@
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { modelLabel } from "@/lib/ai/models";
-import { formatUsd } from "@/lib/format";
+import { formatMoney } from "@/lib/format";
 import type { UsageKind } from "@/features/spend/aggregate";
 import { useSpend } from "@/features/spend/queries";
 import type { SpendDto } from "@/features/spend/server";
@@ -15,15 +15,15 @@ const dayLabel = (iso: string) => new Date(`${iso}T00:00:00Z`).toLocaleDateStrin
 function Bars({ days }: { days: SpendDto["summary"]["byDay"] }) {
   const max = Math.max(...days.map((d) => d.usd), 0);
   const top = days.reduce((a, b) => (b.usd > a.usd ? b : a), days[0]);
-  const summary = max > 0 ? `Spend per day for the last 30 days. The highest was ${formatUsd(top.usd)} on ${dayLabel(top.date)}.` : "No spend in the last 30 days.";
+  const summary = max > 0 ? `Spend per day for the last 30 days. The highest was ${formatMoney(top.usd)} on ${dayLabel(top.date)}.` : "No spend in the last 30 days.";
   return (
     <div className="flex flex-col gap-2">
       <div className="flex items-baseline justify-between text-xs tabular-nums text-muted-foreground">
-        <span>{max > 0 ? `Peak ${formatUsd(max)}` : "Nothing yet"}</span>
+        <span>{max > 0 ? `Peak ${formatMoney(max)}` : "Nothing yet"}</span>
       </div>
       <div role="img" aria-label={summary} className="flex h-40 items-end gap-1 border-b border-border" data-testid="spend-bars">
         {days.map((d, i) => (
-          <div key={d.date} title={`${dayLabel(d.date)}: ${formatUsd(d.usd)}`} className="flex h-full flex-1 items-end">
+          <div key={d.date} title={`${dayLabel(d.date)}: ${formatMoney(d.usd)}`} className="flex h-full flex-1 items-end">
             <div
               className={`w-full rounded-t-sm ${i === days.length - 1 ? "bg-brand" : "bg-muted-foreground/50"}`}
               style={{ height: d.usd > 0 && max > 0 ? `${Math.max((d.usd / max) * 100, 2)}%` : "0" }}
@@ -48,7 +48,7 @@ function Bars({ days }: { days: SpendDto["summary"]["byDay"] }) {
           {days.map((d) => (
             <tr key={d.date}>
               <td>{dayLabel(d.date)}</td>
-              <td>{formatUsd(d.usd)}</td>
+              <td>{formatMoney(d.usd)}</td>
             </tr>
           ))}
         </tbody>
@@ -84,7 +84,7 @@ function Breakdown({ title, rows }: { title: string; rows: { label: string; usd:
                     <span className="block h-1 rounded bg-muted-foreground/60" style={{ width: `${Math.max(r.share * 100, 1)}%` }} />
                   </span>
                 </td>
-                <td className="whitespace-nowrap py-2 pl-3 text-right tabular-nums">{formatUsd(r.usd)}</td>
+                <td className="whitespace-nowrap py-2 pl-3 text-right tabular-nums">{formatMoney(r.usd)}</td>
                 <td className="w-14 whitespace-nowrap py-2 pl-3 text-right tabular-nums text-muted-foreground">{Math.round(r.share * 100)}%</td>
               </tr>
             ))}
@@ -140,11 +140,11 @@ function SpendBody({ data }: { data: SpendDto }) {
     <>
       <section aria-label="Totals" className="flex flex-col gap-1">
         <p className="text-3xl font-medium tabular-nums text-foreground" data-testid="spend-month">
-          {formatUsd(summary.monthToDateUsd)}
+          {formatMoney(summary.monthToDateUsd)}
         </p>
         <p className="text-sm text-muted-foreground">so far this month</p>
         <p className="mt-2 text-sm tabular-nums text-foreground" data-testid="spend-30">
-          {formatUsd(summary.last30Usd)} in the last 30 days
+          {formatMoney(summary.last30Usd)} in the last 30 days
         </p>
         {unknownCostCount > 0 && (
           <p role="note" className="mt-2 max-w-xl text-sm text-muted-foreground" data-testid="spend-unknown">
@@ -182,7 +182,7 @@ function SpendBody({ data }: { data: SpendDto }) {
                     {g.kind === "video" ? "Video" : "Image"}, {modelLabel(g.model)}, {dayLabel(g.createdAt.slice(0, 10))}
                   </span>
                 </span>
-                <span className="shrink-0 tabular-nums">{formatUsd(g.costUsd)}</span>
+                <span className="shrink-0 tabular-nums">{formatMoney(g.costUsd)}</span>
               </li>
             ))}
           </ol>

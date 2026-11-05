@@ -1,8 +1,12 @@
 "use client";
 
-import { Play, Star } from "lucide-react";
+import { Image as ImageIcon, Play, Film } from "lucide-react";
+import { formatCost } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { LazyVideo } from "./lazy-video";
+import { TileActions } from "./tile-actions";
+import { useAssetName } from "@/features/view/names";
+import { useViewSettings } from "@/features/view/settings";
 import type { AssetDto } from "@/features/library/types";
 
 const focusRing = "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
@@ -11,19 +15,23 @@ type Props = {
   asset: AssetDto;
   onOpen: () => void;
   onFavorite: (value: boolean) => void;
+  /** Adds Delete to the tile menu. */
+  onDelete?: () => Promise<void> | void;
   /** "native" keeps the picture's own shape; "square" crops to a uniform grid. */
   fit?: "native" | "square";
   /** Above the fold: load now instead of lazily (helps Largest Contentful Paint). */
   eager?: boolean;
 };
 
-export function AssetTile({ asset, onOpen, onFavorite, fit = "native", eager = false }: Props) {
+export function AssetTile({ asset, onOpen, onFavorite, onDelete, fit = "native", eager = false }: Props) {
+  const name = useAssetName(asset);
+  const { details } = useViewSettings();
   const ratio = asset.width && asset.height ? asset.width / asset.height : 1;
   const prompt = asset.generation?.prompt ?? "Generated image";
   const isVideo = asset.kind === "video";
   const seconds = asset.durationMs ? Math.round(asset.durationMs / 1000) : null;
   return (
-    <div className="group relative overflow-hidden rounded-lg border border-border bg-secondary" data-testid="asset-tile">
+    <div className="group relative overflow-hidden rounded-2xl border border-border bg-card" data-testid="asset-tile">
       <button
         type="button"
         onClick={onOpen}
@@ -65,23 +73,23 @@ export function AssetTile({ asset, onOpen, onFavorite, fit = "native", eager = f
       {isVideo && seconds !== null && (
         // Outside the button on purpose: the length is already in the button's name, and text inside a
         // button that its name doesn't contain fails accessibility checks.
-        <span aria-hidden className="pointer-events-none absolute bottom-2 left-2 rounded bg-background/80 px-1.5 py-0.5 text-xs tabular-nums text-foreground">
+        <span aria-hidden className={cn("pointer-events-none absolute left-2 rounded bg-background/80 px-1.5 py-0.5 text-xs tabular-nums text-foreground", details ? "bottom-9" : "bottom-2")}>
           0:{String(seconds).padStart(2, "0")}
         </span>
       )}
-      <button
-        type="button"
-        onClick={() => onFavorite(!asset.isFavorite)}
-        aria-pressed={asset.isFavorite}
-        aria-label={asset.isFavorite ? "Remove from favourites" : "Add to favourites"}
-        className={cn(
-          "absolute right-2 top-2 flex size-8 items-center justify-center rounded-md bg-background/70 text-foreground transition-opacity duration-fast hover:bg-background",
-          asset.isFavorite ? "opacity-100" : "opacity-0 focus-visible:opacity-100 group-hover:opacity-100 group-focus-within:opacity-100",
-          focusRing,
-        )}
-      >
-        <Star aria-hidden className={cn("size-4", asset.isFavorite && "fill-brand text-brand")} />
-      </button>
+      {details && (
+        // The name is already part of the button's own label, so this is only for the eye.
+        <span aria-hidden className="pointer-events-none absolute inset-x-0 bottom-0 flex items-center gap-2 bg-gradient-to-t from-background/85 to-transparent px-3 pb-2.5 pt-8 text-xs text-foreground">
+          {isVideo ? <Film className="size-3.5 shrink-0" /> : <ImageIcon className="size-3.5 shrink-0" />}
+          <span className="truncate">{name}</span>
+          {asset.generation?.costUsd != null && (
+            <span className="ml-auto shrink-0 tabular-nums text-muted-foreground" data-testid="tile-cost">
+              {formatCost(asset.generation.costUsd / Math.max(asset.generation.count, 1))}
+            </span>
+          )}
+        </span>
+      )}
+      <TileActions asset={asset} name={name} onFavorite={onFavorite} onDelete={onDelete} />
     </div>
   );
 }

@@ -1,0 +1,16 @@
+"use client";
+
+import { usePathname } from "next/navigation";
+import { ViewMenu } from "@/components/media/view-menu";
+import { BalanceChip } from "./balance-chip";
+
+/** Top-right of every page: the view options (Image only) and the balance. */
+export function HeaderTools() {
+  const pathname = usePathname();
+  return (
+    <div className="flex items-center gap-2">
+      {pathname.startsWith("/image") && <ViewMenu />}
+      <BalanceChip />
+    </div>
+  );
+}

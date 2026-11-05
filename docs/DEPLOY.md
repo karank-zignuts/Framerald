@@ -15,6 +15,7 @@ Set these in Vercel (Project Settings, Environment Variables). Never commit them
 | `GOOGLE_SERVICE_ACCOUNT_KEY_B64` | yes on Vercel | Base64 of a service account JSON key (see below) |
 | `APP_PASSWORD` | yes for a public URL | The one password for the whole app. Empty means open, which is only right on your own machine |
 | `SESSION_SECRET` | strongly recommended | A long random string mixed into the cookie signing key (`openssl rand -base64 32`). Without it the key comes from the password alone, so a copied cookie could be used to guess a weak password offline. Changing it, or `APP_PASSWORD`, signs everyone out |
+| `NEXT_PUBLIC_USD_INR` | optional | Rupees per US dollar for the amounts shown in the app (default 88). Prices are stored in USD; this only changes the display. Set it before the build |
 | `CRON_SECRET` | optional | Enables `/api/cron/videos`. Unset means that route answers 404 |
 
 ### Making `GOOGLE_SERVICE_ACCOUNT_KEY_B64`

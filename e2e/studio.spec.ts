@@ -1,3 +1,4 @@
+import { openChip } from "./chips";
 import sharp from "sharp";
 import { test, expect } from "./fixtures";
 import type { Page } from "@playwright/test";
@@ -24,6 +25,11 @@ async function makeImage(page: Page, text: string) {
   await expect(page.getByTestId("asset-tile").first()).toBeVisible({ timeout: 30_000 });
 }
 
+// These tests read the grouped (Batch) layout: its cost line and per-generation alerts. Grid is the default and has its own spec in phase5.spec.ts.
+test.beforeEach(async ({ page }) => {
+  await page.addInitScript(() => localStorage.setItem("framerald.view", JSON.stringify({ mode: "batch" })));
+});
+
 test("the home page sends you to the Image studio, and the nav works", async ({ page }) => {
   await page.goto("/");
   await expect(page).toHaveURL(/\/image$/, FIRST_PAINT);
@@ -41,22 +47,25 @@ test("make an image and see what it cost", async ({ page }) => {
   await openStudio(page);
   await expect(page.getByText("Your images appear here")).toBeVisible();
 
+  await openChip(page, /^Aspect ratio/);
   await page.getByRole("radio", { name: "Aspect ratio 16:9" }).click();
+  await page.keyboard.press("Escape");
   await makeImage(page, tag("a red door"));
 
+  await expect(prompt(page)).toHaveValue(""); // the box clears once Generate is pressed
   await expect(page.getByTestId("batch")).toHaveCount(1);
-  await expect(page.getByTestId("batch-cost")).toHaveText("≈ $0.039");
+  await expect(page.getByTestId("batch-cost")).toHaveText("≈ ₹3.43");
   await expect(page.getByTestId("asset-tile")).toHaveCount(1);
 });
 
 test("two images add up the cost", async ({ page }) => {
   await openStudio(page);
-  await page.getByRole("radio", { name: "2", exact: true }).click();
-  await expect(page.getByRole("button", { name: "Generate 2 images" })).toBeVisible();
+  await page.getByRole("button", { name: "More images" }).click();
+  await expect(page.getByRole("button", { name: /^Generate 2 images/ })).toBeVisible();
   await prompt(page).fill(tag("pair"));
-  await page.getByRole("button", { name: "Generate 2 images" }).click();
+  await page.getByRole("button", { name: /^Generate 2 images/ }).click();
   await expect(page.getByTestId("asset-tile")).toHaveCount(2, { timeout: 30_000 });
-  await expect(page.getByTestId("batch-cost")).toHaveText("≈ $0.078");
+  await expect(page.getByTestId("batch-cost")).toHaveText("≈ ₹6.86");
 });
 
 test("a failed generation says why and can be retried", async ({ page }) => {
@@ -72,6 +81,7 @@ test("the Lite model only offers 1K", async ({ page }) => {
   await openStudio(page);
   await page.getByRole("combobox", { name: "Model" }).click();
   await page.getByRole("option", { name: /Nano Banana 2 Lite/ }).click();
+  await openChip(page, /^Quality/);
   await expect(page.getByRole("radio", { name: "2K" })).toBeDisabled();
   await expect(page.getByRole("radio", { name: "1K" })).toBeEnabled();
 });
@@ -90,7 +100,7 @@ test("find it in the Library, favourite it, then delete it", async ({ page }) =>
   await tile.click();
   const dialog = page.getByTestId("asset-dialog");
   await expect(dialog).toContainText(text);
-  await expect(dialog.getByTestId("asset-cost")).toHaveText("≈ $0.039");
+  await expect(dialog.getByTestId("asset-cost")).toHaveText("≈ ₹3.43");
 
   await dialog.getByRole("button", { name: "Add to favourites" }).click();
   await expect(dialog.getByRole("button", { name: "Remove from favourites" })).toBeVisible();
@@ -116,7 +126,9 @@ test("edit with a reference image, then re-run the same settings", async ({ page
   await openStudio(page);
   await page.getByTestId("reference-input").setInputFiles({ name: "ref.png", mimeType: "image/png", buffer: ref });
   await expect(page.getByTestId("reference")).toHaveCount(1);
+  await openChip(page, /^Aspect ratio/);
   await page.getByRole("radio", { name: "Aspect ratio 4:3" }).click();
+  await page.keyboard.press("Escape");
   await makeImage(page, text);
   await expect(page.getByTestId("batch")).toContainText("Edit");
 
@@ -126,6 +138,7 @@ test("edit with a reference image, then re-run the same settings", async ({ page
   await page.getByRole("link", { name: "Re-run these settings" }).click();
   await expect(page).toHaveURL(/\/image\?from=/);
   await expect(prompt(page)).toHaveValue(text, FIRST_PAINT);
+  await openChip(page, /^Aspect ratio/);
   await expect(page.getByRole("radio", { name: "Aspect ratio 4:3" })).toHaveAttribute("aria-checked", "true");
   await expect(page.getByTestId("reference")).toHaveCount(1);
 

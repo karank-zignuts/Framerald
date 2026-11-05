@@ -1,3 +1,4 @@
+import { openChip } from "./chips";
 import { test, expect } from "./fixtures";
 import type { Page } from "@playwright/test";
 
@@ -31,7 +32,7 @@ test("idea to shot list to a generated frame, in one flow", async ({ page }) => 
   await expect(page).toHaveURL(/\/agent\?thread=/);
   await expect(page.getByTestId("shot-card")).toHaveCount(3);
   await expect(page.getByText(/Send a shot to Image, or to Video/)).toBeVisible();
-  await expect(page.getByTestId("reply-cost")).toHaveText("≈ $0.001"); // the mock's usage is about $0.0011
+  await expect(page.getByTestId("reply-cost")).toHaveText("≈ ₹0.10"); // the mock's usage is about $0.0011
 
   // The chat is named after the first message and listed.
   await expect(page.getByRole("button", { name: idea.slice(0, 60) })).toBeVisible();
@@ -40,7 +41,9 @@ test("idea to shot list to a generated frame, in one flow", async ({ page }) => 
   await page.getByTestId("shot-card").first().getByRole("link", { name: /Send to Image/ }).click();
   await expect(page).toHaveURL(/\/image\?prompt=/);
   await expect(page.getByRole("textbox", { name: "Prompt" })).toHaveValue(new RegExp(idea.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")), FIRST_PAINT);
+  await openChip(page, /^Aspect ratio/);
   await expect(page.getByRole("radio", { name: "Aspect ratio 16:9" })).toHaveAttribute("aria-checked", "true");
+  await page.keyboard.press("Escape");
 
   await page.getByRole("button", { name: /^Generate/ }).click();
   await expect(page.getByTestId("asset-tile")).toHaveCount(1, { timeout: 30_000 });
@@ -133,4 +136,5 @@ test("Send to Video opens the Video studio with the shot ready", async ({ page }
   await expect(page).toHaveURL(/\/video\?prompt=/);
   await expect(page.getByRole("textbox", { name: "Prompt" })).toHaveValue(new RegExp(idea.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")), FIRST_PAINT);
   await expect(page.getByRole("radio", { name: "Aspect ratio 16:9" })).toHaveAttribute("aria-checked", "true");
+  await page.keyboard.press("Escape");
 });

@@ -1,13 +1,13 @@
 # Framerald handover
 
-Date: 2026-11-05. State: Phases 0 to 4 done and pushed (latest commit `723d63f`). The Higgsfield layout work is studied but **not started**; it waits for the owner's confirmation.
+Date: 2026-11-05. State: Phases 0 to 4 done and pushed (latest commit `723d63f`). Phase 5 (layout rebuild) is built and pushed.
 
 ## 1. Project state
 
 - Phases 0 to 3: Image Studio, Agent, Video Studio, presets, Library. Verified with a few real Vertex calls (images about $0.04, one 4 s Veo clip about $0.12).
 - Phase 4: Spend page, projects, Library search, password gate (`src/proxy.ts`), `/api/cron/videos`, signed direct uploads, axe accessibility spec, copy pass, `docs/DEPLOY.md`. No real model calls.
 - Checks at the last run: lint, typecheck, 160 unit tests, 83 browser tests passed (1 skipped: the screenshot spec, which needs `E2E_SHOTS=1`), production build clean.
-- Brand accent is green `#00d062` (the owner's change; do not revert).
+- Brand accent is green `#7ad950` (the owner's change; do not revert).
 - Plans and outcomes: `docs/plans/phase-*.md`. Roadmap: `docs/ai-context/ROADMAP.md`.
 
 ## 2. Owner steps still open
@@ -25,7 +25,11 @@ Date: 2026-11-05. State: Phases 0 to 4 done and pushed (latest commit `723d63f`)
 - Search is `ilike` on the joined prompt; add a trigram index if the Library gets large.
 - Hallmark's per-file lint reports missing focus and state styles; they live in shared UI primitives and `globals.css` (waived in its stamp).
 
-## 4. Pending request: Higgsfield layout study
+## 3b. Phase 5: layout rebuild (done 2026-11-05)
+
+The owner confirmed the plan (sidebar kept and made collapsible, docked Image composer, no "How it works") and the work is built and tested. Details, decisions and accepted limits are in `docs/plans/phase-5-layout.md`. Sections 4 and 5 below are the original study and proposal, kept for reference.
+
+## 4. The Higgsfield layout study (reference)
 
 The owner asked: study https://higgsfield.ai/ai/ (Image and Video sections) hands-on, assume nothing, and rebuild the same layout. **No layout changes until the owner confirms.**
 
@@ -109,7 +113,7 @@ Real routes: `/ai/` is a 404. Use `/ai/image?model=gpt_image_2` and `/ai/video` 
 1. Image Studio: one full-width canvas; results above, composer docked bottom-centre; chips open small upward menus; a searchable model popover; View and help at top-right.
 2. Video Studio: 320 px left control panel plus a right stage (History | How it works); presets open in the right stage.
 3. Shell: a slim top bar instead of the sidebar. Biggest decision.
-4. Keep our own: green `#00d062`, our copy, BorderBeam on the prompt box only, and the Library, Spend, Agent and Projects pages. Copy layout patterns only, not assets, branding or text.
+4. Keep our own: green `#7ad950`, our copy, BorderBeam on the prompt box only, and the Library, Spend, Agent and Projects pages. Copy layout patterns only, not assets, branding or text.
 5. Mobile: keep our working phone layout (Higgsfield has none).
 
 Open questions for the owner: replace the sidebar with a top bar? Dock the Image composer at the bottom? Anything to change before starting?

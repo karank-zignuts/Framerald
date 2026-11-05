@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { imageCostUsd } from "./cost";
+import { estimateImageCostUsd, imageCostUsd } from "./cost";
 
 // Worked example from a real Nano Banana 2.1 call (1K square image):
 // 14 prompt tokens, 721 thinking tokens, 1120 image tokens.
@@ -41,5 +41,25 @@ describe("imageCostUsd", () => {
   it("returns null when the response had no usage or no output token breakdown", () => {
     expect(imageCostUsd("gemini-nano-banana-2.1", undefined)).toBeNull();
     expect(imageCostUsd("gemini-nano-banana-2.1", { promptTokenCount: 14 })).toBeNull();
+  });
+});
+
+describe("estimateImageCostUsd", () => {
+  it("matches the real 1K Nano Banana 2.1 call it is based on", () => {
+    expect(estimateImageCostUsd("gemini-nano-banana-2.1", "1K", 1, 0)).toBe(0.039);
+  });
+  it("multiplies by the number of images", () => {
+    expect(estimateImageCostUsd("gemini-nano-banana-2.1", "1K", 4, 0)).toBe(0.1561);
+  });
+  it("costs more at 4K, where an image takes more tokens", () => {
+    const at1k = estimateImageCostUsd("gemini-nano-banana-2.1", "1K", 1, 0)!;
+    expect(estimateImageCostUsd("gemini-nano-banana-2.1", "4K", 1, 0)!).toBeGreaterThan(at1k);
+  });
+  it("adds the input cost of each reference image", () => {
+    const none = estimateImageCostUsd("gemini-3-pro-image", "1K", 1, 0)!;
+    expect(estimateImageCostUsd("gemini-3-pro-image", "1K", 1, 3)!).toBeGreaterThan(none);
+  });
+  it("is null for a model with no known price", () => {
+    expect(estimateImageCostUsd("no-such-model", "1K", 1, 0)).toBeNull();
   });
 });

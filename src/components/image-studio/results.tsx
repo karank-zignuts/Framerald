@@ -2,8 +2,9 @@
 
 import { Image as ImageIcon, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { TILE_WIDTH, useViewSettings } from "@/features/view/settings";
 import { EmptyState } from "@/components/ui/empty-state";
-import { Skeleton } from "@/components/ui/skeleton";
+import { GeneratingTile } from "@/components/media/generating";
 import { AssetTile } from "@/components/media/asset-tile";
 import { MODELS } from "@/lib/ai/models";
 import { formatCost } from "@/lib/format";
@@ -23,14 +24,8 @@ type Props = {
   batches: Batch[];
   onOpen: (asset: AssetDto) => void;
   onFavorite: (asset: AssetDto, value: boolean) => void;
+  onDelete: (asset: AssetDto) => Promise<void>;
   onRetry: (batch: Batch) => void;
-};
-
-const GRID: Record<number, string> = {
-  1: "grid-cols-1 max-w-xl",
-  2: "grid-cols-1 sm:grid-cols-2",
-  3: "grid-cols-1 sm:grid-cols-3",
-  4: "grid-cols-2 xl:grid-cols-4",
 };
 
 function ratioOf(input: GenerateInput) {
@@ -38,7 +33,32 @@ function ratioOf(input: GenerateInput) {
   return w / h;
 }
 
-export function Results({ batches, onOpen, onFavorite, onRetry }: Props) {
+/** A masonry grid: pictures of any shape keep their own proportions and fill the width. */
+function Masonry({ width, children }: { width: number; children: React.ReactNode }) {
+  return (
+    <div style={{ columnWidth: width, columnGap: "0.75rem" }} className="[&>*]:mb-3 [&>*]:break-inside-avoid">
+      {children}
+    </div>
+  );
+}
+
+function FailedBatch({ batch, onRetry }: { batch: Batch; onRetry: (batch: Batch) => void }) {
+  return (
+    <div role="alert" className="flex flex-col items-start gap-3 rounded-lg border border-destructive/50 p-4">
+      <p className="line-clamp-1 text-xs text-muted-foreground">{batch.input.prompt}</p>
+      <p className="text-sm">{batch.error ?? "The model didn't return an image."}</p>
+      <Button variant="secondary" size="sm" onClick={() => onRetry(batch)}>
+        <RotateCcw aria-hidden className="size-3.5" />
+        Try again
+      </Button>
+    </div>
+  );
+}
+
+export function Results({ batches, onOpen, onFavorite, onDelete, onRetry }: Props) {
+  const view = useViewSettings();
+  const width = TILE_WIDTH[view.size];
+
   if (batches.length === 0) {
     return (
       <div className="flex flex-1 items-center justify-center p-6">
@@ -51,8 +71,43 @@ export function Results({ batches, onOpen, onFavorite, onRetry }: Props) {
     );
   }
 
+  const tile = (asset: AssetDto, eager: boolean) => (
+    <AssetTile
+      key={asset.id}
+      asset={asset}
+      eager={eager}
+      onOpen={() => onOpen(asset)}
+      onFavorite={(v) => onFavorite(asset, v)}
+      onDelete={() => onDelete(asset)}
+    />
+  );
+
+  if (view.mode === "grid") {
+    const failed = batches.filter((b) => b.status === "failed");
+    return (
+      <div className="mx-auto flex w-full max-w-[110rem] flex-col gap-4 p-5" data-testid="results">
+        {failed.map((b) => (
+          <FailedBatch key={b.key} batch={b} onRetry={onRetry} />
+        ))}
+        <Masonry width={width}>
+          {batches.flatMap((batch, bi) => {
+            if (batch.status === "running") {
+              return Array.from({ length: batch.input.count }, (_, i) => (
+                <div key={`${batch.key}-${i}`} role="status" aria-label="Generating">
+                  <GeneratingTile ratio={ratioOf(batch.input)} prompt={batch.input.prompt} />
+                </div>
+              ));
+            }
+            if (batch.status === "done") return (batch.result?.assets ?? []).map((a) => tile(a, bi === 0));
+            return [];
+          })}
+        </Masonry>
+      </div>
+    );
+  }
+
   return (
-    <div className="flex flex-col gap-10 p-5 lg:overflow-y-auto" data-testid="results">
+    <div className="mx-auto flex w-full max-w-[110rem] flex-col gap-10 p-5" data-testid="results">
       {batches.map((batch) => {
         const { input } = batch;
         const model = MODELS.image[input.model];
@@ -78,22 +133,16 @@ export function Results({ batches, onOpen, onFavorite, onRetry }: Props) {
             </header>
 
             {batch.status === "running" && (
-              <div className={`grid gap-3 ${GRID[input.count]}`} role="status" aria-label="Generating">
-                {Array.from({ length: input.count }, (_, i) => (
-                  <Skeleton key={i} className="w-full rounded-lg" style={{ aspectRatio: ratioOf(input) }} />
-                ))}
+              <div role="status" aria-label="Generating">
+                <Masonry width={width}>
+                  {Array.from({ length: input.count }, (_, i) => (
+                    <GeneratingTile key={i} ratio={ratioOf(input)} prompt={input.prompt} />
+                  ))}
+                </Masonry>
               </div>
             )}
 
-            {batch.status === "failed" && (
-              <div role="alert" className="flex flex-col items-start gap-3 rounded-lg border border-destructive/50 p-4">
-                <p className="text-sm">{batch.error ?? "The model didn't return an image."}</p>
-                <Button variant="secondary" size="sm" onClick={() => onRetry(batch)}>
-                  <RotateCcw aria-hidden className="size-3.5" />
-                  Try again
-                </Button>
-              </div>
-            )}
+            {batch.status === "failed" && <FailedBatch batch={batch} onRetry={onRetry} />}
 
             {batch.status === "done" && (
               <>
@@ -102,11 +151,7 @@ export function Results({ batches, onOpen, onFavorite, onRetry }: Props) {
                     {failedCount} of {input.count} didn&apos;t finish: {batch.result.error}
                   </p>
                 )}
-                <div className={`grid gap-3 ${GRID[Math.max(1, assets.length)] ?? GRID[4]}`}>
-                  {assets.map((asset) => (
-                    <AssetTile key={asset.id} asset={asset} eager={batch === batches[0]} onOpen={() => onOpen(asset)} onFavorite={(v) => onFavorite(asset, v)} />
-                  ))}
-                </div>
+                <Masonry width={width}>{assets.map((a) => tile(a, batch === batches[0]))}</Masonry>
               </>
             )}
           </section>
@@ -115,4 +160,3 @@ export function Results({ batches, onOpen, onFavorite, onRetry }: Props) {
     </div>
   );
 }
-
