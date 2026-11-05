@@ -188,7 +188,7 @@ test("completing an upload checks the real bytes, and cleans up when they're wro
   await putToStorage(lying, bytes, "image/png");
   const mismatch = await complete(request, lying);
   expect(mismatch.status()).toBe(400);
-  expect((await mismatch.json()).error).toMatch(/isn't the type it said/);
+  expect((await mismatch.json()).error).toMatch(/doesn't match the image type/);
 
   // A path that doesn't belong to this upload is refused outright.
   const good = await sign(request, "image/png", bytes.length);

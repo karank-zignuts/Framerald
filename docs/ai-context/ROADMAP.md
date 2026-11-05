@@ -10,7 +10,7 @@ Legend: ⬜ not started · 🟦 in progress · ✅ done
 
 ## 1. Where we are <!-- LIVING -->
 
-Phases 0 to 3 are done. Image Studio, Agent, Video Studio, presets and the Library work end to end against real Vertex AI and Supabase. One owner step is pending: apply migration `20261105000002` (`npx supabase db push --linked`). Next: Phase 4, Library, spend and polish.
+Phases 0 to 4 are done. Image Studio, Agent, Video Studio, presets, Library, projects, search and Spend work end to end, and the app can sit behind a password. Owner steps pending: apply migration `20261105000002` (`npx supabase db push --linked`) and deploy using `docs/DEPLOY.md`. Next: a layout study of the Higgsfield Image and Video sections, for you to confirm before any change.
 
 ## 2. Phases
 
@@ -55,10 +55,14 @@ Built: `/video` with live cost estimate, text to video and image to video (first
 
 **Done when:** a planned shot becomes a finished clip in the Library.
 
-### Phase 4: Library, spend and polish ⬜
+### Phase 4: Library, spend and polish ✅
 - Projects, filters, search
 - Spend view from `usage_events`
-- Performance and accessibility pass, `APP_PASSWORD`, Vercel deploy
+- Performance and accessibility pass, `APP_PASSWORD`, Vercel readiness (you deploy)
+
+Built: `/spend` (month to date, last 30 days, by day, by kind, by model, most expensive, unknown-cost count); projects (create, rename, delete, picker in both studios and the Agent, Library filter and move); Library search; password gate (`proxy.ts`, signed cookie, login limiter, `/login`, sign out); `/api/cron/videos` behind `CRON_SECRET`; signed direct uploads; correct download extensions; axe scan of every screen; lazy video tiles; copy pass. Deploy steps: `docs/DEPLOY.md`. Plan: `docs/plans/phase-4-spend-projects-deploy.md`.
+
+**Done when:** you can see what you've spent, find and group your work, and put the app behind a password and deploy it yourself.
 
 ### Later: Paid platform ⏳
 - Supabase Auth, RLS per owner, Stripe credits, pricing page
@@ -72,3 +76,4 @@ Built: `/video` with live cost estimate, text to video and image to video (first
 | 2026-11-05 | Phase 1 built: Image Studio, Library, generation service, uploads, thumbnails, cost logging. Verified with a real generate and a real edit (about $0.04 each). |
 | 2026-11-05 | Phase 2 built: Agent page, streaming shot lists, prefill into the Image Studio, Refine with agent. Verified with real calls (plan about $0.003, refine about $0.002). |
 | 2026-11-05 | Phase 3 built: Video Studio, background jobs, presets, video in the Library. Verified with one real Veo 3.1 Lite clip (4 s, 720p, no sound, about $0.12). |
+| 2026-11-05 | Phase 4 built: Spend page, projects, Library search, password gate and cron route, signed direct uploads, accessibility scan, `docs/DEPLOY.md`. No real model calls. |

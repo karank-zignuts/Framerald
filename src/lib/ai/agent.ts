@@ -34,7 +34,7 @@ export type AgentStreamEvent =
 /** A message that is safe and useful to show the user. */
 export function agentErrorMessage(error: unknown): string {
   if ((error as { status?: unknown })?.status === 429) {
-    return "Google says too many requests are in flight. Wait a moment and try again.";
+    return "Google is limiting requests right now. Wait a moment and try again.";
   }
   const message = error instanceof Error ? error.message : "";
   if (/timeout|timed out|aborted/i.test(message)) return "The agent took too long to answer. Try again.";

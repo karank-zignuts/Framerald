@@ -31,6 +31,7 @@ async function fetchUsage(sinceIso: string): Promise<UsageRow[]> {
       .eq("owner_id", OWNER_ID)
       .gte("created_at", sinceIso)
       .order("created_at")
+      .order("id") // tiebreaker, so rows sharing a timestamp can't straddle a page and be skipped or repeated
       .range(page * PAGE, page * PAGE + PAGE - 1);
     if (error) throw new Error(`Couldn't load your spend: ${error.message}`);
     rows.push(...((data ?? []) as UsageRow[]));

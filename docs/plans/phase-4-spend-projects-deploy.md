@@ -37,3 +37,11 @@ Date: 2026-11-05. Done when: you can see what you've spent, organise work into p
 | Search injection | Only `.ilike()` with an escaped pattern; the cursor `.or()` string is untouched and already validated |
 | Signed upload abused | `sign` caps size and type; `complete` re-checks the real bytes and size and deletes on failure |
 | Cron route exposed | Disabled unless `CRON_SECRET` is set; bearer compared in constant time |
+
+## Outcome (2026-11-05)
+
+All slices built. Verified: lint, typecheck, 160 unit tests, 83 browser tests (main, auth-gate on a second server, axe accessibility scan of every screen at desktop and phone width), production build. No real model calls, no migration, no deploy.
+
+Independent review: no criticals. Fixed: two parallel `complete` calls for one upload could delete the winner's files (now keeps them on a duplicate key); the stored size is checked before a file is read into memory; spend paging has an `id` tiebreaker so rows sharing a timestamp aren't skipped or repeated. Documented in `docs/DEPLOY.md`: set `SESSION_SECRET`; the login limiter is per instance and trusts `x-forwarded-for` (Vercel sets it); sign out can't revoke a copied cookie.
+
+Known and accepted: spend reads at most 20,000 usage rows in the 30-day window (a single person won't reach it); orphan upload files when a browser never calls `complete`; search is `ilike`, fine at this scale; Hallmark's per-file lint reports focus and state styles missing because they live in shared UI primitives and `globals.css` (waived in its stamp); migration `20261105000002` is still an owner step.

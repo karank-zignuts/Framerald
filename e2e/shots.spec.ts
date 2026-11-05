@@ -92,6 +92,20 @@ test("screenshots", async ({ page, request }) => {
   await shot("dialog-video");
   await page.keyboard.press("Escape");
 
+  // Spend, with the usage the steps above created.
+  await page.goto("/spend");
+  await expect(page.getByTestId("spend-month")).toBeVisible(FIRST_PAINT);
+  await page.waitForTimeout(600);
+  await shot("spend");
+
+  // Library with search and the projects dialog.
+  await page.goto("/library");
+  await expect(page.getByTestId("asset-tile").first()).toBeVisible(FIRST_PAINT);
+  await page.getByRole("button", { name: "Projects" }).click();
+  await page.waitForTimeout(400);
+  await shot("projects-dialog");
+  await page.keyboard.press("Escape");
+
   // Phone width.
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/image");

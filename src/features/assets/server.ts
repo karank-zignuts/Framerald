@@ -1,7 +1,7 @@
 import "server-only";
 import { randomUUID } from "node:crypto";
 import { db, OWNER_ID } from "@/lib/supabase/server";
-import { createUploadUrl, downloadMedia, mediaPath, removeMedia, uploadMedia } from "@/lib/storage";
+import { createUploadUrl, downloadMedia, mediaPath, removeMedia, storedSize, uploadMedia } from "@/lib/storage";
 import { inspectImage, makeThumbnail } from "@/lib/image-processing";
 import { HttpError } from "@/lib/http";
 import { ASSET_SELECT, toAssetDtos, type AssetRow } from "@/features/library/server";
@@ -43,6 +43,12 @@ export async function completeUpload(input: z.infer<typeof completeUploadSchema>
   const thumbPath = thumbPathFor(path);
   const cleanup = () => removeMedia([path, thumbPath]);
 
+  const stored = await storedSize(path);
+  if (stored !== null && stored > MAX_UPLOAD_BYTES) {
+    await cleanup(); // too big to even read into memory
+    throw new HttpError(400, "That image is over 10 MB. Use a smaller one.");
+  }
+
   let bytes: Buffer;
   try {
     bytes = await downloadMedia(path);
@@ -63,7 +69,7 @@ export async function completeUpload(input: z.infer<typeof completeUploadSchema>
   }
   if (info.ext !== ext) {
     await cleanup();
-    throw new HttpError(400, "That image isn't the type it said it was.");
+    throw new HttpError(400, "The file doesn't match the image type it claims to be.");
   }
 
   try {
@@ -90,6 +96,11 @@ export async function completeUpload(input: z.infer<typeof completeUploadSchema>
     .select(ASSET_SELECT)
     .single();
   if (error) {
+    if (error.code === "23505") {
+      // A parallel call recorded this upload first. The files are theirs now, so keep them.
+      const winner = await existingUpload(assetId);
+      if (winner) return winner;
+    }
     await cleanup(); // no row, so don't leave the files behind
     throw new Error(`Couldn't record the upload: ${error.message}`);
   }

@@ -30,6 +30,17 @@ export async function downloadMedia(path: string): Promise<Buffer> {
   return Buffer.from(await data.arrayBuffer());
 }
 
+/** The stored size in bytes, read from metadata so a huge file is never loaded. Null when it can't be found. */
+export async function storedSize(path: string): Promise<number | null> {
+  const slash = path.lastIndexOf("/");
+  const { data, error } = await db()
+    .storage.from(MEDIA_BUCKET)
+    .list(path.slice(0, slash), { search: path.slice(slash + 1), limit: 5 });
+  if (error) return null;
+  const size = data?.find((f) => f.name === path.slice(slash + 1))?.metadata?.size;
+  return typeof size === "number" ? size : null;
+}
+
 /** One request for many links. Paths that can't be signed are left out. */
 export async function signedUrlMap(paths: string[]): Promise<Map<string, string>> {
   const unique = [...new Set(paths)];

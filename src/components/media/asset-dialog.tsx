@@ -42,7 +42,7 @@ export function AssetDialog({ asset, onClose, onFavorite, onDelete, onMove }: Pr
         data-testid="asset-dialog"
       >
         <DialogTitle className="sr-only">{isVideo ? "Video details" : "Image details"}</DialogTitle>
-        <DialogDescription className="sr-only">The picture or clip, the prompt that made it, and actions.</DialogDescription>
+        <DialogDescription className="sr-only">The image or clip, its prompt, and what you can do with it.</DialogDescription>
 
         <div className="flex min-h-0 items-center justify-center bg-background">
           {isVideo ? (

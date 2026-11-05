@@ -34,6 +34,7 @@ Legend: ✅ **Decided** · 🟡 **Recommended** (adopt when needed) · ⏳ **Lat
 | Toasts | `sonner` | 2.0.8 |
 | Images | `sharp` (thumbnails, upload validation). Added in Phase 1; Next already ships it as an optional dependency | 0.35.5 |
 | Tests | Vitest / Playwright | 5.0.5 / 1.64.1 |
+| Accessibility tests | `@axe-core/playwright` (dev only). Added in Phase 4: one spec scans every screen for WCAG A and AA violations | 4.14.0 |
 | Tooling | `supabase` CLI | 2.122.0 |
 | Hosting | Local now; Vercel later | — |
 
@@ -52,7 +53,10 @@ Legend: ✅ **Decided** · 🟡 **Recommended** (adopt when needed) · ⏳ **Lat
 | Agent replies stream as NDJSON over a POST; the shot list is a function call (`propose_shot_list`), validated with Zod. Past shot lists are replayed to the model as plain text | ✅ | No fragile parsing, no function-call history to store |
 | Agent thinking level LOW | ✅ | Measured: first output 3.5 s instead of 11.5 s, about $0.003 instead of $0.005 per plan |
 | Job polling from the client while a job is open, plus a sweep on each page load | ✅ | No extra worker service in v1 |
-| Vercel Cron or Supabase Edge Function for polling | 🟡 | When deployed, so jobs finish with the tab closed |
+| `/api/cron/videos` (bearer `CRON_SECRET`) refreshes and sweeps running clips. No schedule in `vercel.json`; `docs/DEPLOY.md` says how to add one | ✅ | Hobby plans reject frequent crons, so the owner picks the scheduler |
+| Password gate: `src/proxy.ts` checks an HMAC-signed httpOnly cookie when `APP_PASSWORD` is set; login is rate limited per instance (in memory) | ✅ | One user, no accounts. Empty password leaves local dev open |
+| Uploads go browser to Supabase Storage through a signed URL, then `/api/uploads/complete` checks the real bytes with sharp | ✅ | Vercel functions reject bodies over 4.5 MB |
+| Search uses `ilike` on the joined generation prompt with escaped `% _ \`; no migration | ✅ | Fine at one person's scale. Add a trigram index if the Library gets large |
 | Supabase Auth + RLS per owner | ⏳ | When going multi-user |
 | Stripe | ⏳ | When going paid |
 
