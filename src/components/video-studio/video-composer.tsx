@@ -213,34 +213,6 @@ export function VideoComposer({
           </div>
         </div>
 
-        <PresetPicker kind="video" selected={values.presetIds} onChange={(presetIds) => onChange({ presetIds })} />
-
-        <div className="flex flex-col gap-2">
-          <span className="text-sm text-muted-foreground">Frames</span>
-          <div className="grid grid-cols-2 gap-3">
-            <FrameSlot
-              label="First frame"
-              asset={values.firstFrame}
-              uploading={uploadingSlot === "first"}
-              onUpload={(f) => onUploadFrame("first", f)}
-              onPickLibrary={() => setPicking("first")}
-              onRemove={() => onChange({ firstFrame: null, lastFrame: null })}
-            />
-            <FrameSlot
-              label="Last frame"
-              asset={values.lastFrame}
-              uploading={uploadingSlot === "last"}
-              disabled={!values.firstFrame}
-              onUpload={(f) => onUploadFrame("last", f)}
-              onPickLibrary={() => setPicking("last")}
-              onRemove={() => onChange({ lastFrame: null })}
-            />
-          </div>
-          <p className="text-xs text-muted-foreground">
-            {values.firstFrame ? "The clip starts from your first frame." : "Add a first frame to animate an image. Leave it empty for text to video."}
-          </p>
-        </div>
-
         <div className="flex flex-col gap-2">
           <Label htmlFor="video-model" className="text-sm text-muted-foreground">
             Model
@@ -322,6 +294,34 @@ export function VideoComposer({
           </div>
           <Switch id="video-sound" checked={values.audio} onCheckedChange={(audio) => onChange({ audio })} />
         </div>
+
+        <div className="flex flex-col gap-2">
+          <span className="text-sm text-muted-foreground">Frames</span>
+          <div className="grid grid-cols-2 gap-3">
+            <FrameSlot
+              label="First frame"
+              asset={values.firstFrame}
+              uploading={uploadingSlot === "first"}
+              onUpload={(f) => onUploadFrame("first", f)}
+              onPickLibrary={() => setPicking("first")}
+              onRemove={() => onChange({ firstFrame: null, lastFrame: null })}
+            />
+            <FrameSlot
+              label="Last frame"
+              asset={values.lastFrame}
+              uploading={uploadingSlot === "last"}
+              disabled={!values.firstFrame}
+              onUpload={(f) => onUploadFrame("last", f)}
+              onPickLibrary={() => setPicking("last")}
+              onRemove={() => onChange({ lastFrame: null })}
+            />
+          </div>
+          <p className="text-xs text-muted-foreground">
+            {values.firstFrame ? "The clip starts from your first frame." : "Add a first frame to animate an image. Leave it empty for text to video."}
+          </p>
+        </div>
+
+        <PresetPicker kind="video" selected={values.presetIds} onChange={(presetIds) => onChange({ presetIds })} />
       </div>
 
       <div className="sticky bottom-0 z-10 flex flex-col gap-3 border-t border-border bg-card p-5">

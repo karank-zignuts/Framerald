@@ -63,6 +63,35 @@ test("screenshots", async ({ page, request }) => {
   await page.waitForTimeout(900);
   await shot("studio-prefilled");
 
+  // Video Studio: empty, then with a clip and one running.
+  await page.goto("/video");
+  await expect(page.getByRole("textbox", { name: "Prompt" })).toBeVisible(FIRST_PAINT);
+  await page.waitForTimeout(800);
+  await shot("video-empty");
+  await page.locator("summary").filter({ hasText: "Camera and look" }).click();
+  await page.getByRole("radio", { name: "Slow dolly in" }).click();
+  await page.getByRole("radio", { name: "35mm film" }).click();
+  await page.locator("summary").filter({ hasText: "Camera and look" }).click(); // close it again for the picture
+  await page.getByRole("textbox", { name: "Prompt" }).fill(tag("A lighthouse keeper climbs the stairs"));
+  await page.getByRole("button", { name: "Generate video" }).click();
+  await expect(page.getByTestId("job-video").first()).toBeVisible({ timeout: 40_000 });
+  await page.getByRole("textbox", { name: "Prompt" }).fill(tag("[slow] A long take of waves at dusk"));
+  await page.getByRole("button", { name: "Generate video" }).click();
+  await expect(page.getByTestId("job").first()).toHaveAttribute("data-status", "running");
+  await page.waitForTimeout(1500);
+  await shot("video-jobs");
+
+  // Library with a clip, and the clip's dialog.
+  await page.goto("/library?view=videos");
+  await expect(page.getByTestId("asset-tile").first()).toBeVisible(FIRST_PAINT);
+  await page.waitForTimeout(800);
+  await shot("library-videos");
+  await page.getByTestId("asset-tile").first().getByRole("button").first().click();
+  await expect(page.getByTestId("asset-video")).toBeVisible();
+  await page.waitForTimeout(800);
+  await shot("dialog-video");
+  await page.keyboard.press("Escape");
+
   // Phone width.
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/image");
@@ -76,4 +105,8 @@ test("screenshots", async ({ page, request }) => {
   await expect(page.getByRole("textbox", { name: "Message" })).toBeVisible(FIRST_PAINT);
   await page.waitForTimeout(500);
   await shot("agent-mobile");
+  await page.goto("/video");
+  await expect(page.getByRole("textbox", { name: "Prompt" })).toBeVisible(FIRST_PAINT);
+  await page.waitForTimeout(800);
+  await shot("video-mobile");
 });

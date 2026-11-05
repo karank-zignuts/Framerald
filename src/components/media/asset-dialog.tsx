@@ -72,7 +72,7 @@ export function AssetDialog({ asset, onClose, onFavorite, onDelete }: Props) {
         </div>
 
         <div className="flex min-h-0 flex-col gap-5 overflow-y-auto border-t border-border bg-card p-5 lg:border-l lg:border-t-0">
-          {g && <p className="select-text text-sm leading-relaxed text-foreground">{g.prompt}</p>}
+          {g && <p className="select-text pr-8 text-sm leading-relaxed text-foreground">{g.prompt}</p>}
 
           {g && (
             <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-2 text-sm">

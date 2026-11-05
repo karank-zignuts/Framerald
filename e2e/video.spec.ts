@@ -14,6 +14,7 @@ const FIRST_PAINT = { timeout: 45_000 };
 const prompt = (page: Page) => page.getByRole("textbox", { name: "Prompt" });
 const generate = (page: Page) => page.getByRole("button", { name: "Generate video" });
 const estimate = (page: Page) => page.getByTestId("estimate");
+const openPresets = (page: Page, title = "Camera and look") => page.locator("summary").filter({ hasText: title }).click();
 const jobFor = (page: Page, text: string) => page.getByTestId("job").filter({ hasText: text });
 
 async function openVideo(page: Page, query = "") {
@@ -113,6 +114,7 @@ test("a failed clip says why and Try again starts another", async ({ page }) => 
 test("presets are added to the prompt when you generate, and you can make your own", async ({ page }) => {
   const text = tag("a lighthouse");
   await openVideo(page);
+  await openPresets(page);
   await page.getByRole("radio", { name: "Slow dolly in" }).click();
   await page.getByRole("radio", { name: "Film noir" }).click();
   await prompt(page).fill(text);
@@ -207,7 +209,9 @@ test("a style preset in the Image studio is added to the prompt when you generat
   const text = tag("a quiet street");
   await page.goto("/image");
   await expect(page.getByRole("textbox", { name: "Prompt" })).toBeVisible(FIRST_PAINT);
-  await expect(page.getByRole("radio", { name: "Slow dolly in" })).toHaveCount(0); // camera moves are for video
+  await expect(page.locator("summary").filter({ hasText: "Camera and look" })).toHaveCount(0); // camera moves are for video
+  await openPresets(page, "Look");
+  await expect(page.getByRole("radio", { name: "Slow dolly in" })).toHaveCount(0);
   await page.getByRole("radio", { name: "35mm film" }).click();
   await page.getByRole("textbox", { name: "Prompt" }).fill(text);
   await page.getByRole("button", { name: /^Generate/ }).click();

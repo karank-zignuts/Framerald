@@ -1,7 +1,7 @@
 "use client";
 
 import { useQueryClient } from "@tanstack/react-query";
-import { Plus, X } from "lucide-react";
+import { ChevronDown, Plus, X } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -80,8 +80,19 @@ export function PresetPicker({ kind, selected, onChange }: Props) {
     }
   }
 
+  const chosen = selectedPresets(presets, selected).map((p) => p.name);
+  const title = kind === "video" ? "Camera and look" : "Look";
+
   return (
-    <div className="flex flex-col gap-3" data-testid="preset-picker">
+    <details className="group rounded-lg border border-border" data-testid="preset-picker">
+      <summary className="flex cursor-pointer list-none items-center justify-between gap-3 rounded-lg px-3 py-2 text-sm text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring [&::-webkit-details-marker]:hidden">
+        <span>{title}</span>
+        <span className="flex min-w-0 items-center gap-2">
+          <span className="truncate text-xs text-foreground">{chosen.length ? chosen.join(", ") : "None"}</span>
+          <ChevronDown aria-hidden className="size-4 shrink-0 transition-transform duration-fast group-open:rotate-180" />
+        </span>
+      </summary>
+      <div className="flex flex-col gap-3 border-t border-border p-3">
       {query.isPending && <p className="text-xs text-muted-foreground">Loading presets</p>}
       {query.isError && (
         <p role="alert" className="text-xs">
@@ -185,6 +196,7 @@ export function PresetPicker({ kind, selected, onChange }: Props) {
           Add your own
         </Button>
       )}
-    </div>
+      </div>
+    </details>
   );
 }

@@ -41,7 +41,7 @@ export function ImagePickerDialog({ onPick, onClose }: Props) {
 
         {items.length > 0 && (
           <ul className="grid grid-cols-3 gap-2 sm:grid-cols-4">
-            {items.map((asset) => (
+            {items.map((asset, index) => (
               <li key={asset.id}>
                 <button
                   type="button"
@@ -50,7 +50,7 @@ export function ImagePickerDialog({ onPick, onClose }: Props) {
                   className="block aspect-square w-full overflow-hidden rounded-md border border-border bg-secondary transition-colors duration-fast hover:border-brand focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 >
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={asset.thumbnailUrl} alt="" loading="lazy" className="size-full object-cover" />
+                  <img src={asset.thumbnailUrl} alt="" loading={index < 8 ? "eager" : "lazy"} className="size-full object-cover" />
                 </button>
               </li>
             ))}
