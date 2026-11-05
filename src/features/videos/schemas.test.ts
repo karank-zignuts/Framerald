@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { generateVideoSchema } from "./schemas";
+import { generateVideoSchema, videoDimensions } from "./schemas";
 
 const uuid = "11111111-1111-4111-8111-111111111111";
 const other = "22222222-2222-4222-8222-222222222222";
@@ -47,5 +47,14 @@ describe("generateVideoSchema", () => {
     expect(generateVideoSchema.safeParse({ prompt: "x", firstFrameAssetId: uuid, lastFrameAssetId: other }).success).toBe(true);
     expect(generateVideoSchema.safeParse({ prompt: "x", firstFrameAssetId: uuid, lastFrameAssetId: uuid }).success).toBe(false);
     expect(generateVideoSchema.safeParse({ prompt: "x", firstFrameAssetId: "nope" }).success).toBe(false);
+  });
+});
+
+describe("videoDimensions", () => {
+  it("gives the pixel size for each resolution and ratio", () => {
+    expect(videoDimensions("720p", "16:9")).toEqual({ width: 1280, height: 720 });
+    expect(videoDimensions("720p", "9:16")).toEqual({ width: 720, height: 1280 });
+    expect(videoDimensions("1080p", "16:9")).toEqual({ width: 1920, height: 1080 });
+    expect(videoDimensions("4k", "16:9")).toEqual({ width: 3840, height: 2160 });
   });
 });

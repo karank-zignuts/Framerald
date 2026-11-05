@@ -53,4 +53,7 @@ export default async function globalTeardown() {
     const { count } = await sb.from("agent_messages").select("id", { count: "exact", head: true }).eq("thread_id", t.id);
     if (!count) await sb.from("agent_threads").delete().eq("id", t.id);
   }
+
+  // Presets created by tests are named "[e2e] ...".
+  await sb.from("presets").delete().like("name", "[e2e]%");
 }

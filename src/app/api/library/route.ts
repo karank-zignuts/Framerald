@@ -10,6 +10,7 @@ export const GET = handle(async (request: NextRequest) => {
       cursor: p.get("cursor"),
       limit: Number.isFinite(limit) && limit > 0 ? limit : undefined,
       favoritesOnly: p.get("favorites") === "1",
+      kind: p.get("kind") === "image" || p.get("kind") === "video" ? (p.get("kind") as "image" | "video") : null,
     }),
   );
 });

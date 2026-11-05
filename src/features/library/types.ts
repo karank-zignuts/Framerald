@@ -8,6 +8,10 @@ export type GenerationSummary = {
   aspectRatio: string | null;
   imageSize: string | null;
   count: number;
+  /** Video generations only. */
+  durationSeconds: number | null;
+  resolution: string | null;
+  audio: boolean | null;
   costUsd: number | null; // null = unknown
 };
 
@@ -19,6 +23,8 @@ export type AssetDto = {
   thumbnailUrl: string;
   width: number | null;
   height: number | null;
+  /** Video assets only. */
+  durationMs: number | null;
   isFavorite: boolean;
   createdAt: string;
   generation: GenerationSummary | null;

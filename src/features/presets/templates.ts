@@ -10,6 +10,8 @@ export type PresetTemplate = {
   /** Either plain text added after the prompt, or text containing {prompt} where the prompt goes. */
   template: string;
   kinds?: PresetKind[];
+  /** True for the ones shipped in code; those can't be deleted. */
+  builtin?: boolean;
 };
 
 /** Adds each preset to the prompt in order. Used at submit time, so the saved prompt is exactly what was sent. */
@@ -58,6 +60,6 @@ const STYLE: Omit<PresetTemplate, "group" | "kinds">[] = [
 
 /** Shipped in code so they work without a database change. Your own presets live in the `presets` table. */
 export const BUILTIN_PRESETS: PresetTemplate[] = [
-  ...CAMERA.map((p) => ({ ...p, group: "camera" as const, kinds: ["video" as const] })),
-  ...STYLE.map((p) => ({ ...p, group: "style" as const, kinds: ["image" as const, "video" as const] })),
+  ...CAMERA.map((p) => ({ ...p, group: "camera" as const, kinds: ["video" as const], builtin: true })),
+  ...STYLE.map((p) => ({ ...p, group: "style" as const, kinds: ["image" as const, "video" as const], builtin: true })),
 ];

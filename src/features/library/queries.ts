@@ -1,16 +1,17 @@
 import { useInfiniteQuery, useQueryClient, type InfiniteData } from "@tanstack/react-query";
 import { deleteAsset, fetchLibraryPage, setFavorite } from "./api";
 import type { AssetDto, LibraryPage } from "./types";
+import type { LibraryView } from "./view";
 
 export const libraryKeys = {
   all: ["library"] as const,
-  list: (favoritesOnly: boolean) => ["library", "list", { favoritesOnly }] as const,
+  list: (view: LibraryView) => ["library", "list", { view }] as const,
 };
 
-export function useLibrary(favoritesOnly: boolean) {
+export function useLibrary(view: LibraryView) {
   return useInfiniteQuery({
-    queryKey: libraryKeys.list(favoritesOnly),
-    queryFn: ({ pageParam }) => fetchLibraryPage({ cursor: pageParam, favoritesOnly }),
+    queryKey: libraryKeys.list(view),
+    queryFn: ({ pageParam }) => fetchLibraryPage({ cursor: pageParam, view }),
     initialPageParam: null as string | null,
     getNextPageParam: (last) => last.nextCursor,
     // Signed image links last an hour. Refetching on focus after 10 minutes keeps a long-open tab from showing broken thumbnails.
@@ -37,7 +38,7 @@ export function useAssetActions() {
       try {
         await setFavorite(asset.id, value);
         // The favourites view must gain or lose this image.
-        await qc.invalidateQueries({ queryKey: libraryKeys.list(true) });
+        await qc.invalidateQueries({ queryKey: libraryKeys.list("favourites") });
       } catch (error) {
         for (const [key, data] of snapshot) qc.setQueryData(key, data);
         throw error;

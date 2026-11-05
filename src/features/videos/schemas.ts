@@ -36,3 +36,11 @@ export const generateVideoSchema = z
   });
 
 export type GenerateVideoRequest = z.infer<typeof generateVideoSchema>;
+
+const LONG_SIDE = { "720p": [1280, 720], "1080p": [1920, 1080], "4k": [3840, 2160] } as const;
+
+/** Pixel size of a clip, from its resolution and ratio. */
+export function videoDimensions(resolution: string, aspectRatio: string): { width: number; height: number } {
+  const [w, h] = LONG_SIDE[resolution as keyof typeof LONG_SIDE] ?? LONG_SIDE["720p"];
+  return aspectRatio === "9:16" ? { width: h, height: w } : { width: w, height: h };
+}

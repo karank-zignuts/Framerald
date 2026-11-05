@@ -11,7 +11,14 @@ type GenerationRow = {
   prompt: string;
   model: string;
   mode: string;
-  params: { aspectRatio?: string; imageSize?: string; count?: number } | null;
+  params: {
+    aspectRatio?: string;
+    imageSize?: string;
+    count?: number;
+    durationSeconds?: number;
+    resolution?: string;
+    generateAudio?: boolean;
+  } | null;
   cost_usd: number | string | null;
 };
 
@@ -23,13 +30,14 @@ export type AssetRow = {
   thumbnail_path: string | null;
   width: number | null;
   height: number | null;
+  duration_ms: number | null;
   is_favorite: boolean;
   created_at: string;
   generation: GenerationRow | null;
 };
 
 export const ASSET_SELECT =
-  "id,kind,source,storage_path,thumbnail_path,width,height,is_favorite,created_at," +
+  "id,kind,source,storage_path,thumbnail_path,width,height,duration_ms,is_favorite,created_at," +
   "generation:generations!assets_generation_id_fkey(id,prompt,model,mode,params,cost_usd)";
 
 export const DEFAULT_PAGE_SIZE = 24;
@@ -38,18 +46,22 @@ const STUCK_AFTER_MINUTES = 10;
 
 let lastSweep = 0;
 const SWEEP_EVERY_MS = 60_000;
+const IMAGE_STUCK_AFTER_MS = 10 * 60_000;
+const VIDEO_STUCK_AFTER_MS = 30 * 60_000; // clips legitimately run for minutes
 
 /** Marks generations that never finished (server crashed mid-call) as failed. At most once a minute per server. */
 export async function failStuckGenerations(): Promise<void> {
   if (Date.now() - lastSweep < SWEEP_EVERY_MS) return;
   lastSweep = Date.now();
-  const cutoff = new Date(Date.now() - STUCK_AFTER_MINUTES * 60_000).toISOString();
-  await db()
-    .from("generations")
-    .update({ status: "failed", error: "This generation never finished.", completed_at: new Date().toISOString() })
-    .eq("owner_id", OWNER_ID)
-    .in("status", ["queued", "running"])
-    .lt("created_at", cutoff);
+  for (const [kind, afterMs] of [["image", IMAGE_STUCK_AFTER_MS], ["video", VIDEO_STUCK_AFTER_MS]] as const) {
+    await db()
+      .from("generations")
+      .update({ status: "failed", error: "This generation never finished.", completed_at: new Date().toISOString() })
+      .eq("owner_id", OWNER_ID)
+      .eq("kind", kind)
+      .in("status", ["queued", "running"])
+      .lt("created_at", new Date(Date.now() - afterMs).toISOString());
+  }
 }
 
 function summarize(g: GenerationRow): GenerationSummary {
@@ -61,6 +73,9 @@ function summarize(g: GenerationRow): GenerationSummary {
     aspectRatio: g.params?.aspectRatio ?? null,
     imageSize: g.params?.imageSize ?? null,
     count: g.params?.count ?? 1,
+    durationSeconds: g.params?.durationSeconds ?? null,
+    resolution: g.params?.resolution ?? null,
+    audio: g.params?.generateAudio ?? null,
     costUsd: g.cost_usd === null ? null : Number(g.cost_usd),
   };
 }
@@ -81,6 +96,7 @@ export async function toAssetDtos(rows: AssetRow[]): Promise<AssetDto[]> {
         thumbnailUrl: urls.get(r.thumbnail_path ?? r.storage_path) ?? url,
         width: r.width,
         height: r.height,
+        durationMs: r.duration_ms,
         isFavorite: r.is_favorite,
         createdAt: r.created_at,
         generation: r.generation ? summarize(r.generation) : null,
@@ -93,6 +109,7 @@ export async function listAssets(opts: {
   cursor?: string | null;
   limit?: number;
   favoritesOnly?: boolean;
+  kind?: "image" | "video" | null;
 }): Promise<LibraryPage> {
   await failStuckGenerations();
   const limit = Math.min(Math.max(Math.floor(opts.limit ?? DEFAULT_PAGE_SIZE), 1), MAX_PAGE_SIZE);
@@ -109,6 +126,7 @@ export async function listAssets(opts: {
     .order("id", { ascending: false })
     .limit(limit + 1);
   if (opts.favoritesOnly) q = q.eq("is_favorite", true);
+  if (opts.kind) q = q.eq("kind", opts.kind);
   if (cursor) {
     q = q.or(`created_at.lt."${cursor.createdAt}",and(created_at.eq."${cursor.createdAt}",id.lt.${cursor.id})`);
   }
