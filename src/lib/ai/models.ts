@@ -17,6 +17,10 @@ export type Pricing = {
 
 export type ImageSize = "1K" | "2K" | "4K";
 
+export type VideoResolution = "720p" | "1080p" | "4k";
+/** USD per second of video, by output resolution. A missing resolution means the model can't make it. */
+export type VideoRates = Partial<Record<VideoResolution, number>>;
+
 export type ModelSpec = {
   id: string;
   label: string;
@@ -25,6 +29,9 @@ export type ModelSpec = {
   /** A lower launch price that ends on a known date (inclusive, UTC). After it, `pricing` applies. */
   introPricing?: { until: string; pricing: Pricing };
   imageSizes?: readonly ImageSize[];
+  /** Video models: what they can output, and what a second costs with and without sound. */
+  videoResolutions?: readonly VideoResolution[];
+  videoPricing?: { audio: VideoRates; silent: VideoRates };
 };
 
 export const MODELS = {
@@ -53,23 +60,40 @@ export const MODELS = {
     },
   },
 
-  // Video. Verified present; Veo is only listed in us-central1.
+  // Video. Veo runs in us-central1 only. Prices are Google's Vertex list (read 2026-11-05),
+  // shown there as "$ / 1 count" and treated here as per second, the conservative reading.
   video: {
     default: {
       id: "veo-3.1-generate-001",
       label: "Veo 3.1",
       location: "us-central1",
+      videoResolutions: ["720p", "1080p", "4k"],
+      videoPricing: {
+        audio: { "720p": 0.4, "1080p": 0.4, "4k": 0.6 },
+        silent: { "720p": 0.2, "1080p": 0.2, "4k": 0.4 },
+      },
     },
     fast: {
       id: "veo-3.1-fast-generate-001",
       label: "Veo 3.1 Fast",
       location: "us-central1",
+      videoResolutions: ["720p", "1080p"],
+      videoPricing: {
+        audio: { "720p": 0.1, "1080p": 0.12 },
+        silent: { "720p": 0.08, "1080p": 0.1 },
+      },
     },
     lite: {
       id: "veo-3.1-lite-generate-001",
-      label: "Veo 3.1 Lite",
+      label: "Veo 3.1 Lite (preview)",
       location: "us-central1",
+      videoResolutions: ["720p", "1080p"],
+      videoPricing: {
+        audio: { "720p": 0.05, "1080p": 0.08 },
+        silent: { "720p": 0.03, "1080p": 0.05 },
+      },
     },
+    // Not offered in the Video Studio: it uses the Interactions API, which Vertex refused for the image models.
     omni: {
       id: "gemini-omni-1.1-flash-preview",
       label: "Gemini Omni 1.1 Flash (preview)",
@@ -99,6 +123,17 @@ export const MODELS = {
 
 export type ImageModelKey = keyof typeof MODELS.image;
 export const IMAGE_MODEL_KEYS = Object.keys(MODELS.image) as ImageModelKey[];
+
+/** Veo models offered in the Video Studio, cheapest first. */
+export type VideoModelKey = "lite" | "fast" | "default";
+export const VIDEO_MODEL_KEYS: VideoModelKey[] = ["lite", "fast", "default"];
+
+export function findModel(modelId: string): ModelSpec | undefined {
+  for (const group of Object.values(MODELS)) {
+    for (const m of Object.values(group) as ModelSpec[]) if (m.id === modelId) return m;
+  }
+  return undefined;
+}
 
 /** Friendly name for a stored model id, falling back to the id itself. */
 export function modelLabel(modelId: string): string {

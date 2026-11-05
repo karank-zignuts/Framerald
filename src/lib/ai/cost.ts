@@ -1,4 +1,4 @@
-import { findPricing } from "./models";
+import { findModel, findPricing, type VideoResolution } from "./models";
 
 // The part of Vertex's `usageMetadata` we use. Kept structural so tests and the
 // mock don't need the SDK types.
@@ -58,4 +58,19 @@ function sumTokens(usage: ImageUsage, modality: string): number {
   return (usage.candidatesTokensDetails ?? [])
     .filter((d) => d.modality === modality)
     .reduce((n, d) => n + (d.tokenCount ?? 0), 0);
+}
+
+/**
+ * Estimated cost of Veo output in USD: seconds x the per-second rate for the
+ * resolution, with or without sound, times the number of videos. Null when the
+ * model has no video price or can't make that resolution.
+ */
+export function videoCostUsd(
+  modelId: string,
+  opts: { seconds: number; resolution: VideoResolution; audio: boolean; videos?: number },
+): number | null {
+  const pricing = findModel(modelId)?.videoPricing;
+  const rate = pricing?.[opts.audio ? "audio" : "silent"][opts.resolution];
+  if (rate === undefined) return null;
+  return round6(rate * opts.seconds * (opts.videos ?? 1));
 }
