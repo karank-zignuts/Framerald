@@ -42,7 +42,6 @@ export const ASSET_SELECT =
 
 export const DEFAULT_PAGE_SIZE = 24;
 const MAX_PAGE_SIZE = 60;
-const STUCK_AFTER_MINUTES = 10;
 
 let lastSweep = 0;
 const SWEEP_EVERY_MS = 60_000;

@@ -320,7 +320,7 @@ export async function refreshVideoJob(id: string): Promise<VideoJobDto> {
 // ─── Lists and re-run ────────────────────────────────────────────────────────
 
 /** The newest clips (running, finished and failed), so a reload still shows what is in flight. */
-export async function listRecentVideoJobs(limit = 12): Promise<VideoJobDto[]> {
+export async function listRecentVideoJobs(limit = 30): Promise<VideoJobDto[]> {
   await failStuckGenerations();
   const { data, error } = await db()
     .from("generations")

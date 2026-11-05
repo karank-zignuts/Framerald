@@ -24,8 +24,8 @@ export const deleteThread = (id: string) =>
 export const fetchMessages = (threadId: string) =>
   fetch(`/api/agent/threads/${threadId}/messages`).then((r) => readJson<AgentMessageDto[]>(r));
 
-export const refinePromptRequest = (prompt: string, aspectRatio?: string) =>
-  fetch("/api/agent/refine-prompt", { method: "POST", headers: json, body: JSON.stringify({ prompt, aspectRatio }) }).then((r) =>
+export const refinePromptRequest = (prompt: string, aspectRatio?: string, kind?: "image" | "video") =>
+  fetch("/api/agent/refine-prompt", { method: "POST", headers: json, body: JSON.stringify({ prompt, aspectRatio, kind }) }).then((r) =>
     readJson<{ prompt: string }>(r),
   );
 

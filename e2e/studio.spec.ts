@@ -31,7 +31,7 @@ test("the home page sends you to the Image studio, and the nav works", async ({ 
   await expect(generate(page)).toBeDisabled(); // nothing to generate yet
 
   await page.getByRole("link", { name: /^Video/ }).first().click();
-  await expect(page.getByText("Video isn't built yet")).toBeVisible(FIRST_PAINT);
+  await expect(page.getByRole("button", { name: "Generate video" })).toBeVisible(FIRST_PAINT);
   await page.getByRole("link", { name: /^Agent/ }).first().click();
   await expect(page.getByText("What are you making?")).toBeVisible(FIRST_PAINT);
   await expect(page.getByRole("textbox", { name: "Message" })).toBeVisible();

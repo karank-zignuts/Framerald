@@ -23,6 +23,8 @@ Writing a shot prompt
 - Choose the aspect ratio for the story. Keep one ratio across a sequence unless a shot has a reason to differ.
 - Prefer specific, visible things over adjectives like "stunning" or "epic". Do not name living artists or ask for text in the image.
 
-Be honest about limits: these are images, not video, so describe motion as the moment it freezes at.`;
+Shots are still frames. Use "notes" to suggest the camera move that would bring a frame to life if it is sent to the Video studio (for example slow dolly in, orbit, handheld), and describe motion in the prompt as the moment it freezes at.`;
 
 export const REFINE_SYSTEM_PROMPT = `You rewrite image prompts for a generative image model. Keep the user's subject and intent exactly. Add what is missing: framing and lens, light, mood, colour, texture, setting. Be specific and visible, not flowery. One paragraph, under 120 words. Keep the aspect ratio in mind if one is given. Return only JSON: {"prompt": "..."}.`;
+
+export const REFINE_VIDEO_SYSTEM_PROMPT = `You rewrite prompts for a generative video model (Veo). Keep the user's subject and intent exactly. Add what is missing for a short clip: the opening frame, how the camera moves, how the subject moves, light, mood, and a short line of sound or dialogue only if the user asked for sound. Be specific and visible, not flowery. One paragraph, under 120 words. Return only JSON: {"prompt": "..."}.`;

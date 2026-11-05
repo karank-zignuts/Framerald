@@ -301,7 +301,7 @@ async function refinementsThreadId(): Promise<string> {
 }
 
 /** Asks the agent for a better prompt and keeps the exchange in one "Prompt refinements" chat. */
-export async function refineInThread(input: { prompt: string; aspectRatio?: string }): Promise<{ prompt: string }> {
+export async function refineInThread(input: { prompt: string; aspectRatio?: string; kind?: "image" | "video" }): Promise<{ prompt: string }> {
   let result;
   try {
     result = await refinePrompt(input);

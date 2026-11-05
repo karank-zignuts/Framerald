@@ -2,6 +2,7 @@
 
 import { PenLine, Plus, X } from "lucide-react";
 import { useRef, useState } from "react";
+import { PresetPicker } from "@/components/presets/preset-picker";
 import { BorderBeam } from "@/components/ui/border-beam";
 import { Button } from "@/components/ui/button";
 import { Kbd } from "@/components/ui/kbd";
@@ -23,6 +24,8 @@ export type ComposerValues = {
   imageSize: ImageSize;
   count: number;
   references: AssetDto[];
+  /** Chosen preset ids (a look), added to the prompt when you generate. */
+  presetIds: string[];
 };
 
 type Props = {
@@ -143,6 +146,8 @@ export function Composer({
             </div>
           </div>
         </div>
+
+        <PresetPicker kind="image" selected={values.presetIds} onChange={(presetIds) => onChange({ presetIds })} />
 
         <div className="flex flex-col gap-2">
           <div className="flex items-baseline justify-between">

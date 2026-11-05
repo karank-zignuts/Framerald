@@ -42,6 +42,8 @@ describe("request schemas", () => {
   it("refine takes a prompt and an optional aspect ratio", () => {
     expect(refinePromptSchema.parse({ prompt: "a door" })).toEqual({ prompt: "a door" });
     expect(refinePromptSchema.safeParse({ prompt: "a door", aspectRatio: "7:3" }).success).toBe(false);
+    expect(refinePromptSchema.parse({ prompt: "a door", kind: "video" }).kind).toBe("video");
+    expect(refinePromptSchema.safeParse({ prompt: "a door", kind: "audio" }).success).toBe(false);
   });
 });
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { Star } from "lucide-react";
+import { Play, Star } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { AssetDto } from "@/features/library/types";
 
@@ -19,27 +19,55 @@ type Props = {
 export function AssetTile({ asset, onOpen, onFavorite, fit = "native", eager = false }: Props) {
   const ratio = asset.width && asset.height ? asset.width / asset.height : 1;
   const prompt = asset.generation?.prompt ?? "Generated image";
+  const isVideo = asset.kind === "video";
+  const seconds = asset.durationMs ? Math.round(asset.durationMs / 1000) : null;
   return (
     <div className="group relative overflow-hidden rounded-lg border border-border bg-secondary" data-testid="asset-tile">
       <button
         type="button"
         onClick={onOpen}
-        aria-label={`Open image: ${prompt.slice(0, 80)}`}
-        className={cn("block w-full", focusRing)}
+        aria-label={`Open ${isVideo ? "video" : "image"}: ${prompt.slice(0, 80)}`}
+        className={cn("relative block w-full", focusRing)}
         style={{ aspectRatio: fit === "square" ? 1 : ratio }}
       >
-        {/* Thumbnails are small webp files behind signed links, so next/image's optimizer adds nothing. */}
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src={asset.thumbnailUrl}
-          alt={prompt}
-          width={asset.width ?? undefined}
-          height={asset.height ?? undefined}
-          loading={eager ? "eager" : "lazy"}
-          fetchPriority={eager ? "high" : "auto"}
-          decoding="async"
-          className="size-full object-cover"
-        />
+        {isVideo ? (
+          <>
+            {/* A clip's first frame is shown by the browser itself, so no thumbnail file is needed. */}
+            <video
+              src={`${asset.url}#t=0.1`}
+              poster={asset.thumbnailUrl !== asset.url ? asset.thumbnailUrl : undefined}
+              muted
+              playsInline
+              preload="metadata"
+              className="size-full object-cover"
+            />
+            <span aria-hidden className="absolute inset-0 flex items-center justify-center">
+              <span className="flex size-10 items-center justify-center rounded-full bg-background/70 text-foreground">
+                <Play className="size-4 fill-current" />
+              </span>
+            </span>
+            {seconds !== null && (
+              <span className="absolute bottom-2 left-2 rounded bg-background/80 px-1.5 py-0.5 text-xs tabular-nums text-foreground">
+                0:{String(seconds).padStart(2, "0")}
+              </span>
+            )}
+          </>
+        ) : (
+          <>
+            {/* Thumbnails are small webp files behind signed links, so next/image's optimizer adds nothing. */}
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={asset.thumbnailUrl}
+              alt={prompt}
+              width={asset.width ?? undefined}
+              height={asset.height ?? undefined}
+              loading={eager ? "eager" : "lazy"}
+              fetchPriority={eager ? "high" : "auto"}
+              decoding="async"
+              className="size-full object-cover"
+            />
+          </>
+        )}
       </button>
       <button
         type="button"

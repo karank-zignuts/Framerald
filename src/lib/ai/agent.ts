@@ -8,6 +8,7 @@ import { MODELS } from "./models";
 import {
   AGENT_SYSTEM_PROMPT,
   REFINE_SYSTEM_PROMPT,
+  REFINE_VIDEO_SYSTEM_PROMPT,
   SHOT_TOOL_DESCRIPTION,
   SHOT_TOOL_NAME,
 } from "./agent-prompt";
@@ -94,10 +95,14 @@ const refineResultSchema = z.object({ prompt: z.string().trim().min(1) });
 export async function refinePrompt(input: {
   prompt: string;
   aspectRatio?: string;
+  kind?: "image" | "video";
 }): Promise<{ prompt: string; usage: TextUsage }> {
   if (mocking()) {
     return {
-      prompt: `${input.prompt}, shot on 35mm, soft cinematic lighting, shallow depth of field`,
+      prompt:
+        input.kind === "video"
+          ? `${input.prompt}, slow push in, soft cinematic lighting, natural motion`
+          : `${input.prompt}, shot on 35mm, soft cinematic lighting, shallow depth of field`,
       usage: { promptTokenCount: 90, candidatesTokenCount: 60, thoughtsTokenCount: 0 },
     };
   }
@@ -111,7 +116,7 @@ export async function refinePrompt(input: {
           model: spec.id,
           contents: [{ role: "user", parts: [{ text }] }],
           config: {
-            systemInstruction: REFINE_SYSTEM_PROMPT,
+            systemInstruction: input.kind === "video" ? REFINE_VIDEO_SYSTEM_PROMPT : REFINE_SYSTEM_PROMPT,
             responseMimeType: "application/json",
             responseJsonSchema: z.toJSONSchema(refineResultSchema, { target: "draft-7" }),
             thinkingConfig: { thinkingLevel: ThinkingLevel.LOW },

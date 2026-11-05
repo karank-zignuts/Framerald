@@ -1,15 +1,21 @@
-import { Film } from "lucide-react";
 import type { Metadata } from "next";
-import { ComingSoon } from "@/components/shell/coming-soon";
+import { Suspense } from "react";
+import { Skeleton } from "@/components/ui/skeleton";
+import { VideoStudio } from "@/components/video-studio/video-studio";
 
 export const metadata: Metadata = { title: "Video" };
 
 export default function VideoPage() {
   return (
-    <ComingSoon
-      icon={Film}
-      title="Video isn't built yet"
-      description="Text to video and image to video come after images and the agent."
-    />
+    <Suspense
+      fallback={
+        <div className="flex flex-1 flex-col gap-4 p-5" role="status" aria-label="Loading">
+          <Skeleton className="h-6 w-24" />
+          <Skeleton className="h-32 w-full max-w-sm rounded-lg" />
+        </div>
+      }
+    >
+      <VideoStudio />
+    </Suspense>
   );
 }

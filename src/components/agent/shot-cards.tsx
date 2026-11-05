@@ -1,9 +1,9 @@
 "use client";
 
-import { ArrowRight, MessageSquareQuote } from "lucide-react";
+import { ArrowRight, Clapperboard, MessageSquareQuote } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { imageStudioUrl } from "@/features/agent/prefill";
+import { imageStudioUrl, videoStudioUrl } from "@/features/agent/prefill";
 import type { Shot, ShotList } from "@/features/agent/schemas";
 
 type Props = {
@@ -19,7 +19,7 @@ export function ShotCards({ list, onRefine }: Props) {
       <header className="flex flex-col gap-0.5">
         <h3 className="text-sm font-medium text-foreground">{list.title}</h3>
         <p className="text-xs text-muted-foreground">
-          {list.shots.length} still frames. Video isn&apos;t built yet, so each shot becomes an image.
+          {list.shots.length} still frames. Send a shot to Image, or to Video to bring it to life.
         </p>
       </header>
 
@@ -44,6 +44,12 @@ export function ShotCards({ list, onRefine }: Props) {
                 <Link href={imageStudioUrl(shot)}>
                   Send to Image
                   <ArrowRight aria-hidden className="size-3.5" />
+                </Link>
+              </Button>
+              <Button asChild size="sm" variant="secondary">
+                <Link href={videoStudioUrl(shot)}>
+                  <Clapperboard aria-hidden className="size-3.5" />
+                  Send to Video
                 </Link>
               </Button>
               <Button size="sm" variant="ghost" onClick={() => onRefine(shot, index)}>

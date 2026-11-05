@@ -30,7 +30,7 @@ test("idea to shot list to a generated frame, in one flow", async ({ page }) => 
   await ask(page, idea);
   await expect(page).toHaveURL(/\/agent\?thread=/);
   await expect(page.getByTestId("shot-card")).toHaveCount(3);
-  await expect(page.getByText(/Video isn't built yet/)).toBeVisible();
+  await expect(page.getByText(/Send a shot to Image, or to Video/)).toBeVisible();
   await expect(page.getByTestId("reply-cost")).toHaveText("≈ $0.001"); // the mock's usage is about $0.0011
 
   // The chat is named after the first message and listed.
@@ -123,4 +123,14 @@ test("Refine with agent rewrites the prompt in the Image studio, and Undo brings
   await page.getByRole("button", { name: "Undo" }).click();
   await expect(prompt).toHaveValue(original);
   await expect(page.getByRole("button", { name: "Undo" })).toBeHidden();
+});
+
+test("Send to Video opens the Video studio with the shot ready", async ({ page }) => {
+  const idea = tag("a train crossing a bridge");
+  await openAgent(page);
+  await ask(page, idea);
+  await page.getByTestId("shot-card").first().getByRole("link", { name: /Send to Video/ }).click();
+  await expect(page).toHaveURL(/\/video\?prompt=/);
+  await expect(page.getByRole("textbox", { name: "Prompt" })).toHaveValue(new RegExp(idea.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")), FIRST_PAINT);
+  await expect(page.getByRole("radio", { name: "Aspect ratio 16:9" })).toHaveAttribute("aria-checked", "true");
 });

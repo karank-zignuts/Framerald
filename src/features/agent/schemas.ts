@@ -42,6 +42,8 @@ export const sendMessageSchema = z.object({
 export const refinePromptSchema = z.object({
   prompt: z.string().trim().min(1, "Write a prompt first.").max(4000),
   aspectRatio: z.enum(ASPECT_RATIOS).optional(),
+  /** Which studio the prompt is for. Video prompts get motion, camera and sound. Default: image. */
+  kind: z.enum(["image", "video"]).optional(),
 });
 
 export const renameThreadSchema = z.object({

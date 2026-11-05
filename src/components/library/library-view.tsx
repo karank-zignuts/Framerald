@@ -1,6 +1,6 @@
 "use client";
 
-import { LayoutGrid, Star } from "lucide-react";
+import { LayoutGrid, Star, Video } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
@@ -12,6 +12,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { SegmentedControl } from "@/components/ui/ix-segmented-control";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAssetActions, useLibrary } from "@/features/library/queries";
+import { libraryViewParam, parseLibraryView, type LibraryView as ViewName } from "@/features/library/view";
 import type { AssetDto } from "@/features/library/types";
 
 // Fixed column counts use minmax(0, 1fr) tracks, so a wide image can't stretch a column.
@@ -21,9 +22,9 @@ export function LibraryView() {
   const router = useRouter();
   const pathname = usePathname();
   const params = useSearchParams();
-  const favoritesOnly = params.get("view") === "favourites";
+  const { view } = parseLibraryView(params.get("view"));
 
-  const query = useLibrary(favoritesOnly);
+  const query = useLibrary(view);
   const actions = useAssetActions();
   const [openId, setOpenId] = useState<string | null>(null);
 
@@ -46,9 +47,10 @@ export function LibraryView() {
     return () => observer.disconnect();
   }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
 
-  function setView(view: string) {
+  function setView(value: string) {
     const next = new URLSearchParams(params);
-    if (view === "favourites") next.set("view", "favourites");
+    const param = libraryViewParam(value as ViewName);
+    if (param) next.set("view", param);
     else next.delete("view");
     router.replace(next.size ? `${pathname}?${next}` : pathname);
   }
@@ -69,13 +71,15 @@ export function LibraryView() {
     <div className="flex min-h-0 flex-1 flex-col lg:overflow-y-auto">
       <header className="flex flex-wrap items-center justify-between gap-3 px-5 pb-2 pt-5">
         <h1 className="text-lg font-medium text-foreground">Library</h1>
-        <div className="w-56">
+        <div className="w-full max-w-sm">
           <SegmentedControl
             label="Show"
-            value={favoritesOnly ? "favourites" : "all"}
+            value={view}
             onValueChange={setView}
             options={[
               { value: "all", label: "All" },
+              { value: "images", label: "Images" },
+              { value: "videos", label: "Videos" },
               { value: "favourites", label: "Favourites" },
             ]}
           />
@@ -102,16 +106,27 @@ export function LibraryView() {
 
         {query.isSuccess && items.length === 0 && (
           <div className="flex flex-1 items-center justify-center">
-            {favoritesOnly ? (
+            {view === "favourites" ? (
               <EmptyState
                 icon={<Star aria-hidden className="size-6" />}
                 title="No favourites yet"
-                description="Tap the star on an image to keep it here."
+                description="Tap the star on an image or video to keep it here."
+              />
+            ) : view === "videos" ? (
+              <EmptyState
+                icon={<Video aria-hidden className="size-6" />}
+                title="No videos yet"
+                description="Clips you make in the Video studio are saved here."
+                action={
+                  <Button asChild variant="secondary" size="sm">
+                    <Link href="/video">Open Video</Link>
+                  </Button>
+                }
               />
             ) : (
               <EmptyState
                 icon={<LayoutGrid aria-hidden className="size-6" />}
-                title="No images yet"
+                title={view === "images" ? "No images yet" : "Nothing here yet"}
                 description="Everything you make in the studios is saved here."
                 action={
                   <Button asChild variant="secondary" size="sm">

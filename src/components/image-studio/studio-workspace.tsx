@@ -3,12 +3,15 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { toast } from "sonner";
+import { selectedPresets } from "@/components/presets/preset-picker";
 import { AssetDialog } from "@/components/media/asset-dialog";
 import { refinePromptRequest } from "@/features/agent/api";
 import { generate, uploadReference, type GenerateInput } from "@/features/generations/api";
 import { MAX_REFERENCES } from "@/features/generations/schemas";
 import { deleteAsset, setFavorite } from "@/features/library/api";
 import { libraryKeys } from "@/features/library/queries";
+import { usePresets } from "@/features/presets/queries";
+import { applyPresets } from "@/features/presets/templates";
 import type { AssetDto, ReRunSettings } from "@/features/library/types";
 import type { ImageSize } from "@/lib/ai/models";
 import { Composer, type ComposerValues } from "./composer";
@@ -23,6 +26,7 @@ const BLANK: ComposerValues = {
   imageSize: "1K",
   count: 1,
   references: [],
+  presetIds: [],
 };
 
 let batchCounter = 0;
@@ -31,6 +35,7 @@ const nextKey = () => `batch-${Date.now()}-${batchCounter++}`;
 /** The composer on the left, this session's results on the right. Mount with a key to start from new settings. */
 export function StudioWorkspace({ initial, notice }: { initial: StudioInitial | null; notice?: string | null }) {
   const qc = useQueryClient();
+  const presets = usePresets("image");
   const [values, setValues] = useState<ComposerValues>({
     ...BLANK,
     ...(initial?.prompt !== undefined && { prompt: initial.prompt }),
@@ -94,7 +99,8 @@ export function StudioWorkspace({ initial, notice }: { initial: StudioInitial | 
   function submit() {
     if (busy) return;
     void run({
-      prompt: values.prompt,
+      // Presets are added now, so the saved prompt is exactly what was sent.
+      prompt: applyPresets(values.prompt, selectedPresets(presets.data, values.presetIds)),
       model: values.model,
       aspectRatio: values.aspectRatio as GenerateInput["aspectRatio"],
       imageSize: values.imageSize,
