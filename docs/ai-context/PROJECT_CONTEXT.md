@@ -78,3 +78,4 @@ Going paid later means: Supabase Auth, RLS policies per owner, Stripe (credit pa
 | 2026-11-05 | Name: Framerald. Vertex AI on Google Cloud. New Supabase project. Local first, Vercel-ready. |
 | 2026-11-05 | Design: Cinematic Dark + BorderBeam from Beam Lib + emerald brand accent. |
 | 2026-11-05 | No sign-in in v1. Browser never talks to Supabase; server uses the secret key. |
+| 2026-11-05 | Brand color changed from emerald to #00d062 (`--brand` tokens in `globals.css`). |

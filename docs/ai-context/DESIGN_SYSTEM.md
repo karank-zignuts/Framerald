@@ -4,7 +4,7 @@
 
 Status: **v1.0**, 2026-11-05
 
-Source: **Cinematic Dark** (`https://better-design.com/design-systems/cinematic-dark`), installed as source from its shadcn registry. The only thing taken from **Beam Lib** (`https://better-design.com/design-systems/beam-lib`) is the rainbow border beam. The brand accent is **emerald**.
+Source: **Cinematic Dark** (`https://better-design.com/design-systems/cinematic-dark`), installed as source from its shadcn registry. The only thing taken from **Beam Lib** (`https://better-design.com/design-systems/beam-lib`) is the rainbow border beam. The brand accent is **green `#00d062`** (the owner's pick; it started as emerald).
 
 ---
 
@@ -29,7 +29,7 @@ The full list is in `https://better-design.com/registry/cinematic-dark/all.json`
 
 ## 2. Tokens
 
-Don't edit the Cinematic Dark block in `globals.css`. It is a copy of the registry's `globals.css`. Our additions sit around it: a Hallmark stamp and waivers on top, the emerald tokens and the page-level rules (overflow clip, themed scrollbar, reduced-motion pulse) below.
+Don't edit the Cinematic Dark block in `globals.css`. It is a copy of the registry's `globals.css`. Our additions sit around it: a Hallmark stamp and waivers on top, the brand tokens and the page-level rules (overflow clip, themed scrollbar, reduced-motion pulse) below.
 
 | Token | Value | Use |
 |---|---|---|
@@ -41,18 +41,18 @@ Don't edit the Cinematic Dark block in `globals.css`. It is a copy of the regist
 | `accent` | `oklch(0.2734 0.0075 285.9)` | **DS hover surface**, not the brand color |
 | `radius` | `0.75rem` | Base radius |
 
-## 3. Brand accent: emerald
+## 3. Brand accent: green #00d062
 
 Cinematic Dark's `accent` is a hover surface, so the brand color has its own tokens: `bg-brand`, `text-brand`, `bg-brand-muted`, `text-brand-foreground`.
 
 | Token | Value |
 |---|---|
-| `brand` | emerald-400 `oklch(0.765 0.177 163.223)` |
-| `brand-strong` | emerald-500 `oklch(0.696 0.17 162.48)` (hover / pressed) |
-| `brand-muted` | emerald-400 at 14% (tinted chips, selected states) |
-| `brand-foreground` | the page background (dark text on emerald) |
+| `brand` | `#00d062`, which is `oklch(0.7497 0.2054 150.21)` |
+| `brand-strong` | `oklch(0.69 0.195 150.21)`, a step darker (hover / pressed) |
+| `brand-muted` | the brand at 14% (tinted chips, selected states) |
+| `brand-foreground` | the page background (dark text on the brand, about 9.6:1 contrast) |
 
-Use emerald for: the one main action on a screen (Generate), the active nav item, progress of a running job, the logo. Never as a big fill or for decoration.
+Use the brand color for: the one main action on a screen (Generate), the active nav item, progress of a running job, the logo. Never as a big fill or for decoration.
 
 ## 4. BorderBeam (the rainbow effect)
 
@@ -70,7 +70,7 @@ Where it goes: the prompt box, and an element while a generation is running. At 
 ## 5. Principles
 
 1. **The work is the hero.** Images and video get the space; chrome stays quiet and dark.
-2. **One bright thing per screen.** Emerald or the beam, not both fighting.
+2. **One bright thing per screen.** The brand color or the beam, not both fighting.
 3. **Fast feedback.** Every generate click shows a running state at once.
 4. **Honest states.** Queued, running, failed (with the reason), done.
 5. **Accessible.** Color is never the only signal. Visible focus. Respect reduced motion.

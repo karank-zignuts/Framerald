@@ -191,14 +191,14 @@
   --layout-card-padding: calc(var(--spacing, 0.25rem) * 5);
 }
 
-/* ─── Framerald brand accent: Emerald ───
+/* ─── Framerald brand accent: green #00d062 ───
    Added on top of Cinematic Dark. `--accent` stays the DS hover surface,
    so the brand color has its own token. Use it for the main call to action
    (Generate), active states and the brand mark. Never as a large fill. */
 :root {
-  --brand: oklch(0.765 0.177 163.223); /* emerald-400 */
-  --brand-strong: oklch(0.696 0.17 162.48); /* emerald-500, hover/pressed */
-  --brand-muted: oklch(0.765 0.177 163.223 / 0.14); /* tinted surfaces */
+  --brand: oklch(0.7497 0.2054 150.21); /* #00d062 */
+  --brand-strong: oklch(0.69 0.195 150.21); /* a step darker, for hover and pressed */
+  --brand-muted: oklch(0.7497 0.2054 150.21 / 0.14); /* tinted surfaces */
   --brand-foreground: oklch(0.1417 0.0044 285.82); /* = --background */
 }
 
