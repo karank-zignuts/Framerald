@@ -25,6 +25,7 @@ type Props = {
   onOpen: (asset: AssetDto) => void;
   onFavorite: (asset: AssetDto, value: boolean) => void;
   onDelete: (asset: AssetDto) => Promise<void>;
+  onRename: (asset: AssetDto, name: string | null) => Promise<void>;
   onRetry: (batch: Batch) => void;
 };
 
@@ -55,7 +56,7 @@ function FailedBatch({ batch, onRetry }: { batch: Batch; onRetry: (batch: Batch)
   );
 }
 
-export function Results({ batches, onOpen, onFavorite, onDelete, onRetry }: Props) {
+export function Results({ batches, onOpen, onFavorite, onDelete, onRename, onRetry }: Props) {
   const view = useViewSettings();
   const width = TILE_WIDTH[view.size];
 
@@ -79,6 +80,7 @@ export function Results({ batches, onOpen, onFavorite, onDelete, onRetry }: Prop
       onOpen={() => onOpen(asset)}
       onFavorite={(v) => onFavorite(asset, v)}
       onDelete={() => onDelete(asset)}
+      onRename={(name) => onRename(asset, name)}
     />
   );
 

@@ -235,7 +235,8 @@ export function LibraryView() {
                     setPinned(asset);
                   }}
                   onFavorite={(v) => void favorite(asset, v)}
-                  onDelete={() => remove(asset)} />
+                  onDelete={() => remove(asset)}
+                  onRename={(name) => actions.rename(asset, name)} />
               ))}
             </div>
             <div ref={sentinel} className="flex justify-center py-6">

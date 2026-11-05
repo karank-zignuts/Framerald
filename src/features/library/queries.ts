@@ -1,5 +1,5 @@
 import { useInfiniteQuery, useQueryClient, type InfiniteData } from "@tanstack/react-query";
-import { deleteAsset, fetchLibraryPage, moveAssetRequest, setFavorite } from "./api";
+import { deleteAsset, fetchLibraryPage, moveAssetRequest, renameAssetRequest, setFavorite } from "./api";
 import type { AssetDto, LibraryPage } from "./types";
 import type { LibraryView } from "./view";
 
@@ -56,6 +56,11 @@ export function useAssetActions() {
     async move(asset: AssetDto, projectId: string | null) {
       await moveAssetRequest(asset.id, projectId);
       await qc.invalidateQueries({ queryKey: libraryKeys.all });
+    },
+    /** Saves the name, then shows it. Throws when it can't be saved (for example before the migration is applied). */
+    async rename(asset: AssetDto, name: string | null) {
+      await renameAssetRequest(asset.id, name);
+      mapPages((items) => items.map((a) => (a.id === asset.id ? { ...a, name } : a)));
     },
     async remove(asset: AssetDto) {
       const snapshot = qc.getQueriesData<Cache>({ queryKey: libraryKeys.all });

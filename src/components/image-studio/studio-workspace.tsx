@@ -8,7 +8,7 @@ import { AssetDialog } from "@/components/media/asset-dialog";
 import { refinePromptRequest } from "@/features/agent/api";
 import { generate, uploadReference, type GenerateInput } from "@/features/generations/api";
 import { MAX_REFERENCES } from "@/features/generations/schemas";
-import { deleteAsset, setFavorite } from "@/features/library/api";
+import { deleteAsset, renameAssetRequest, setFavorite } from "@/features/library/api";
 import { libraryKeys } from "@/features/library/queries";
 import { usePresets } from "@/features/presets/queries";
 import { useCurrentProject } from "@/features/projects/queries";
@@ -158,6 +158,12 @@ export function StudioWorkspace({ initial, notice }: { initial: StudioInitial | 
     }
   }
 
+  async function rename(asset: AssetDto, name: string | null) {
+    await renameAssetRequest(asset.id, name); // throws when it can't be saved; the tile then keeps the name in this browser
+    updateAsset(asset.id, (a) => ({ ...a, name }));
+    void qc.invalidateQueries({ queryKey: libraryKeys.all });
+  }
+
   async function remove(asset: AssetDto) {
     try {
       await deleteAsset(asset.id);
@@ -177,7 +183,7 @@ export function StudioWorkspace({ initial, notice }: { initial: StudioInitial | 
     <div className="flex min-h-0 flex-1 flex-col">
       <h1 className="sr-only">Image</h1>
       <section aria-label="Results" className="flex min-h-[20rem] min-w-0 flex-1 flex-col lg:overflow-y-auto">
-        <Results batches={batches} onOpen={(a) => setOpenId(a.id)} onFavorite={favorite} onDelete={remove} onRetry={(b) => void run(b.input, b.key)} />
+        <Results batches={batches} onOpen={(a) => setOpenId(a.id)} onFavorite={favorite} onDelete={remove} onRename={rename} onRetry={(b) => void run(b.input, b.key)} />
       </section>
       <section aria-label="Controls" className="sticky bottom-0 z-10 shrink-0 bg-gradient-to-t from-background from-70% to-transparent px-3 pb-3 pt-6 sm:px-5 sm:pb-5">
         <Composer values={values} onChange={patch} onSubmit={submit} onAddFiles={addFiles} uploading={uploading} busy={busy} projectId={projectId} onProjectChange={setProjectId} notice={notice} refining={refining} canUndoRefine={beforeRefine !== null} onRefine={() => void refine()} onUndoRefine={undoRefine} />

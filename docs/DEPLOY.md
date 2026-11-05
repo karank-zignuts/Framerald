@@ -44,6 +44,8 @@ npx supabase db push --linked --dry-run
 npx supabase db push --linked
 ```
 
+`20261106000001_asset_name.sql` adds a nullable `name` column so the names you give images and clips are saved for good. The app works without it (a rename is then kept in the browser and the app says so), but apply it to keep names everywhere.
+
 `20261105000002_widen_agent_cost.sql` widens `cost_usd` to 6 decimals so cheap agent calls aren't rounded to zero. The app works without it (costs round to 4 decimals), but apply it before you rely on the Spend page for small calls.
 
 ## 3. Function durations and region

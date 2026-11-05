@@ -88,9 +88,46 @@ function summarize(g: GenerationRow): GenerationSummary {
 }
 
 /** Turns rows into browser-safe DTOs with signed links, in one storage request. */
+// Names you gave items live in `assets.name`, added by a later migration. They are read in a separate small query so the
+// app keeps working before that migration is applied: a missing column just means no saved names yet.
+let nameColumnMissingUntil = 0;
+// Postgres says 42703; PostgREST answers PGRST204 when its schema cache has no such column.
+const isMissingColumn = (code: string | undefined) => code === "42703" || code === "PGRST204";
+
+async function namesFor(ids: string[]): Promise<Map<string, string>> {
+  const names = new Map<string, string>();
+  if (ids.length === 0 || Date.now() < nameColumnMissingUntil) return names;
+  const { data, error } = await db().from("assets").select("id,name").eq("owner_id", OWNER_ID).in("id", ids);
+  if (error) {
+    if (isMissingColumn(error.code)) nameColumnMissingUntil = Date.now() + 60_000; // look again in a minute, in case it was just applied
+    return names;
+  }
+  for (const row of (data ?? []) as { id: string; name: string | null }[]) if (row.name) names.set(row.id, row.name);
+  return names;
+}
+
+/** Sets or clears (null) the name of an item. */
+export async function renameAsset(id: string, name: string | null): Promise<void> {
+  const { data, error } = await db()
+    .from("assets")
+    .update({ name })
+    .eq("owner_id", OWNER_ID)
+    .eq("id", id)
+    .is("deleted_at", null)
+    .select("id");
+  if (error) {
+    if (isMissingColumn(error.code)) {
+      throw new HttpError(409, "Names can't be saved yet. Apply the latest database update: npx supabase db push --linked.");
+    }
+    throw new Error(`Couldn't rename that item: ${error.message}`);
+  }
+  nameColumnMissingUntil = 0;
+  if (!data?.length) throw new HttpError(404, "That item doesn't exist any more.");
+}
+
 export async function toAssetDtos(rows: AssetRow[]): Promise<AssetDto[]> {
   const paths = rows.flatMap((r) => [r.storage_path, r.thumbnail_path ?? r.storage_path]);
-  const urls = await signedUrlMap(paths);
+  const [urls, names] = await Promise.all([signedUrlMap(paths), namesFor(rows.map((r) => r.id))]);
   return rows.flatMap((r) => {
     const url = urls.get(r.storage_path);
     if (!url) return [];
@@ -107,6 +144,7 @@ export async function toAssetDtos(rows: AssetRow[]): Promise<AssetDto[]> {
         mimeType: r.mime_type,
         projectId: r.project_id,
         isFavorite: r.is_favorite,
+        name: names.get(r.id) ?? null,
         createdAt: r.created_at,
         generation: r.generation ? summarize(r.generation) : null,
       },

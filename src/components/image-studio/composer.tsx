@@ -15,8 +15,9 @@ import {
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import { MediaPicker } from "@/components/media/media-picker";
-import { ModelPicker } from "./model-picker";
+import { MediaPickerPanel } from "@/components/media/media-picker";
+import { ModelPickerPanel, ModelTrigger } from "./model-picker";
+import { Anchor as PopoverAnchor } from "@radix-ui/react-popover";
 import { PresetPicker } from "@/components/presets/preset-picker";
 import { ProjectSelect } from "@/components/projects/project-select";
 import {
@@ -123,46 +124,74 @@ function Chip({
   );
 }
 
-/** One row of chips that scrolls sideways when they don't all fit, with arrows at the edges. */
+/**
+ * One row of chips that scrolls sideways when they don't all fit. Arrow buttons sit beside it. They take their space only
+ * while the chips overflow, and then always, so scrolling never changes the strip's width (that made it jump). The edges
+ * fade instead of cutting a chip in half, and a mouse wheel scrolls it sideways.
+ */
 function ChipScroller({ children }: { children: React.ReactNode }) {
-  const ref = useRef<HTMLDivElement>(null);
-  const [edges, setEdges] = useState({ left: false, right: false });
+  const outer = useRef<HTMLDivElement>(null);
+  const strip = useRef<HTMLDivElement>(null);
+  const [state, setState] = useState({ overflowing: false, left: false, right: false });
 
   useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-    const update = () => setEdges({ left: el.scrollLeft > 2, right: el.scrollLeft + el.clientWidth < el.scrollWidth - 2 });
+    const box = outer.current;
+    const el = strip.current;
+    if (!box || !el) return;
+    const update = () => {
+      // Content wider than the whole row, measured without the arrow slots, so showing the slots can't flip it back.
+      const overflowing = el.scrollWidth > box.clientWidth + 1;
+      const left = overflowing && el.scrollLeft > 2;
+      const right = overflowing && el.scrollLeft + el.clientWidth < el.scrollWidth - 2;
+      setState((prev) => (prev.overflowing === overflowing && prev.left === left && prev.right === right ? prev : { overflowing, left, right }));
+    };
     const observer = new ResizeObserver(update); // also runs once when observing starts
-    observer.observe(el);
+    observer.observe(box);
     for (const child of Array.from(el.children)) observer.observe(child);
     el.addEventListener("scroll", update, { passive: true });
+    const onWheel = (e: WheelEvent) => {
+      if (Math.abs(e.deltaY) <= Math.abs(e.deltaX) || el.scrollWidth <= el.clientWidth) return; // a sideways gesture already scrolls it
+      e.preventDefault();
+      el.scrollLeft += e.deltaY;
+    };
+    el.addEventListener("wheel", onWheel, { passive: false });
     return () => {
       observer.disconnect();
       el.removeEventListener("scroll", update);
+      el.removeEventListener("wheel", onWheel);
     };
   }, []);
 
   function scroll(direction: 1 | -1) {
     const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    ref.current?.scrollBy({ left: direction * 240, behavior: reduce ? "auto" : "smooth" });
+    strip.current?.scrollBy({ left: direction * 240, behavior: reduce ? "auto" : "smooth" });
   }
 
-  const arrow = "absolute top-1/2 z-10 flex size-8 -translate-y-1/2 items-center justify-center rounded-lg border border-border bg-secondary text-foreground shadow-md transition-colors duration-fast hover:bg-accent";
+  const arrow = (active: boolean) =>
+    cn(
+      "flex size-9 shrink-0 items-center justify-center rounded-lg border border-border bg-secondary text-foreground transition-opacity duration-base hover:bg-accent motion-reduce:transition-none",
+      !state.overflowing && "hidden",
+      active ? "opacity-100" : "pointer-events-none opacity-0",
+      focusRing,
+    );
+  // Fade the strip's edges only where there is more to reach.
+  const fade = state.left && state.right ? "linear-gradient(to right, transparent, #000 24px, #000 calc(100% - 24px), transparent)" : state.left ? "linear-gradient(to right, transparent, #000 24px)" : state.right ? "linear-gradient(to left, transparent, #000 24px)" : undefined;
+
   return (
-    <div className="relative flex min-w-0 flex-1 items-center">
-      {edges.left && (
-        <button type="button" aria-label="Scroll options left" onClick={() => scroll(-1)} className={cn(arrow, "left-0", focusRing)}>
-          <ChevronLeft aria-hidden className="size-4" />
-        </button>
-      )}
-      <div ref={ref} className="flex min-w-0 flex-1 items-center gap-2 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+    <div ref={outer} className="flex min-w-0 flex-1 items-center gap-1.5">
+      <button type="button" aria-label="Scroll options left" aria-hidden={!state.left} tabIndex={state.left ? 0 : -1} disabled={!state.left} onClick={() => scroll(-1)} className={arrow(state.left)}>
+        <ChevronLeft aria-hidden className="size-4" />
+      </button>
+      <div
+        ref={strip}
+        style={fade ? { maskImage: fade, WebkitMaskImage: fade } : undefined}
+        className="flex min-w-0 flex-1 touch-pan-x items-center gap-2 overflow-x-auto overscroll-x-contain [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+      >
         {children}
       </div>
-      {edges.right && (
-        <button type="button" aria-label="Scroll options right" onClick={() => scroll(1)} className={cn(arrow, "right-0", focusRing)}>
-          <ChevronRight aria-hidden className="size-4" />
-        </button>
-      )}
+      <button type="button" aria-label="Scroll options right" aria-hidden={!state.right} tabIndex={state.right ? 0 : -1} disabled={!state.right} onClick={() => scroll(1)} className={arrow(state.right)}>
+        <ChevronRight aria-hidden className="size-4" />
+      </button>
     </div>
   );
 }
@@ -186,6 +215,8 @@ export function Composer({
   const router = useRouter();
   const fileInput = useRef<HTMLInputElement>(null);
   const dockRef = useRef<HTMLDivElement>(null);
+  // Which big panel is open above the dock. They share one popover, anchored to the whole dock.
+  const [panel, setPanel] = useState<"media" | "model" | null>(null);
   const [agentMode, setAgentMode] = useState(false);
   const [sweep, setSweep] = useState(0); // counts how many times Agent mode was turned on, to replay the edge sweep
   const [dragging, setDragging] = useState(false);
@@ -215,6 +246,8 @@ export function Composer({
   }
 
   return (
+    <Popover open={panel !== null} onOpenChange={(open) => !open && setPanel(null)}>
+    <PopoverAnchor asChild>
     <div
       ref={dockRef}
       className="relative mx-auto w-full max-w-5xl"
@@ -351,29 +384,22 @@ export function Composer({
 
         <div className="flex items-center gap-3">
           <ChipScroller>
-            <MediaPicker
-              selectedIds={values.references.map((r) => r.id)}
-              room={MAX_REFERENCES - values.references.length}
-              onPick={(asset) => onChange({ references: [...values.references, asset] })}
-              onUnpick={(id) => onChange({ references: values.references.filter((r) => r.id !== id) })}
-              onUploadClick={() => fileInput.current?.click()}
-              uploading={uploading}
-              anchorRef={dockRef}
-              trigger={
-                <button
-                  type="button"
-                  aria-label="Add reference images"
-                  title={
-                    values.references.length
-                      ? "Describe what to change or keep. The prompt edits these images."
-                      : "Add images to edit them or to guide the result."
-                  }
-                  className={cn(chipClass, "w-9 justify-center px-0")}
-                >
-                  <Plus aria-hidden className="size-4" />
-                </button>
+            <button
+              type="button"
+              aria-label="Add reference images"
+              aria-expanded={panel === "media"}
+              aria-haspopup="dialog"
+              data-panel-trigger
+              onClick={() => setPanel(panel === "media" ? null : "media")}
+              title={
+                values.references.length
+                  ? "Describe what to change or keep. The prompt edits these images."
+                  : "Add images to edit them or to guide the result."
               }
-            />
+              className={cn(chipClass, "w-9 justify-center px-0")}
+            >
+              <Plus aria-hidden className="size-4" />
+            </button>
             <input
               ref={fileInput}
               type="file"
@@ -404,7 +430,7 @@ export function Composer({
               Agent
             </button>
 
-            <ModelPicker value={values.model} onChange={changeModel} anchorRef={dockRef} />
+            <ModelTrigger value={values.model} open={panel === "model"} onClick={() => setPanel(panel === "model" ? null : "model")} />
 
             <Popover>
               <PopoverTrigger className={chipClass}>
@@ -589,5 +615,32 @@ export function Composer({
         </div>
       </form>
     </div>
+    </PopoverAnchor>
+    <PopoverContent
+      side="top"
+      align="start"
+      sideOffset={16}
+      collisionPadding={16}
+      onOpenAutoFocus={(e) => panel === "media" && e.preventDefault()}
+      onInteractOutside={(e) => {
+        // The two trigger buttons toggle the panel themselves; closing here as well would reopen it right away.
+        if ((e.target as HTMLElement | null)?.closest("[data-panel-trigger]")) e.preventDefault();
+      }}
+      className={cn("flex flex-col gap-0 overflow-hidden rounded-2xl p-0", panel === "media" ? "w-[min(56rem,calc(100vw-2rem))]" : "w-[26rem] max-w-[calc(100vw-2rem)]")}
+    >
+      {panel === "media" && (
+        <MediaPickerPanel
+          selectedIds={values.references.map((r) => r.id)}
+          room={MAX_REFERENCES - values.references.length}
+          onPick={(asset) => onChange({ references: [...values.references, asset] })}
+          onUnpick={(id) => onChange({ references: values.references.filter((r) => r.id !== id) })}
+          onUploadClick={() => fileInput.current?.click()}
+          uploading={uploading}
+          onClose={() => setPanel(null)}
+        />
+      )}
+      {panel === "model" && <ModelPickerPanel value={values.model} onChange={changeModel} onClose={() => setPanel(null)} />}
+    </PopoverContent>
+    </Popover>
   );
 }

@@ -15,7 +15,7 @@ Collapsible sidebar. Docked composer: Agent mode (inner glow, one edge sweep, ha
 
 ## Known and accepted
 
-- Names you give an image stay in this browser. Saving them in the database needs a new `name` column (one small migration); not done because it changes the schema.
+- Names you give an image are saved in `assets.name` (migration `20261106000001_asset_name.sql`, a nullable column, no existing row changes). Until you apply it with `npx supabase db push --linked`, a rename is kept in this browser and the app says so. The app reads names in a separate small query, so it also runs before the migration is applied.
 - The balance is typed in; this app cannot read a Google Cloud balance.
 - The percentage on a generating tile is an estimate from elapsed time. Google reports no progress.
 - Picker sorting offers Last created and First created. "Last used" would need usage tracking.

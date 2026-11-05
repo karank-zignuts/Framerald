@@ -28,6 +28,8 @@ export type AssetDto = {
   mimeType: string;
   projectId: string | null;
   isFavorite: boolean;
+  /** A name you gave it, or null to use the one made from the prompt. */
+  name: string | null;
   createdAt: string;
   generation: GenerationSummary | null;
 };

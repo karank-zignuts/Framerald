@@ -134,6 +134,12 @@ test("with Clear prompt on submit turned off, the prompt stays", async ({ page }
 test("the model picker lists models with a note, searches, and switches", async ({ page }) => {
   await page.goto("/image");
   await page.getByRole("combobox", { name: "Model" }).click();
+  const dockBox = await page.locator("form").first().boundingBox();
+  const panelBox = await page.locator("[data-radix-popper-content-wrapper]").first().boundingBox();
+  expect(panelBox!.x).toBeGreaterThanOrEqual(dockBox!.x - 1); // lined up with the dock
+  const gap = dockBox!.y - (panelBox!.y + panelBox!.height);
+  expect(gap).toBeGreaterThanOrEqual(8); // clear space between the panel and the dock
+  expect(gap).toBeLessThanOrEqual(30);
   const options = page.getByRole("option");
   await expect(options).toHaveCount(3);
   await expect(options.first()).toContainText("Balanced");
@@ -158,9 +164,45 @@ test("the media picker offers uploads, generations and favourites, with sorting,
   await expect(page.getByRole("dialog").or(page.locator("[data-radix-popper-content-wrapper]")).getByRole("button", { pressed: true })).toHaveCount(1); // chosen: it shows as pressed
   // The panel opens above the dock, not over it.
   const panel = page.locator("[data-radix-popper-content-wrapper]").first();
-  const dock = page.getByRole("region", { name: "Controls" });
+  const dock = page.locator("form").first();
   const [panelBox, dockBox] = [await panel.boundingBox(), await dock.boundingBox()];
-  expect(panelBox!.y + panelBox!.height).toBeLessThanOrEqual(dockBox!.y + 4);
+  expect(panelBox!.x).toBeGreaterThanOrEqual(dockBox!.x - 1); // lined up with the dock, not stuck in the page corner
+  const gap = dockBox!.y - (panelBox!.y + panelBox!.height);
+  expect(gap).toBeGreaterThanOrEqual(8); // clear space between the panel and the dock
+  expect(gap).toBeLessThanOrEqual(30);
   await page.keyboard.press("Escape");
   await expect(page.getByTestId("reference")).toHaveCount(1);
+});
+
+test("when the chips don't fit, arrows appear beside them (not on top) and scroll the strip", async ({ page }) => {
+  await page.setViewportSize({ width: 1000, height: 760 });
+  await page.goto("/image");
+  const right = page.getByRole("button", { name: "Scroll options right" });
+  await expect(right).toBeVisible(FIRST_PAINT);
+  const plus = page.getByRole("button", { name: "Add reference images" });
+  const left = page.getByRole("button", { name: "Scroll options left" });
+  await expect(left).toBeHidden(); // at the start there is nothing to the left
+  await right.click();
+  await expect(left).toBeVisible();
+  // The arrow sits beside the strip, never over it: the strip starts where the arrow ends.
+  const strip = plus.locator("xpath=..");
+  const [arrowBox, stripBox] = [await left.boundingBox(), await strip.boundingBox()];
+  expect(stripBox!.x).toBeGreaterThanOrEqual(arrowBox!.x + arrowBox!.width - 1);
+});
+
+test("renaming goes through the API: a bad name is refused, a good one is saved or says what is missing", async ({ request }) => {
+  const made = await request.post("/api/generations", { data: { prompt: `[e2e] rename api ${Math.random().toString(36).slice(2, 7)}` } });
+  const assetId = ((await made.json()) as { assets: { id: string }[] }).assets[0].id;
+  const empty = await request.patch(`/api/assets/${assetId}`, { data: { name: "   " } });
+  expect(empty.status()).toBe(400);
+  const long = await request.patch(`/api/assets/${assetId}`, { data: { name: "x".repeat(81) } });
+  expect(long.status()).toBe(400);
+  const ok = await request.patch(`/api/assets/${assetId}`, { data: { name: "Harbour at dawn" } });
+  // 200 once the latest database update is applied; before that the API says so instead of pretending.
+  expect([200, 409]).toContain(ok.status());
+  if (ok.status() === 409) expect((await ok.json()).error).toMatch(/database update/);
+  if (ok.status() === 200) {
+    const got = (await (await request.get(`/api/assets/${assetId}`)).json()) as { name: string | null };
+    expect(got.name).toBe("Harbour at dawn");
+  }
 });

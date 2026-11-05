@@ -12,7 +12,7 @@ Date: 2026-11-05. State: Phases 0 to 4 done and pushed (latest commit `723d63f`)
 
 ## 2. Owner steps still open
 
-- Apply migration `20261105000002`: `npx supabase db push --linked` (the code works without it; costs round to 4 decimals).
+- Apply the migrations: `npx supabase db push --linked --dry-run`, then without `--dry-run`. This brings in `20261105000002` (costs to 6 decimals) and `20261106000001` (a `name` column so image names are saved). The code works without them (costs round to 4 decimals; renames stay in the browser).
 - Deploy to Vercel using `docs/DEPLOY.md`. Set `APP_PASSWORD` and `SESSION_SECRET`.
 - Nothing has been deployed by Claude.
 

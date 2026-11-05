@@ -42,3 +42,12 @@ export function moveAssetRequest(assetId: string, projectId: string | null): Pro
 export function deleteAsset(assetId: string): Promise<void> {
   return fetch(`/api/assets/${assetId}`, { method: "DELETE" }).then((r) => readJson<unknown>(r).then(() => undefined));
 }
+
+/** Pass null to go back to the name made from the prompt. */
+export function renameAssetRequest(assetId: string, name: string | null): Promise<void> {
+  return fetch(`/api/assets/${assetId}`, {
+    method: "PATCH",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ name }),
+  }).then((r) => readJson<unknown>(r).then(() => undefined));
+}

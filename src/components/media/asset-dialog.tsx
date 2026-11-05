@@ -171,8 +171,8 @@ export function AssetDialog({ asset, onClose, onFavorite, onDelete, onMove }: Pr
                 </div>
               </div>
             ) : (
-              <Button variant="ghost" className="text-muted-foreground hover:text-destructive" onClick={() => setConfirming(true)}>
-                <Trash2 aria-hidden className="size-4" />
+              <Button variant="ghost" className="bg-destructive/15 text-foreground hover:bg-destructive/25" onClick={() => setConfirming(true)}>
+                <Trash2 aria-hidden className="size-4 text-destructive" />
                 Delete
               </Button>
             )}

@@ -27,10 +27,12 @@ type Props = {
   onFavorite: (value: boolean) => void;
   /** Without it the menu has no Delete. */
   onDelete?: () => Promise<void> | void;
+  /** Saves a name (null clears it). Without it, or when it fails, the name is kept in this browser. */
+  onRename?: (name: string | null) => Promise<void>;
 };
 
 /** The hover toolbar on a tile: favourite, reuse, and a menu with the rest. */
-export function TileActions({ asset, name, onFavorite, onDelete }: Props) {
+export function TileActions({ asset, name, onFavorite, onDelete, onRename }: Props) {
   const [renaming, setRenaming] = useState(false);
   const [draftName, setDraftName] = useState(name);
   const [deleting, setDeleting] = useState(false);
@@ -115,8 +117,8 @@ export function TileActions({ asset, name, onFavorite, onDelete }: Props) {
             {onDelete && (
               <>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onSelect={() => setDeleting(true)} className="text-destructive focus:text-destructive">
-                  <Trash2 aria-hidden className="mr-2 size-4" />
+                <DropdownMenuItem onSelect={() => setDeleting(true)} className="bg-destructive/15 focus:bg-destructive/25">
+                  <Trash2 aria-hidden className="mr-2 size-4 text-destructive" />
                   Delete
                 </DropdownMenuItem>
               </>
@@ -129,14 +131,22 @@ export function TileActions({ asset, name, onFavorite, onDelete }: Props) {
         <DialogContent className="max-w-sm">
           <DialogHeader>
             <DialogTitle>Rename</DialogTitle>
-            <DialogDescription>The name stays in this browser. Leave it empty to go back to the automatic one.</DialogDescription>
+            <DialogDescription>Leave it empty to go back to the name made from the prompt.</DialogDescription>
           </DialogHeader>
           <form
             className="flex flex-col gap-3"
-            onSubmit={(e) => {
+            onSubmit={async (e) => {
               e.preventDefault();
-              renameAsset(asset.id, draftName);
+              const clean = draftName.trim() || null;
               setRenaming(false);
+              try {
+                if (!onRename) throw new Error("no saver");
+                await onRename(clean);
+                renameAsset(asset.id, ""); // the saved name is used now; drop any older browser-only one
+              } catch {
+                renameAsset(asset.id, clean ?? "");
+                toast.info("Saved in this browser only. Apply the latest database update to keep names everywhere.");
+              }
             }}
           >
             <Input aria-label="Name" value={draftName} onChange={(e) => setDraftName(e.target.value)} maxLength={80} autoFocus />

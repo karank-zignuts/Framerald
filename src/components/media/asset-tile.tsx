@@ -17,13 +17,14 @@ type Props = {
   onFavorite: (value: boolean) => void;
   /** Adds Delete to the tile menu. */
   onDelete?: () => Promise<void> | void;
+  onRename?: (name: string | null) => Promise<void>;
   /** "native" keeps the picture's own shape; "square" crops to a uniform grid. */
   fit?: "native" | "square";
   /** Above the fold: load now instead of lazily (helps Largest Contentful Paint). */
   eager?: boolean;
 };
 
-export function AssetTile({ asset, onOpen, onFavorite, onDelete, fit = "native", eager = false }: Props) {
+export function AssetTile({ asset, onOpen, onFavorite, onDelete, onRename, fit = "native", eager = false }: Props) {
   const name = useAssetName(asset);
   const { details } = useViewSettings();
   const ratio = asset.width && asset.height ? asset.width / asset.height : 1;
@@ -89,7 +90,7 @@ export function AssetTile({ asset, onOpen, onFavorite, onDelete, fit = "native",
           )}
         </span>
       )}
-      <TileActions asset={asset} name={name} onFavorite={onFavorite} onDelete={onDelete} />
+      <TileActions asset={asset} name={name} onFavorite={onFavorite} onDelete={onDelete} onRename={onRename} />
     </div>
   );
 }

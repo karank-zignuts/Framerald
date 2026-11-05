@@ -4,8 +4,6 @@ import { ArrowDownUp, Check, UploadCloud, X } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuRadioGroup, DropdownMenuRadioItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { Anchor as PopoverAnchor } from "@radix-ui/react-popover";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useLibrary, type LibraryFilters } from "@/features/library/queries";
 import type { AssetDto } from "@/features/library/types";
 import { titleFromPrompt } from "@/features/view/title";
@@ -21,7 +19,6 @@ const RECENT = 12;
 const focusRing = "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
 
 type Props = {
-  trigger: React.ReactNode;
   /** Ids already chosen. */
   selectedIds: string[];
   /** How many more can be added. */
@@ -31,13 +28,11 @@ type Props = {
   /** Opens the file dialog. The studio does the upload, so the new image lands in its list. */
   onUploadClick: () => void;
   uploading: number;
-  /** The element to open above (the whole dock), instead of the button that was pressed. */
-  anchorRef?: React.RefObject<HTMLElement | null>;
+  onClose: () => void;
 };
 
-/** A panel above the composer to choose reference images: new uploads, recent uploads, earlier generations, favourites. */
-export function MediaPicker({ trigger, selectedIds, room, onPick, onUnpick, onUploadClick, uploading, anchorRef }: Props) {
-  const [open, setOpen] = useState(false);
+/** The panel above the composer for choosing reference images: new uploads, recent uploads, earlier generations, favourites. */
+export function MediaPickerPanel({ selectedIds, room, onPick, onUnpick, onUploadClick, uploading, onClose }: Props) {
   const [tab, setTab] = useState<Tab>("uploads");
   const [scope, setScope] = useState<"recent" | "all">("recent");
   const [order, setOrder] = useState<"newest" | "oldest">("newest");
@@ -49,10 +44,7 @@ export function MediaPicker({ trigger, selectedIds, room, onPick, onUnpick, onUp
   const canLoadMore = query.hasNextPage && !(tab === "uploads" && scope === "recent");
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
-      {anchorRef && <PopoverAnchor virtualRef={anchorRef as React.RefObject<HTMLElement>} />}
-      <PopoverTrigger asChild>{trigger}</PopoverTrigger>
-      <PopoverContent side="top" align="start" sideOffset={16} collisionPadding={16} className="flex w-[min(56rem,calc(100vw-2rem))] flex-col gap-0 overflow-hidden rounded-2xl p-0">
+    <div className="flex flex-col">
         <div className="flex items-center gap-2 border-b border-border p-3">
           <div role="tablist" aria-label="Where to pick from" className="flex items-center gap-1">
             {TABS.map((t) => (
@@ -72,7 +64,7 @@ export function MediaPicker({ trigger, selectedIds, room, onPick, onUnpick, onUp
               </button>
             ))}
           </div>
-          <Button type="button" variant="ghost" size="icon" className="ml-auto" aria-label="Close" onClick={() => setOpen(false)}>
+          <Button type="button" variant="ghost" size="icon" className="ml-auto" aria-label="Close" onClick={onClose}>
             <X aria-hidden className="size-4" />
           </Button>
         </div>
@@ -179,7 +171,6 @@ export function MediaPicker({ trigger, selectedIds, room, onPick, onUnpick, onUp
             </div>
           )}
         </div>
-      </PopoverContent>
-    </Popover>
+    </div>
   );
 }

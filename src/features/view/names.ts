@@ -4,7 +4,8 @@ import { useSyncExternalStore } from "react";
 import { titleFromPrompt } from "./title";
 import type { AssetDto } from "@/features/library/types";
 
-// Names you give your images. They are kept in this browser; the automatic name comes from the prompt.
+// A fallback for names: when the database can't save one yet (its migration is not applied), it is kept in this browser.
+// A saved name wins over this, and the automatic name (from the prompt) comes last.
 const KEY = "framerald.names";
 const listeners = new Set<() => void>();
 let cache: { raw: string | null; value: Record<string, string> } = { raw: null, value: {} };
@@ -59,5 +60,5 @@ export function useAssetName(asset: AssetDto): string {
     read,
     () => EMPTY,
   );
-  return names[asset.id] ?? titleFromPrompt(asset.generation?.prompt);
+  return asset.name ?? names[asset.id] ?? titleFromPrompt(asset.generation?.prompt);
 }
