@@ -10,12 +10,13 @@ import { libraryKeys } from "@/features/library/queries";
 import { applyPresets } from "@/features/presets/templates";
 import { usePresets } from "@/features/presets/queries";
 import { fetchVideoJob, fetchVideoReRunSettings, startVideo, type StartVideoInput } from "@/features/videos/api";
+import { MAX_VIDEO_PROMPT } from "@/features/videos/schemas";
 import { useVideoJobs, videoKeys } from "@/features/videos/queries";
 import type { VideoJobDto } from "@/features/videos/types";
 import { VideoComposer, type VideoValues } from "./video-composer";
 import { VideoResults } from "./video-results";
 
-export type VideoInitial = Partial<VideoValues> & { sourceGenerationId?: string };
+export type VideoInitial = Partial<VideoValues> & { sourceGenerationId?: string; missingFrames?: boolean };
 
 const BLANK: VideoValues = {
   prompt: "",
@@ -38,6 +39,7 @@ export function VideoWorkspace({ initial, notice }: { initial: VideoInitial | nu
   const presets = usePresets("video");
   const [values, setValues] = useState<VideoValues>({ ...BLANK, ...(initial && Object.fromEntries(Object.entries(initial).filter(([, v]) => v !== undefined))) });
   const [submitting, setSubmitting] = useState(false);
+  const [retrying, setRetrying] = useState<string[]>([]); // clips whose Try again is in flight
   const [uploadingSlot, setUploadingSlot] = useState<"first" | "last" | null>(null);
   const [refining, setRefining] = useState(false);
   const [beforeRefine, setBeforeRefine] = useState<string | null>(null); // the prompt as it was, for Undo
@@ -100,9 +102,13 @@ export function VideoWorkspace({ initial, notice }: { initial: VideoInitial | nu
   }
 
   async function submit() {
-    setSubmitting(true);
     // Presets are added to the prompt now, so the saved prompt is exactly what was sent.
     const prompt = applyPresets(values.prompt, selectedPresets(presets.data, values.presetIds));
+    if (prompt.length > MAX_VIDEO_PROMPT) {
+      toast.error(`With the presets added, the prompt is ${prompt.length} characters. The limit is ${MAX_VIDEO_PROMPT.toLocaleString("en")}.`);
+      return;
+    }
+    setSubmitting(true);
     await start({
       prompt,
       model: values.model,
@@ -118,8 +124,14 @@ export function VideoWorkspace({ initial, notice }: { initial: VideoInitial | nu
   }
 
   async function tryAgain(job: VideoJobDto) {
+    if (retrying.includes(job.id)) return; // a double click must not bill two clips
+    setRetrying((ids) => [...ids, job.id]);
     try {
       const s = await fetchVideoReRunSettings(job.id);
+      if (s.missingFrames) {
+        toast.error("A frame this clip was made from has been deleted, so it can't be started again as it was. Re-run it from the Library and pick new frames.");
+        return;
+      }
       await start({
         prompt: s.prompt,
         model: s.model,
@@ -133,6 +145,8 @@ export function VideoWorkspace({ initial, notice }: { initial: VideoInitial | nu
       });
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Couldn't start the clip again.");
+    } finally {
+      setRetrying((ids) => ids.filter((id) => id !== job.id));
     }
   }
 
@@ -191,6 +205,7 @@ export function VideoWorkspace({ initial, notice }: { initial: VideoInitial | nu
           error={jobs.error}
           onRetryLoad={() => void jobs.refetch()}
           onTryAgain={(job) => void tryAgain(job)}
+          retryingIds={retrying}
         />
       </section>
     </div>

@@ -29,4 +29,6 @@ export type VideoReRunSettings = {
   audio: boolean;
   firstFrame: AssetDto | null;
   lastFrame: AssetDto | null;
+  /** True when frames this clip was made from have been deleted since. */
+  missingFrames: boolean;
 };

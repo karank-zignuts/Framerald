@@ -57,13 +57,12 @@ export function AgentView() {
     setLive({ threadId: id, text: "", shotList: null, error: null });
     try {
       if (!id) {
-        const created = await createThread();
+        // Created under its real name, so the placeholder "New chat" never reaches the list.
+        const created = await createThread(titleFromMessage(message));
         id = created.id;
-        // List the chat under its real name now; the server names it the same way.
-        qc.setQueryData<ThreadDto[]>(agentKeys.threads, (old = []) => [
-          { ...created, title: titleFromMessage(message) },
-          ...old.filter((t) => t.id !== created.id),
-        ]);
+        qc.setQueryData<ThreadDto[]>(agentKeys.threads, (old = []) => [created, ...old.filter((t) => t.id !== created.id)]);
+        // If the list was still loading, its late answer would erase this entry. Asking again cancels that answer.
+        void qc.invalidateQueries({ queryKey: agentKeys.threads });
         qc.setQueryData<AgentMessageDto[]>(agentKeys.messages(id), []);
         setLive((l) => l && { ...l, threadId: created.id });
         router.replace(`${pathname}?thread=${id}`);

@@ -6,9 +6,9 @@ import { HttpError } from "@/lib/http";
 import { MODELS, VIDEO_MODEL_KEYS, type VideoModelKey, type VideoResolution } from "@/lib/ai/models";
 import { videoCostUsd } from "@/lib/ai/cost";
 import { pollVideo, startVideo, VideoError, type FrameInput, type VideoPoll } from "@/lib/ai/video";
-import { ASSET_SELECT, failStuckGenerations, toAssetDtos, type AssetRow } from "@/features/library/server";
+import { ASSET_SELECT, toAssetDtos, type AssetRow } from "@/features/library/server";
 import type { AssetDto } from "@/features/library/types";
-import { decideJobAction, type JobStatus, type OperationSnapshot } from "./job";
+import { decideJobAction, VIDEO_TIMEOUT_MS, type JobStatus, type OperationSnapshot } from "./job";
 import { videoDimensions, type GenerateVideoRequest } from "./schemas";
 import type { VideoJobDto, VideoReRunSettings } from "./types";
 
@@ -30,7 +30,7 @@ type JobRow = {
 };
 
 const JOB_COLUMNS = "id,mode,status,model,prompt,params,error,operation_name,created_at";
-const CLAIM_STALE_MS = 3 * 60_000; // a finalize claim older than this is taken to be a crash and may be retried
+const CLAIM_STALE_MS = 10 * 60_000; // a finalize claim older than this is taken to be a crash and may be retried
 const NEVER_STARTED_MS = 2 * 60_000;
 
 // ─── Mapping ─────────────────────────────────────────────────────────────────
@@ -117,7 +117,7 @@ async function loadFrame(assetId: string): Promise<{ frame: FrameInput; thumbnai
 
 /** Creates the row, asks Google to start the clip, and returns at once. Finishing happens in refreshVideoJob. */
 export async function startVideoGeneration(req: GenerateVideoRequest): Promise<VideoJobDto> {
-  await failStuckGenerations();
+  await sweepStuckVideos();
   const first = req.firstFrameAssetId ? await loadFrame(req.firstFrameAssetId) : null;
   const last = req.lastFrameAssetId ? await loadFrame(req.lastFrameAssetId) : null;
   const spec = MODELS.video[req.model];
@@ -177,7 +177,9 @@ export async function startVideoGeneration(req: GenerateVideoRequest): Promise<V
     throw new HttpError(502, reason);
   }
 
-  const { error: nameError } = await db().from("generations").update({ operation_name: operationName }).eq("id", generationId);
+  // Google is already making this clip, so try twice before giving up on saving its handle.
+  let { error: nameError } = await db().from("generations").update({ operation_name: operationName }).eq("id", generationId);
+  if (nameError) ({ error: nameError } = await db().from("generations").update({ operation_name: operationName }).eq("id", generationId));
   if (nameError) {
     // Google is already making (and will bill for) this clip, and we've lost its handle. Say so loudly.
     console.error(`[video] started ${operationName} for ${generationId} but couldn't save it: ${nameError.message}`);
@@ -221,67 +223,86 @@ async function claimFinalize(id: string): Promise<boolean> {
   return Boolean(stale.data?.length);
 }
 
-async function finalize(row: JobRow, poll: VideoPoll): Promise<VideoJobDto> {
-  if (!(await claimFinalize(row.id))) return toJobDto(row, null); // another check is saving it
-
-  const bytes = poll.video?.bytes;
-  if (!bytes) {
-    await markFailed(row.id, "Google made the clip but saved it to Cloud Storage instead of returning it, so it can't be fetched here.");
-    return jobDto({ ...(await getJobRow(row.id)) });
-  }
-
-  const p = row.params ?? {};
-  const seconds = p.durationSeconds ?? 4;
-  const resolution = (p.resolution ?? "720p") as VideoResolution;
-  const assetId = randomUUID();
-  const storagePath = mediaPath(OWNER_ID, assetId, "mp4");
-  try {
-    // An image-to-video clip reuses its first frame's thumbnail; a text-to-video clip is shown with <video>.
-    const { data: firstInput } = await db()
-      .from("generation_inputs")
-      .select("asset:assets(thumbnail_path)")
-      .eq("generation_id", row.id)
-      .eq("role", "first_frame")
-      .maybeSingle();
-    const thumbnailPath = (firstInput as { asset?: { thumbnail_path?: string | null } | null } | null)?.asset?.thumbnail_path ?? null;
-
-    await uploadMedia(storagePath, bytes, poll.video?.mimeType ?? "video/mp4");
-    const { width, height } = videoDimensions(resolution, p.aspectRatio ?? "16:9");
-    const { error: assetError } = await db().from("assets").insert({
-      id: assetId,
-      owner_id: OWNER_ID,
-      generation_id: row.id,
-      kind: "video",
-      source: "generated",
-      storage_path: storagePath,
-      thumbnail_path: thumbnailPath,
-      mime_type: poll.video?.mimeType ?? "video/mp4",
-      bytes: bytes.length,
-      width,
-      height,
-      duration_ms: seconds * 1000,
-    });
-    if (assetError) throw new Error(assetError.message);
-  } catch (error) {
-    await removeMedia([storagePath]);
-    // Leave it running: the claim goes stale and the next check retries while the result is still available.
-    console.error(`[video] couldn't save the finished clip ${row.id}`, error);
-    return toJobDto(row, null);
-  }
-
-  const cost = videoCostUsd(row.model, { seconds, resolution, audio: p.generateAudio ?? false });
+/** Writes the cost once per clip, even if finalize runs twice. */
+async function recordVideoUsage(row: JobRow, seconds: number, resolution: VideoResolution, audio: boolean): Promise<number | null> {
+  const cost = videoCostUsd(row.model, { seconds, resolution, audio });
   if (cost === null) {
     console.error(`[cost] video ${row.id} (${row.model}) has no known price; no usage_events row written`);
-  } else {
+    return null;
+  }
+  const { data: existing } = await db().from("usage_events").select("id").eq("generation_id", row.id).eq("unit_type", "video_second").limit(1);
+  if (!existing?.length) {
     const { error } = await db()
       .from("usage_events")
       .insert({ owner_id: OWNER_ID, generation_id: row.id, model: row.model, unit_type: "video_second", units: seconds, cost_usd: cost });
     if (error) console.error(`[cost] couldn't record video usage for ${row.id}: ${error.message}`);
   }
-  await db()
+  return cost;
+}
+
+async function finalize(row: JobRow, poll: VideoPoll): Promise<VideoJobDto> {
+  if (!(await claimFinalize(row.id))) return toJobDto(row, null); // another check is saving it
+
+  const p = row.params ?? {};
+  const seconds = p.durationSeconds ?? 4;
+  const resolution = (p.resolution ?? "720p") as VideoResolution;
+  const audio = p.generateAudio ?? false;
+
+  // An earlier attempt may have saved the clip and died before marking it done. Never save it twice.
+  const { data: already } = await db().from("assets").select("id").eq("generation_id", row.id).eq("kind", "video").limit(1);
+  if (!already?.length) {
+    const bytes = poll.video?.bytes;
+    if (!bytes) {
+      await markFailed(row.id, "Google made the clip but saved it to Cloud Storage instead of returning it, so it can't be fetched here.");
+      return jobDto({ ...(await getJobRow(row.id)) });
+    }
+
+    const assetId = randomUUID();
+    const storagePath = mediaPath(OWNER_ID, assetId, "mp4");
+    try {
+      // An image-to-video clip reuses its first frame's thumbnail; a text-to-video clip is shown with <video>.
+      const { data: firstInput } = await db()
+        .from("generation_inputs")
+        .select("asset:assets(thumbnail_path)")
+        .eq("generation_id", row.id)
+        .eq("role", "first_frame")
+        .maybeSingle();
+      const thumbnailPath = (firstInput as { asset?: { thumbnail_path?: string | null } | null } | null)?.asset?.thumbnail_path ?? null;
+
+      await uploadMedia(storagePath, bytes, poll.video?.mimeType ?? "video/mp4");
+      const { width, height } = videoDimensions(resolution, p.aspectRatio ?? "16:9");
+      const { error: assetError } = await db().from("assets").insert({
+        id: assetId,
+        owner_id: OWNER_ID,
+        generation_id: row.id,
+        kind: "video",
+        source: "generated",
+        storage_path: storagePath,
+        thumbnail_path: thumbnailPath,
+        mime_type: poll.video?.mimeType ?? "video/mp4",
+        bytes: bytes.length,
+        width,
+        height,
+        duration_ms: seconds * 1000,
+      });
+      if (assetError) throw new Error(assetError.message);
+    } catch (error) {
+      await removeMedia([storagePath]);
+      // Leave it running: the claim goes stale and a later check retries while the result is still available.
+      console.error(`[video] couldn't save the finished clip ${row.id}`, error);
+      return toJobDto(row, null);
+    }
+  }
+
+  const cost = await recordVideoUsage(row, seconds, resolution, audio);
+  const { error: doneError } = await db()
     .from("generations")
     .update({ status: "succeeded", error: null, cost_usd: cost, completed_at: new Date().toISOString() })
     .eq("id", row.id);
+  if (doneError) {
+    console.error(`[video] saved ${row.id} but couldn't mark it done: ${doneError.message}`);
+    return toJobDto(row, null); // a later check finds the saved clip and marks it done without saving it again
+  }
   return jobDto({ ...row, status: "succeeded", error: null });
 }
 
@@ -319,9 +340,36 @@ export async function refreshVideoJob(id: string): Promise<VideoJobDto> {
 
 // ─── Lists and re-run ────────────────────────────────────────────────────────
 
+let lastVideoSweep = 0;
+
+/**
+ * A clip that has run longer than the timeout is checked with Google before anything is decided: if
+ * Google finished it (and billed for it), it is saved; only a clip Google still hasn't finished is failed.
+ * At most once a minute per server.
+ */
+export async function sweepStuckVideos(): Promise<void> {
+  if (Date.now() - lastVideoSweep < 60_000) return;
+  lastVideoSweep = Date.now();
+  const { data } = await db()
+    .from("generations")
+    .select("id")
+    .eq("owner_id", OWNER_ID)
+    .eq("kind", "video")
+    .in("status", ["queued", "running"])
+    .lt("created_at", new Date(Date.now() - VIDEO_TIMEOUT_MS).toISOString())
+    .limit(20);
+  for (const row of data ?? []) {
+    try {
+      await refreshVideoJob(row.id as string);
+    } catch (error) {
+      console.error(`[video] couldn't check old clip ${row.id}`, error);
+    }
+  }
+}
+
 /** The newest clips (running, finished and failed), so a reload still shows what is in flight. */
 export async function listRecentVideoJobs(limit = 30): Promise<VideoJobDto[]> {
-  await failStuckGenerations();
+  await sweepStuckVideos();
   const { data, error } = await db()
     .from("generations")
     .select(JOB_COLUMNS)
@@ -355,6 +403,9 @@ export async function getVideoReRunSettings(generationId: string): Promise<Video
     const id = inputs?.find((i) => i.role === role)?.asset_id;
     return dtos.find((d) => d.id === id) ?? null;
   };
+  const firstFrame = frame("first_frame");
+  const lastFrame = frame("last_frame");
+  const expected = (inputs ?? []).filter((i) => i.role === "first_frame" || i.role === "last_frame").length;
   return {
     prompt: row.prompt,
     model: modelKeyOf(row.model),
@@ -362,7 +413,9 @@ export async function getVideoReRunSettings(generationId: string): Promise<Video
     durationSeconds: p.durationSeconds ?? 4,
     resolution: p.resolution ?? "720p",
     audio: p.generateAudio ?? false,
-    firstFrame: frame("first_frame"),
-    lastFrame: frame("last_frame"),
+    firstFrame,
+    lastFrame,
+    // The clip was made from frames that have since been deleted; re-running it would silently become text to video.
+    missingFrames: expected > [firstFrame, lastFrame].filter(Boolean).length,
   };
 }

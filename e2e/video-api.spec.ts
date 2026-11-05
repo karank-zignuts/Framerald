@@ -121,6 +121,12 @@ test("image to video: the first frame becomes the clip's thumbnail, and settings
   expect(settings).toMatchObject({ prompt, model: "fast", aspectRatio: "9:16", durationSeconds: 6, resolution: "720p", audio: true });
   expect(settings.firstFrame.id).toBe(frame.id);
   expect(settings.lastFrame).toBeNull();
+  expect(settings.missingFrames).toBe(false);
+
+  // If the first frame is deleted later, re-running must say so instead of quietly becoming text to video.
+  expect((await request.delete(`/api/assets/${frame.id}`)).status()).toBe(200);
+  const after = await (await request.get(`/api/videos/${job.id}/settings`)).json();
+  expect(after).toMatchObject({ firstFrame: null, missingFrames: true });
 });
 
 test("presets: built-ins for each kind, your own can be added and deleted", async ({ request }) => {

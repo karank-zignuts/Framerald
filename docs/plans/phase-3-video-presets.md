@@ -42,3 +42,13 @@ Date: 2026-11-05. Done when: a prompt (typed, or sent from an agent shot) become
 | Two polls finalize the same clip | Conditional claim; asset id derived once per claim |
 | Long clips and storage limits | Bucket allows 500 MB; 8 s clips are small |
 | Runaway spend | Cost shown before Generate; max 1 video per request in the UI; one real clip in this phase |
+
+## Outcome (2026-11-05)
+
+All slices built. Verified: 116 unit tests, 51 browser tests (AI mocked), production build, and **one real clip**: Veo 3.1 Lite, 4 s, 720p, no sound, text to video, started through the app. Vertex accepted the call in 6.5 s, finished it at about 48 s, and returned the bytes inline (no Cloud Storage bucket needed). The saved file is a real 1280x720, 24 fps, 4.0 s H.264 clip of the prompt (a paper boat at sunrise), 1.07 MB. Database: one generation at $0.12, one `video_second` usage row (4 s, $0.12), one asset. Real spend: about $0.12, one clip.
+
+Independent review: no criticals. Fixed: the stuck-job sweep no longer fails a video without asking Google first (a clip that finished while the laptop was closed is now fetched and saved); `finalize` is idempotent (it never saves a second asset or a second cost row, and the stale-claim window is 10 minutes); the final status update's error is checked; Try again can't be double-clicked into two paid clips; re-running or retrying a clip whose frame was deleted says so instead of silently becoming text to video; `$` in a prompt is no longer mangled by preset templating; presets that push a prompt over the limit explain why; saving the operation name is tried twice.
+
+Found by the browser tests while building: a nested form in the preset picker would have let Enter in its name field start a paid clip (fixed, now tested); a late list response could erase a new clip or chat entry (fixed by re-fetching after the change; chats are now created under their real name).
+
+Known and accepted: Veo prices read from Google's "$ / 1 count" as per second (the clip's $0.12 matches that reading, but Google's bill is the real check). Lite is a preview model. 1080p and 4K only at 8 s is an assumption. Text-to-video tiles use `<video preload="metadata">` (one small request per tile). Only the cheapest model was tried with a real call. Image to video, last frame, sound and the Fast and standard models are covered by the mock only. The stale-claim takeover can't be tested without fault injection. Migration `20261105000002` is still unapplied (a separate owner step).

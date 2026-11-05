@@ -10,7 +10,7 @@ Legend: ⬜ not started · 🟦 in progress · ✅ done
 
 ## 1. Where we are <!-- LIVING -->
 
-Phases 0, 1 and 2 are done. Image Studio, Library and the Agent work end to end against real Vertex AI and Supabase. One owner step is pending: apply migration `20261105000002` (`npx supabase db push --linked`). Next: Phase 3, Video Studio and Presets.
+Phases 0 to 3 are done. Image Studio, Agent, Video Studio, presets and the Library work end to end against real Vertex AI and Supabase. One owner step is pending: apply migration `20261105000002` (`npx supabase db push --linked`). Next: Phase 4, Library, spend and polish.
 
 ## 2. Phases
 
@@ -46,10 +46,12 @@ Built: `/agent` with a chat list (new, rename, soft delete), streamed replies wi
 
 **Done when:** idea → planned shots → generated frames in one flow.
 
-### Phase 3: Video Studio + Presets ⬜
+### Phase 3: Video Studio + Presets ✅
 - Text to video, image to video (first/last frame)
 - Background jobs with progress, survives reload
 - Camera-move and style presets
+
+Built: `/video` with live cost estimate, text to video and image to video (first and last frame from upload or the Library), Veo 3.1 Lite, Fast and standard, 4 to 8 second clips, optional sound; jobs that survive a reload and finish exactly once; built-in camera and look presets plus your own; Library with video tiles, inline player and an All/Images/Videos/Favourites filter; Send to Video on agent cards; Animate this image from the Library. Plan and decisions: `docs/plans/phase-3-video-presets.md`.
 
 **Done when:** a planned shot becomes a finished clip in the Library.
 
@@ -69,3 +71,4 @@ Built: `/agent` with a chat list (new, rename, soft delete), streamed replies wi
 | 2026-11-05 | Supabase migration pushed. Vertex AI verified. Model IDs recorded in `models.ts`. |
 | 2026-11-05 | Phase 1 built: Image Studio, Library, generation service, uploads, thumbnails, cost logging. Verified with a real generate and a real edit (about $0.04 each). |
 | 2026-11-05 | Phase 2 built: Agent page, streaming shot lists, prefill into the Image Studio, Refine with agent. Verified with real calls (plan about $0.003, refine about $0.002). |
+| 2026-11-05 | Phase 3 built: Video Studio, background jobs, presets, video in the Library. Verified with one real Veo 3.1 Lite clip (4 s, 720p, no sound, about $0.12). |

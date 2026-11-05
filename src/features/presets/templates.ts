@@ -19,7 +19,7 @@ export function applyPresets(prompt: string, presets: PresetTemplate[]): string 
   let current = prompt.trim();
   for (const preset of presets) {
     current = preset.template.includes("{prompt}")
-      ? preset.template.replace("{prompt}", current)
+      ? preset.template.replace("{prompt}", () => current) // a function, so $& and $1 in the prompt stay literal
       : `${current.replace(/[.,;:\s]+$/, "")}, ${preset.template}`;
   }
   return current.trim();

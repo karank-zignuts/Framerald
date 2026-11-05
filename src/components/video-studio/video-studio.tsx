@@ -36,6 +36,7 @@ export function VideoStudio() {
           firstFrame: s.firstFrame,
           lastFrame: s.lastFrame,
           sourceGenerationId: from,
+          missingFrames: s.missingFrames,
         };
       }
       return { firstFrame: await fetchAsset(first!) };
@@ -51,7 +52,11 @@ export function VideoStudio() {
     );
   }
 
-  const notice = initialQuery.isError ? `Couldn't load those settings: ${initialQuery.error.message}` : null;
+  const notice = initialQuery.isError
+    ? `Couldn't load those settings: ${initialQuery.error.message}`
+    : initialQuery.data?.missingFrames
+      ? "A frame this clip was made from was deleted. Add new frames to keep it an image-to-video clip, or leave them empty for text to video."
+      : null;
   const fromPrefill: VideoInitial | null = prefill
     ? { ...(prefill.prompt && { prompt: prefill.prompt }), ...(prefill.aspectRatio && { aspectRatio: prefill.aspectRatio as "16:9" | "9:16" }) }
     : null;

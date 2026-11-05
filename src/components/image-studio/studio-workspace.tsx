@@ -98,9 +98,14 @@ export function StudioWorkspace({ initial, notice }: { initial: StudioInitial | 
 
   function submit() {
     if (busy) return;
+    // Presets are added now, so the saved prompt is exactly what was sent.
+    const prompt = applyPresets(values.prompt, selectedPresets(presets.data, values.presetIds));
+    if (prompt.length > 4000) {
+      toast.error(`With the preset added, the prompt is ${prompt.length} characters. The limit is 4,000.`);
+      return;
+    }
     void run({
-      // Presets are added now, so the saved prompt is exactly what was sent.
-      prompt: applyPresets(values.prompt, selectedPresets(presets.data, values.presetIds)),
+      prompt,
       model: values.model,
       aspectRatio: values.aspectRatio as GenerateInput["aspectRatio"],
       imageSize: values.imageSize,

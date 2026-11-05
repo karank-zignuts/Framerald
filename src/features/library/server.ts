@@ -46,21 +46,22 @@ const MAX_PAGE_SIZE = 60;
 let lastSweep = 0;
 const SWEEP_EVERY_MS = 60_000;
 const IMAGE_STUCK_AFTER_MS = 10 * 60_000;
-const VIDEO_STUCK_AFTER_MS = 30 * 60_000; // clips legitimately run for minutes
 
-/** Marks generations that never finished (server crashed mid-call) as failed. At most once a minute per server. */
+/**
+ * Marks images that never finished (server crashed mid-call) as failed. At most once a minute per server.
+ * Videos are not swept here: a clip that looks stuck may be finished at Google and paid for, so
+ * features/videos/server.ts asks Google before it gives up on one.
+ */
 export async function failStuckGenerations(): Promise<void> {
   if (Date.now() - lastSweep < SWEEP_EVERY_MS) return;
   lastSweep = Date.now();
-  for (const [kind, afterMs] of [["image", IMAGE_STUCK_AFTER_MS], ["video", VIDEO_STUCK_AFTER_MS]] as const) {
-    await db()
-      .from("generations")
-      .update({ status: "failed", error: "This generation never finished.", completed_at: new Date().toISOString() })
-      .eq("owner_id", OWNER_ID)
-      .eq("kind", kind)
-      .in("status", ["queued", "running"])
-      .lt("created_at", new Date(Date.now() - afterMs).toISOString());
-  }
+  await db()
+    .from("generations")
+    .update({ status: "failed", error: "This generation never finished.", completed_at: new Date().toISOString() })
+    .eq("owner_id", OWNER_ID)
+    .eq("kind", "image")
+    .in("status", ["queued", "running"])
+    .lt("created_at", new Date(Date.now() - IMAGE_STUCK_AFTER_MS).toISOString());
 }
 
 function summarize(g: GenerationRow): GenerationSummary {

@@ -15,6 +15,8 @@ type Props = {
   error: Error | null;
   onRetryLoad: () => void;
   onTryAgain: (job: VideoJobDto) => void;
+  /** Clips whose Try again has been pressed and is still starting. */
+  retryingIds: string[];
 };
 
 /** m:ss since a clip started. Ticks every second. */
@@ -40,7 +42,7 @@ function Elapsed({ since }: { since: string }) {
 // A portrait clip is capped by height so it can't push everything else off the screen.
 const frame = (aspect: string) => (aspect === "9:16" ? "aspect-[9/16] max-h-[32rem]" : "aspect-video w-full max-w-2xl");
 
-function JobCard({ job, onTryAgain }: { job: VideoJobDto; onTryAgain: (job: VideoJobDto) => void }) {
+function JobCard({ job, onTryAgain, retrying }: { job: VideoJobDto; onTryAgain: (job: VideoJobDto) => void; retrying: boolean }) {
   return (
     <section aria-label={`Clip: ${job.prompt.slice(0, 60)}`} className="flex flex-col gap-3" data-testid="job" data-status={job.status}>
       <header className="flex items-start justify-between gap-4">
@@ -78,9 +80,9 @@ function JobCard({ job, onTryAgain }: { job: VideoJobDto; onTryAgain: (job: Vide
       {job.status === "failed" && (
         <div role="alert" className="flex max-w-xl flex-col items-start gap-3 rounded-lg border border-destructive/50 p-4" data-testid="job-error">
           <p className="text-sm">{job.error ?? "The clip didn't finish."}</p>
-          <Button variant="secondary" size="sm" onClick={() => onTryAgain(job)}>
+          <Button variant="secondary" size="sm" onClick={() => onTryAgain(job)} disabled={retrying} aria-busy={retrying}>
             <RotateCcw aria-hidden className="size-3.5" />
-            Try again
+            {retrying ? "Starting" : "Try again"}
           </Button>
         </div>
       )}
@@ -116,7 +118,7 @@ function JobCard({ job, onTryAgain }: { job: VideoJobDto; onTryAgain: (job: Vide
   );
 }
 
-export function VideoResults({ jobs, isPending, error, onRetryLoad, onTryAgain }: Props) {
+export function VideoResults({ jobs, isPending, error, onRetryLoad, onTryAgain, retryingIds }: Props) {
   if (isPending) {
     return (
       <div className="flex flex-col gap-4 p-5" role="status" aria-label="Loading clips">
@@ -150,7 +152,7 @@ export function VideoResults({ jobs, isPending, error, onRetryLoad, onTryAgain }
   return (
     <div className="flex flex-col gap-10 p-5 lg:overflow-y-auto" data-testid="jobs">
       {jobs.map((job) => (
-        <JobCard key={job.id} job={job} onTryAgain={onTryAgain} />
+        <JobCard key={job.id} job={job} onTryAgain={onTryAgain} retrying={retryingIds.includes(job.id)} />
       ))}
     </div>
   );

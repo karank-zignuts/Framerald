@@ -47,6 +47,8 @@ Legend: ✅ **Decided** · 🟡 **Recommended** (adopt when needed) · ⏳ **Lat
 | Video as a background job: store the Vertex operation, poll it | ✅ | Veo takes minutes. The UI shows progress and survives a reload |
 | Image generation runs inside the POST request (10 to 30 s). Fine locally; video will use jobs | ✅ | Simple, and one request equals one visible row |
 | Vertex image models need `generateContent`; the Interactions API is not supported for them on Vertex | ✅ | Confirmed with a real call, 2026-11-05 |
+| Video clips are Vertex long-running operations: start returns at once with the operation saved, the browser polls a status route every 4 s, and the route saves the finished clip once (conditional claim on `completed_at`). Vertex returns the bytes inline, so no Cloud Storage bucket is needed (confirmed with a real clip) | ✅ | No worker process; works on Vercel. A cron can call the same route later |
+| Veo prices come from Google's Vertex price page ("$ / 1 count", read as per second); 1080p and 4K clips only at 8 s (assumption) | ✅ | Conservative for a spend limit |
 | Agent replies stream as NDJSON over a POST; the shot list is a function call (`propose_shot_list`), validated with Zod. Past shot lists are replayed to the model as plain text | ✅ | No fragile parsing, no function-call history to store |
 | Agent thinking level LOW | ✅ | Measured: first output 3.5 s instead of 11.5 s, about $0.003 instead of $0.005 per plan |
 | Job polling from the client while a job is open, plus a sweep on each page load | ✅ | No extra worker service in v1 |

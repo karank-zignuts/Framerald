@@ -57,10 +57,10 @@ Google renames and replaces models often. Check the current Vertex AI model list
 | Job | Family today |
 |---|---|
 | Image make / edit | `gemini-nano-banana-2.1` (default), `gemini-3-pro-image`, `gemini-3.1-flash-image` |
-| Video | `veo-3.1-generate-001` / `-fast-` / `-lite-` (us-central1 only), `gemini-omni-1.1-flash-preview` |
+| Video | `veo-3.1-lite-generate-001` (preview, cheapest), `veo-3.1-fast-generate-001`, `veo-3.1-generate-001` (all us-central1 only). Gemini Omni is not offered |
 | Agent | `gemini-3.8-flash` (default, thinking level LOW), `gemini-3.1-pro-preview` (deep, not used yet) |
 
-IDs confirmed against this project on 2026-11-05 and kept in `src/lib/ai/models.ts`. Real calls so far: Nano Banana 2.1 at 1K (image and edit) and `gemini-3.8-flash` (streamed plan and prompt refinement).
+IDs confirmed against this project on 2026-11-05 and kept in `src/lib/ai/models.ts`. Real calls so far: Nano Banana 2.1 at 1K (image and edit), `gemini-3.8-flash` (streamed plan and prompt refinement) and Veo 3.1 Lite (one 4 s 720p clip).
 
 ## 6. Ready for money later
 

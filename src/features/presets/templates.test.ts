@@ -19,6 +19,9 @@ describe("applyPresets", () => {
       "a red door, slow dolly in toward the subject, shot as black and white film noir, hard shadows",
     );
   });
+  it("keeps dollar signs in the prompt exactly as typed", () => {
+    expect(applyPresets("costs $& and $1 and $' and $`", [noir])).toBe("costs $& and $1 and $' and $`, shot as black and white film noir, hard shadows");
+  });
   it("doesn't leave doubled punctuation after a sentence end", () => {
     expect(applyPresets("A red door.", [dolly])).toBe("A red door, slow dolly in toward the subject");
     expect(applyPresets("A red door,", [dolly])).toBe("A red door, slow dolly in toward the subject");
