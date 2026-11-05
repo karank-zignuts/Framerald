@@ -1,4 +1,5 @@
 import "server-only";
+import { ThinkingLevel } from "@google/genai";
 import { z } from "zod";
 import { shotListToolSchema } from "@/features/agent/schemas";
 import type { Content } from "@/features/agent/history";
@@ -65,6 +66,8 @@ export async function* streamAgentReply(contents: Content[]): AsyncGenerator<Age
                 ],
               },
             ],
+            // Planning shots takes craft, not long reasoning. Low thinking answers sooner and costs less.
+            thinkingConfig: { thinkingLevel: ThinkingLevel.LOW },
             httpOptions: { timeout: REQUEST_TIMEOUT_MS },
           },
         }),
@@ -111,6 +114,7 @@ export async function refinePrompt(input: {
             systemInstruction: REFINE_SYSTEM_PROMPT,
             responseMimeType: "application/json",
             responseJsonSchema: z.toJSONSchema(refineResultSchema, { target: "draft-7" }),
+            thinkingConfig: { thinkingLevel: ThinkingLevel.LOW },
             httpOptions: { timeout: REQUEST_TIMEOUT_MS },
           },
         }),
