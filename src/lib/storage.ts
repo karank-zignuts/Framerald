@@ -1,0 +1,35 @@
+import "server-only";
+import { db } from "@/lib/supabase/server";
+
+export const MEDIA_BUCKET = "media";
+export const SIGNED_URL_TTL_SECONDS = 60 * 60;
+
+/** `<owner_id>/<yyyy>/<mm>/<asset_id>[.thumb].<ext>` */
+export function mediaPath(ownerId: string, assetId: string, ext: string, variant: "original" | "thumb" = "original") {
+  const now = new Date();
+  const yyyy = now.getUTCFullYear();
+  const mm = String(now.getUTCMonth() + 1).padStart(2, "0");
+  return `${ownerId}/${yyyy}/${mm}/${assetId}${variant === "thumb" ? ".thumb" : ""}.${ext}`;
+}
+
+export async function uploadMedia(path: string, bytes: Buffer, contentType: string): Promise<void> {
+  const { error } = await db().storage.from(MEDIA_BUCKET).upload(path, bytes, { contentType, upsert: false });
+  if (error) throw new Error(`Couldn't save the file: ${error.message}`);
+}
+
+export async function downloadMedia(path: string): Promise<Buffer> {
+  const { data, error } = await db().storage.from(MEDIA_BUCKET).download(path);
+  if (error || !data) throw new Error(`Couldn't read a stored file: ${error?.message ?? "missing"}`);
+  return Buffer.from(await data.arrayBuffer());
+}
+
+/** One request for many links. Paths that can't be signed are left out. */
+export async function signedUrlMap(paths: string[]): Promise<Map<string, string>> {
+  const unique = [...new Set(paths)];
+  const map = new Map<string, string>();
+  if (unique.length === 0) return map;
+  const { data, error } = await db().storage.from(MEDIA_BUCKET).createSignedUrls(unique, SIGNED_URL_TTL_SECONDS);
+  if (error) throw new Error(`Couldn't link to stored files: ${error.message}`);
+  for (const item of data ?? []) if (item.path && item.signedUrl) map.set(item.path, item.signedUrl);
+  return map;
+}
