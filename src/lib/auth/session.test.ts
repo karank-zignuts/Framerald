@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createSessionToken, deriveSessionKey, isSafeNext, passwordMatches, verifySessionToken } from "./session";
+import { bearerMatches, createSessionToken, deriveSessionKey, isSafeNext, passwordMatches, verifySessionToken } from "./session";
 
 const key = deriveSessionKey("correct horse");
 const now = 1_800_000_000_000;
@@ -61,5 +61,20 @@ describe("isSafeNext", () => {
       expect(isSafeNext(bad)).toBe("/image");
     }
     expect(isSafeNext(null)).toBe("/image");
+  });
+});
+
+describe("bearerMatches", () => {
+  it("accepts only the exact bearer token", () => {
+    expect(bearerMatches("Bearer s3cret", "s3cret")).toBe(true);
+    expect(bearerMatches("Bearer s3cre", "s3cret")).toBe(false);
+    expect(bearerMatches("bearer s3cret", "s3cret")).toBe(false); // the scheme is case-sensitive here
+    expect(bearerMatches("s3cret", "s3cret")).toBe(false);
+    expect(bearerMatches("Bearer ", "s3cret")).toBe(false);
+    expect(bearerMatches(null, "s3cret")).toBe(false);
+  });
+  it("never accepts anything when no secret is set", () => {
+    expect(bearerMatches("Bearer ", "")).toBe(false);
+    expect(bearerMatches("Bearer x", undefined)).toBe(false);
   });
 });

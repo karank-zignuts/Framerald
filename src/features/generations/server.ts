@@ -7,6 +7,7 @@ import { generateImage, type ImageResult } from "@/lib/ai/image";
 import { imageCostUsd } from "@/lib/ai/cost";
 import { MODELS } from "@/lib/ai/models";
 import { HttpError } from "@/lib/http";
+import { assertProject } from "@/features/projects/server";
 import { ASSET_SELECT, failStuckGenerations, toAssetDtos, type AssetRow } from "@/features/library/server";
 import type { AssetDto } from "@/features/library/types";
 import type { GenerateRequest } from "./schemas";
@@ -42,6 +43,7 @@ async function loadReferences(ids: string[]): Promise<Reference[]> {
  */
 export async function runGeneration(req: GenerateRequest): Promise<GenerationResult> {
   await failStuckGenerations();
+  if (req.projectId) await assertProject(req.projectId);
   const references = await loadReferences(req.referenceAssetIds);
   const spec = MODELS.image[req.model];
   const generationId = randomUUID();
@@ -51,6 +53,7 @@ export async function runGeneration(req: GenerateRequest): Promise<GenerationRes
     .insert({
       id: generationId,
       owner_id: OWNER_ID,
+      project_id: req.projectId ?? null,
       parent_id: req.sourceGenerationId ?? null,
       kind: "image",
       mode: references.length ? "image_edit" : "text_to_image",
@@ -93,7 +96,7 @@ export async function runGeneration(req: GenerateRequest): Promise<GenerationRes
       const cost = imageCostUsd(outcome.value.modelId, outcome.value.usage);
       costs.push(cost);
       try {
-        const assetId = await storeImage(generationId, outcome.value);
+        const assetId = await storeImage(generationId, outcome.value, req.projectId ?? null);
         stored.push(assetId);
         await recordUsage(generationId, outcome.value.modelId, cost);
       } catch (error) {
@@ -106,7 +109,7 @@ export async function runGeneration(req: GenerateRequest): Promise<GenerationRes
   return finish(generationId, { stored, failures, costs });
 }
 
-async function storeImage(generationId: string, image: ImageResult): Promise<string> {
+async function storeImage(generationId: string, image: ImageResult, projectId: string | null): Promise<string> {
   const info = await inspectImage(image.bytes);
   const assetId = randomUUID();
   const storagePath = mediaPath(OWNER_ID, assetId, info.ext);
@@ -123,6 +126,7 @@ async function storeImage(generationId: string, image: ImageResult): Promise<str
   const { error } = await db().from("assets").insert({
     id: assetId,
     owner_id: OWNER_ID,
+    project_id: projectId,
     generation_id: generationId,
     kind: "image",
     source: "generated",

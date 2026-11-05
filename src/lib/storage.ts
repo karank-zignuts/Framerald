@@ -12,6 +12,13 @@ export function mediaPath(ownerId: string, assetId: string, ext: string, variant
   return `${ownerId}/${yyyy}/${mm}/${assetId}${variant === "thumb" ? ".thumb" : ""}.${ext}`;
 }
 
+/** A one-time URL the browser can PUT a file to directly, so it never passes through a size-limited function. */
+export async function createUploadUrl(path: string): Promise<string> {
+  const { data, error } = await db().storage.from(MEDIA_BUCKET).createSignedUploadUrl(path);
+  if (error || !data) throw new Error(`Couldn't prepare the upload: ${error?.message ?? "no URL"}`);
+  return data.signedUrl;
+}
+
 export async function uploadMedia(path: string, bytes: Buffer, contentType: string): Promise<void> {
   const { error } = await db().storage.from(MEDIA_BUCKET).upload(path, bytes, { contentType, upsert: false });
   if (error) throw new Error(`Couldn't save the file: ${error.message}`);

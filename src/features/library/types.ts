@@ -25,6 +25,8 @@ export type AssetDto = {
   height: number | null;
   /** Video assets only. */
   durationMs: number | null;
+  mimeType: string;
+  projectId: string | null;
   isFavorite: boolean;
   createdAt: string;
   generation: GenerationSummary | null;

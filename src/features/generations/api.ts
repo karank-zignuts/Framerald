@@ -26,10 +26,28 @@ export function generate(input: GenerateInput): Promise<GenerationResult> {
   }).then((r) => readJson<GenerationResult>(r));
 }
 
-export function uploadReference(file: File): Promise<AssetDto> {
-  const form = new FormData();
-  form.set("file", file);
-  return fetch("/api/uploads", { method: "POST", body: form }).then((r) => readJson<AssetDto>(r));
+type SignedUpload = { assetId: string; ext: string; path: string; uploadUrl: string };
+
+/** Uploads straight to storage (Vercel functions reject bodies over 4.5 MB), then asks the server to check and record it. */
+export async function uploadReference(file: File): Promise<AssetDto> {
+  const json = { "content-type": "application/json" };
+  const signed = await fetch("/api/uploads/sign", {
+    method: "POST",
+    headers: json,
+    body: JSON.stringify({ contentType: file.type, size: file.size }),
+  }).then((r) => readJson<SignedUpload>(r));
+
+  const body = new FormData();
+  body.append("cacheControl", "3600");
+  body.append("", file);
+  const put = await fetch(signed.uploadUrl, { method: "PUT", headers: { "x-upsert": "false" }, body });
+  if (!put.ok) throw new Error("The upload didn't go through. Try again.");
+
+  return fetch("/api/uploads/complete", {
+    method: "POST",
+    headers: json,
+    body: JSON.stringify({ assetId: signed.assetId, ext: signed.ext, path: signed.path }),
+  }).then((r) => readJson<AssetDto>(r));
 }
 
 export function fetchReRunSettings(generationId: string): Promise<ReRunSettings> {

@@ -56,3 +56,9 @@ export function isSafeNext(next: string | null | undefined): string {
   if (next === "/login" || next.startsWith("/login?") || next.startsWith("/login/")) return fallback;
   return next;
 }
+
+/** Checks an `Authorization: Bearer <token>` header against a secret. Nothing matches when no secret is set. */
+export function bearerMatches(header: string | null | undefined, secret: string | undefined): boolean {
+  if (!secret || typeof header !== "string" || !header.startsWith("Bearer ")) return false;
+  return passwordMatches(header.slice("Bearer ".length), secret);
+}

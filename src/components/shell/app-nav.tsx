@@ -1,8 +1,9 @@
 "use client";
 
-import { Film, Image as ImageIcon, LayoutGrid, MessageSquareText } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { Film, Image as ImageIcon, LayoutGrid, LogOut, MessageSquareText } from "lucide-react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 
 const ITEMS = [
@@ -43,6 +44,35 @@ function NavLink({ item, active, compact }: { item: (typeof ITEMS)[number]; acti
   );
 }
 
+/** Shown only when the password gate is on. */
+function SignOut({ compact }: { compact?: boolean }) {
+  const router = useRouter();
+  const status = useQuery({
+    queryKey: ["auth", "status"],
+    queryFn: () => fetch("/api/auth/status").then((r) => r.json() as Promise<{ enabled: boolean }>),
+    staleTime: Infinity,
+  });
+  if (!status.data?.enabled) return null;
+  return (
+    <button
+      type="button"
+      onClick={async () => {
+        await fetch("/api/auth/logout", { method: "POST" });
+        router.replace("/login");
+        router.refresh();
+      }}
+      className={cn(
+        "flex items-center gap-2.5 rounded-lg px-3 text-sm text-muted-foreground transition-colors duration-fast hover:bg-secondary/60 hover:text-foreground",
+        compact ? "h-9" : "h-10",
+        focusRing,
+      )}
+    >
+      <LogOut aria-hidden className="size-4 shrink-0" />
+      Sign out
+    </button>
+  );
+}
+
 /** A left rail from 64rem up, a top bar below it. */
 export function AppNav() {
   const pathname = usePathname();
@@ -57,6 +87,9 @@ export function AppNav() {
             <NavLink key={item.href} item={item} active={isActive(item.href)} />
           ))}
         </nav>
+        <div className="mt-auto">
+          <SignOut />
+        </div>
       </aside>
 
       <header className="flex flex-col gap-2 border-b border-border bg-card px-3 py-3 lg:hidden">
@@ -65,6 +98,7 @@ export function AppNav() {
           {ITEMS.map((item) => (
             <NavLink key={item.href} item={item} active={isActive(item.href)} compact />
           ))}
+          <SignOut compact />
         </nav>
       </header>
     </>

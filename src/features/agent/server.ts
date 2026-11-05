@@ -2,6 +2,7 @@ import "server-only";
 import { z } from "zod";
 import { db, OWNER_ID } from "@/lib/supabase/server";
 import { HttpError } from "@/lib/http";
+import { assertProject } from "@/features/projects/server";
 import { AGENT_MODEL, agentErrorMessage, refinePrompt, streamAgentReply } from "@/lib/ai/agent";
 import { textCostUsd, type TextUsage } from "@/lib/ai/cost";
 import { buildContents, type StoredMessage } from "./history";
@@ -12,7 +13,7 @@ const DEFAULT_TITLE = "New chat";
 const REFINEMENTS_TITLE = "Prompt refinements";
 const HISTORY_FETCH = 60; // newest messages read for a reply; buildContents trims further
 
-type ThreadRow = { id: string; title: string | null; updated_at: string };
+type ThreadRow = { id: string; title: string | null; updated_at: string; project_id: string | null };
 type MessageRow = {
   id: string;
   role: "user" | "assistant" | "tool";
@@ -28,7 +29,7 @@ const contentSchema = z.object({
   error: z.string().optional(),
 });
 
-const toThreadDto = (r: ThreadRow): ThreadDto => ({ id: r.id, title: r.title ?? DEFAULT_TITLE, updatedAt: r.updated_at });
+const toThreadDto = (r: ThreadRow): ThreadDto => ({ id: r.id, title: r.title ?? DEFAULT_TITLE, updatedAt: r.updated_at, projectId: r.project_id });
 
 function toMessageDto(r: MessageRow): AgentMessageDto | null {
   if (r.role === "tool") return null;
@@ -45,7 +46,7 @@ function toMessageDto(r: MessageRow): AgentMessageDto | null {
   };
 }
 
-const THREAD_COLUMNS = "id,title,updated_at";
+const THREAD_COLUMNS = "id,title,updated_at,project_id";
 const MESSAGE_COLUMNS = "id,role,content,cost_usd,created_at";
 
 // ─── Threads ─────────────────────────────────────────────────────────────────
@@ -62,10 +63,11 @@ export async function listThreads(): Promise<ThreadDto[]> {
   return (data as ThreadRow[]).map(toThreadDto);
 }
 
-export async function createThread(title?: string): Promise<ThreadDto> {
+export async function createThread(title?: string, projectId?: string | null): Promise<ThreadDto> {
+  if (projectId) await assertProject(projectId);
   const { data, error } = await db()
     .from("agent_threads")
-    .insert({ owner_id: OWNER_ID, title: title ?? DEFAULT_TITLE })
+    .insert({ owner_id: OWNER_ID, title: title ?? DEFAULT_TITLE, project_id: projectId ?? null })
     .select(THREAD_COLUMNS)
     .single();
   if (error) throw new Error(`Couldn't start the chat: ${error.message}`);
@@ -85,10 +87,11 @@ async function getThread(id: string): Promise<ThreadDto> {
   return toThreadDto(data as ThreadRow);
 }
 
-export async function renameThread(id: string, title: string): Promise<ThreadDto> {
+export async function updateThread(id: string, change: { title?: string; projectId?: string | null }): Promise<ThreadDto> {
+  if (change.projectId) await assertProject(change.projectId);
   const { data, error } = await db()
     .from("agent_threads")
-    .update({ title })
+    .update({ ...(change.title !== undefined && { title: change.title }), ...(change.projectId !== undefined && { project_id: change.projectId }) })
     .eq("owner_id", OWNER_ID)
     .eq("id", id)
     .is("deleted_at", null)
@@ -203,7 +206,7 @@ async function recordUsage(messageId: string, usage: TextUsage | undefined, cost
 export async function streamReply(threadId: string, text: string): Promise<ReadableStream<Uint8Array>> {
   const thread = await getThread(threadId);
   await insertUserMessage(threadId, text);
-  if (thread.title === DEFAULT_TITLE) await renameThread(threadId, titleFromMessage(text));
+  if (thread.title === DEFAULT_TITLE) await updateThread(threadId, { title: titleFromMessage(text) });
   const history = await loadHistory(threadId);
 
   const encoder = new TextEncoder();

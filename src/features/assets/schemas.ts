@@ -13,6 +13,8 @@ export const signUploadSchema = z.object({
 export const completeUploadSchema = z.object({
   assetId: z.uuid(),
   ext: z.enum(EXTENSIONS),
+  /** The path `sign` returned. The server checks it matches the id, so a client can't point at someone else's file. */
+  path: z.string().max(200),
 });
 
 export function extForContentType(contentType: (typeof CONTENT_TYPES)[number]): (typeof EXTENSIONS)[number] {

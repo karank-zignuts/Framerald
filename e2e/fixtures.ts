@@ -9,7 +9,7 @@ export const test = base.extend({
     const problems: string[] = [];
     page.on("pageerror", (e) => problems.push(`pageerror: ${e.message}`));
     page.on("response", async (r) => {
-      if (r.url().endsWith("/api/uploads") && r.request().method() === "POST" && r.ok()) {
+      if (r.url().endsWith("/api/uploads/complete") && r.request().method() === "POST" && r.ok()) {
         const body = await r.json().catch(() => null);
         if (body?.id) trackAsset(body.id);
       }

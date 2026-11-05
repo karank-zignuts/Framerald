@@ -20,9 +20,11 @@ describe("signUploadSchema", () => {
 
 describe("completeUploadSchema", () => {
   it("needs an id and a known extension", () => {
-    expect(completeUploadSchema.safeParse({ assetId: uuid, ext: "jpg" }).success).toBe(true);
-    expect(completeUploadSchema.safeParse({ assetId: "nope", ext: "png" }).success).toBe(false);
-    expect(completeUploadSchema.safeParse({ assetId: uuid, ext: "exe" }).success).toBe(false);
+    const path = `owner/2026/11/${uuid}.jpg`;
+    expect(completeUploadSchema.safeParse({ assetId: uuid, ext: "jpg", path }).success).toBe(true);
+    expect(completeUploadSchema.safeParse({ assetId: "nope", ext: "png", path }).success).toBe(false);
+    expect(completeUploadSchema.safeParse({ assetId: uuid, ext: "exe", path }).success).toBe(false);
+    expect(completeUploadSchema.safeParse({ assetId: uuid, ext: "png" }).success).toBe(false);
   });
 });
 

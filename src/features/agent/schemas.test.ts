@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { refinePromptSchema, sendMessageSchema, shotListSchema, shotListToolSchema, titleFromMessage } from "./schemas";
+import { refinePromptSchema, sendMessageSchema, shotListSchema, shotListToolSchema, titleFromMessage, updateThreadSchema } from "./schemas";
 
 const shot = { prompt: "A lighthouse in a storm", aspectRatio: "16:9" };
 
@@ -51,5 +51,14 @@ describe("titleFromMessage", () => {
   it("collapses whitespace and cuts to 60 characters", () => {
     expect(titleFromMessage("  a   lighthouse\n\nin a storm ")).toBe("a lighthouse in a storm");
     expect(titleFromMessage("x".repeat(100))).toHaveLength(60);
+  });
+});
+
+describe("updateThreadSchema", () => {
+  it("takes a new title, a project, or null to clear it, but not nothing", () => {
+    expect(updateThreadSchema.parse({ title: "  Night chase " }).title).toBe("Night chase");
+    expect(updateThreadSchema.parse({ projectId: null }).projectId).toBeNull();
+    expect(updateThreadSchema.safeParse({}).success).toBe(false);
+    expect(updateThreadSchema.safeParse({ title: " " }).success).toBe(false);
   });
 });

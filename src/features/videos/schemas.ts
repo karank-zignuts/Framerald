@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { MODELS, VIDEO_MODEL_KEYS } from "@/lib/ai/models";
+import { projectFieldSchema } from "@/features/projects/schemas";
 
 export const VIDEO_RATIOS = ["16:9", "9:16"] as const;
 export const VIDEO_DURATIONS = [4, 6, 8] as const;
@@ -18,6 +19,7 @@ export const generateVideoSchema = z
     lastFrameAssetId: z.uuid().optional(),
     // Set when this request re-runs an earlier generation.
     sourceGenerationId: z.uuid().optional(),
+    projectId: projectFieldSchema,
   })
   .superRefine((r, ctx) => {
     const supported = MODELS.video[r.model].videoResolutions as readonly string[];

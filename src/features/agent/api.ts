@@ -8,13 +8,18 @@ const json = { "content-type": "application/json" };
 
 export const fetchThreads = () => fetch("/api/agent/threads").then((r) => readJson<ThreadDto[]>(r));
 
-export const createThread = (title?: string) =>
-  fetch("/api/agent/threads", { method: "POST", headers: json, body: JSON.stringify(title ? { title } : {}) }).then((r) =>
+export const createThread = (title?: string, projectId?: string | null) =>
+  fetch("/api/agent/threads", { method: "POST", headers: json, body: JSON.stringify({ ...(title && { title }), ...(projectId && { projectId }) }) }).then((r) =>
     readJson<ThreadDto>(r),
   );
 
 export const renameThread = (id: string, title: string) =>
   fetch(`/api/agent/threads/${id}`, { method: "PATCH", headers: json, body: JSON.stringify({ title }) }).then((r) =>
+    readJson<ThreadDto>(r),
+  );
+
+export const setThreadProject = (id: string, projectId: string | null) =>
+  fetch(`/api/agent/threads/${id}`, { method: "PATCH", headers: json, body: JSON.stringify({ projectId }) }).then((r) =>
     readJson<ThreadDto>(r),
   );
 

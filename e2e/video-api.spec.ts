@@ -1,7 +1,7 @@
 import { test, expect } from "@playwright/test";
 import type { APIRequestContext } from "@playwright/test";
 import sharp from "sharp";
-import { trackAsset } from "./cleanup";
+import { uploadImage } from "./upload";
 
 // Video jobs and presets over HTTP, with the AI mocked (E2E_MOCK_AI=1). A mock clip takes
 // about 2 seconds ("[slow]" takes 8, "[fail]" ends in an error) and returns a tiny real mp4.
@@ -104,9 +104,7 @@ test("bad requests get plain messages", async ({ request }) => {
 
 test("image to video: the first frame becomes the clip's thumbnail, and settings can be re-run", async ({ request }) => {
   const png = await sharp({ create: { width: 64, height: 36, channels: 3, background: "#10b981" } }).png().toBuffer();
-  const up = await request.post("/api/uploads", { multipart: { file: { name: "frame.png", mimeType: "image/png", buffer: png } } });
-  const frame = (await up.json()) as Asset;
-  trackAsset(frame.id);
+  const frame = (await uploadImage(request, png)) as unknown as Asset;
 
   const prompt = tag("the door opens");
   const { job } = await start(request, { prompt, firstFrameAssetId: frame.id, aspectRatio: "9:16", durationSeconds: 6, generateAudio: true });

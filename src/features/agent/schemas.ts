@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { ASPECT_RATIOS } from "@/features/generations/schemas";
+import { projectFieldSchema } from "@/features/projects/schemas";
 
 export const MAX_SHOTS = 12;
 export const MAX_MESSAGE_CHARS = 8000;
@@ -46,12 +47,16 @@ export const refinePromptSchema = z.object({
   kind: z.enum(["image", "video"]).optional(),
 });
 
-export const renameThreadSchema = z.object({
-  title: z.string().trim().min(1, "Give the chat a name.").max(120),
-});
+export const updateThreadSchema = z
+  .object({
+    title: z.string().trim().min(1, "Give the chat a name.").max(120).optional(),
+    projectId: projectFieldSchema,
+  })
+  .refine((b) => b.title !== undefined || b.projectId !== undefined, { message: "Say what to change." });
 
 export const createThreadSchema = z.object({
   title: z.string().trim().min(1).max(120).optional(),
+  projectId: projectFieldSchema,
 });
 
 export const messageDtoSchema = z.object({
@@ -66,7 +71,7 @@ export const messageDtoSchema = z.object({
 
 export type AgentMessageDto = z.infer<typeof messageDtoSchema>;
 
-export type ThreadDto = { id: string; title: string; updatedAt: string };
+export type ThreadDto = { id: string; title: string; updatedAt: string; projectId: string | null };
 
 /** A new chat is named after its first message. Used by the server and, for an instant list update, the browser. */
 export const titleFromMessage = (text: string): string => text.replace(/\s+/g, " ").trim().slice(0, 60);

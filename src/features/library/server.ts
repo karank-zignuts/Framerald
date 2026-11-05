@@ -2,7 +2,9 @@ import "server-only";
 import { db, OWNER_ID } from "@/lib/supabase/server";
 import { signedUrlMap } from "@/lib/storage";
 import { decodeCursor, encodeCursor } from "@/lib/cursor";
+import { likePattern, normalizeSearch } from "./search";
 import { HttpError } from "@/lib/http";
+import { assertProject } from "@/features/projects/server";
 import { IMAGE_MODEL_KEYS, MODELS } from "@/lib/ai/models";
 import type { AssetDto, GenerationSummary, LibraryPage, ReRunSettings } from "./types";
 
@@ -31,14 +33,19 @@ export type AssetRow = {
   width: number | null;
   height: number | null;
   duration_ms: number | null;
+  mime_type: string;
+  project_id: string | null;
   is_favorite: boolean;
   created_at: string;
   generation: GenerationRow | null;
 };
 
 export const ASSET_SELECT =
-  "id,kind,source,storage_path,thumbnail_path,width,height,duration_ms,is_favorite,created_at," +
+  "id,kind,source,storage_path,thumbnail_path,width,height,duration_ms,mime_type,project_id,is_favorite,created_at," +
   "generation:generations!assets_generation_id_fkey(id,prompt,model,mode,params,cost_usd)";
+
+/** The same select, but only assets that have a generation (needed to filter on its prompt). */
+const ASSET_SELECT_WITH_PROMPT_FILTER = ASSET_SELECT.replace("generations!assets_generation_id_fkey(", "generations!assets_generation_id_fkey!inner(");
 
 export const DEFAULT_PAGE_SIZE = 24;
 const MAX_PAGE_SIZE = 60;
@@ -97,6 +104,8 @@ export async function toAssetDtos(rows: AssetRow[]): Promise<AssetDto[]> {
         width: r.width,
         height: r.height,
         durationMs: r.duration_ms,
+        mimeType: r.mime_type,
+        projectId: r.project_id,
         isFavorite: r.is_favorite,
         createdAt: r.created_at,
         generation: r.generation ? summarize(r.generation) : null,
@@ -110,15 +119,19 @@ export async function listAssets(opts: {
   limit?: number;
   favoritesOnly?: boolean;
   kind?: "image" | "video" | null;
+  projectId?: string | null;
+  /** Text to look for in the prompt that made the item. */
+  q?: string | null;
 }): Promise<LibraryPage> {
   await failStuckGenerations();
   const limit = Math.min(Math.max(Math.floor(opts.limit ?? DEFAULT_PAGE_SIZE), 1), MAX_PAGE_SIZE);
   const cursor = decodeCursor(opts.cursor);
   if (opts.cursor && !cursor) throw new HttpError(400, "That page link isn't valid.");
 
+  const search = normalizeSearch(opts.q);
   let q = db()
     .from("assets")
-    .select(ASSET_SELECT)
+    .select(search ? ASSET_SELECT_WITH_PROMPT_FILTER : ASSET_SELECT)
     .eq("owner_id", OWNER_ID)
     .eq("source", "generated")
     .is("deleted_at", null)
@@ -127,11 +140,17 @@ export async function listAssets(opts: {
     .limit(limit + 1);
   if (opts.favoritesOnly) q = q.eq("is_favorite", true);
   if (opts.kind) q = q.eq("kind", opts.kind);
+  if (opts.projectId) q = q.eq("project_id", opts.projectId);
+  if (search) q = q.ilike("generation.prompt", likePattern(search)); // a parameter, not part of a filter string
   if (cursor) {
     q = q.or(`created_at.lt."${cursor.createdAt}",and(created_at.eq."${cursor.createdAt}",id.lt.${cursor.id})`);
   }
   const { data, error } = await q;
-  if (error) throw new Error(`Couldn't load the library: ${error.message}`);
+  if (error) {
+    // Supabase's edge firewall answers text that looks like an attack (for example "drop table") with an HTML page.
+    if (/<!doctype|<html/i.test(error.message)) throw new HttpError(400, "That search text was blocked. Try different words.");
+    throw new Error(`Couldn't load the library: ${error.message}`);
+  }
 
   const rows = (data ?? []) as unknown as AssetRow[];
   const page = rows.slice(0, limit);
@@ -166,6 +185,20 @@ export async function setFavorite(id: string, isFavorite: boolean): Promise<void
     .select("id");
   if (error) throw new Error(`Couldn't update the favourite: ${error.message}`);
   if (!data?.length) throw new HttpError(404, "That image doesn't exist any more.");
+}
+
+/** Moves an item to a project, or out of all projects with null. */
+export async function moveAsset(id: string, projectId: string | null): Promise<void> {
+  if (projectId) await assertProject(projectId);
+  const { data, error } = await db()
+    .from("assets")
+    .update({ project_id: projectId })
+    .eq("owner_id", OWNER_ID)
+    .eq("id", id)
+    .is("deleted_at", null)
+    .select("id");
+  if (error) throw new Error(`Couldn't move that item: ${error.message}`);
+  if (!data?.length) throw new HttpError(404, "That item doesn't exist any more.");
 }
 
 /** Soft delete: the row and files stay, the image disappears from every list. */

@@ -8,6 +8,7 @@ import { videoCostUsd } from "@/lib/ai/cost";
 import { pollVideo, startVideo, VideoError, type FrameInput, type VideoPoll } from "@/lib/ai/video";
 import { ASSET_SELECT, toAssetDtos, type AssetRow } from "@/features/library/server";
 import type { AssetDto } from "@/features/library/types";
+import { assertProject } from "@/features/projects/server";
 import { decideJobAction, VIDEO_TIMEOUT_MS, type JobStatus, type OperationSnapshot } from "./job";
 import { videoDimensions, type GenerateVideoRequest } from "./schemas";
 import type { VideoJobDto, VideoReRunSettings } from "./types";
@@ -26,10 +27,11 @@ type JobRow = {
   } | null;
   error: string | null;
   operation_name: string | null;
+  project_id: string | null;
   created_at: string;
 };
 
-const JOB_COLUMNS = "id,mode,status,model,prompt,params,error,operation_name,created_at";
+const JOB_COLUMNS = "id,mode,status,model,prompt,params,error,operation_name,project_id,created_at";
 const CLAIM_STALE_MS = 10 * 60_000; // a finalize claim older than this is taken to be a crash and may be retried
 const NEVER_STARTED_MS = 2 * 60_000;
 
@@ -118,6 +120,7 @@ async function loadFrame(assetId: string): Promise<{ frame: FrameInput; thumbnai
 /** Creates the row, asks Google to start the clip, and returns at once. Finishing happens in refreshVideoJob. */
 export async function startVideoGeneration(req: GenerateVideoRequest): Promise<VideoJobDto> {
   await sweepStuckVideos();
+  if (req.projectId) await assertProject(req.projectId);
   const first = req.firstFrameAssetId ? await loadFrame(req.firstFrameAssetId) : null;
   const last = req.lastFrameAssetId ? await loadFrame(req.lastFrameAssetId) : null;
   const spec = MODELS.video[req.model];
@@ -128,6 +131,7 @@ export async function startVideoGeneration(req: GenerateVideoRequest): Promise<V
     .insert({
       id: generationId,
       owner_id: OWNER_ID,
+      project_id: req.projectId ?? null,
       parent_id: req.sourceGenerationId ?? null,
       kind: "video",
       mode: first ? "image_to_video" : "text_to_video",
@@ -274,6 +278,7 @@ async function finalize(row: JobRow, poll: VideoPoll): Promise<VideoJobDto> {
       const { error: assetError } = await db().from("assets").insert({
         id: assetId,
         owner_id: OWNER_ID,
+        project_id: row.project_id,
         generation_id: row.id,
         kind: "video",
         source: "generated",
@@ -339,6 +344,33 @@ export async function refreshVideoJob(id: string): Promise<VideoJobDto> {
 }
 
 // ─── Lists and re-run ────────────────────────────────────────────────────────
+
+/** Checks every running clip with Google (saving the finished ones) and then sweeps the stuck ones. For the cron route. */
+export async function refreshRunningVideoJobs(): Promise<{ checked: number; succeeded: number; failed: number; stillRunning: number }> {
+  const { data, error } = await db()
+    .from("generations")
+    .select("id")
+    .eq("owner_id", OWNER_ID)
+    .eq("kind", "video")
+    .in("status", ["queued", "running"])
+    .order("created_at")
+    .limit(20);
+  if (error) throw new Error(`Couldn't list running clips: ${error.message}`);
+  const counts = { checked: 0, succeeded: 0, failed: 0, stillRunning: 0 };
+  for (const row of data ?? []) {
+    try {
+      const job = await refreshVideoJob(row.id as string);
+      counts.checked += 1;
+      if (job.status === "succeeded") counts.succeeded += 1;
+      else if (job.status === "failed") counts.failed += 1;
+      else counts.stillRunning += 1;
+    } catch (cause) {
+      console.error(`[cron] couldn't check clip ${row.id}`, cause);
+    }
+  }
+  await sweepStuckVideos();
+  return counts;
+}
 
 let lastVideoSweep = 0;
 

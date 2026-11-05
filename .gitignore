@@ -52,3 +52,4 @@ supabase/.temp/
 # e2e
 /.next-e2e/
 /.e2e-assets.log
+/.next-e2e-auth/

@@ -1,6 +1,7 @@
 import { test, expect } from "@playwright/test";
 import sharp from "sharp";
 import { trackAsset } from "./cleanup";
+import { complete, putToStorage, sign, uploadImage, type UploadedAsset } from "./upload";
 
 // The routes over HTTP, with the AI mocked (E2E_MOCK_AI=1, set by playwright.config.ts).
 // Mock images cost $0.039 each (the usage of one real 1K call).
@@ -130,13 +131,9 @@ test("rejects a bad cursor", async ({ request }) => {
 });
 
 test("upload, then edit with it as a reference, then re-run the settings", async ({ request }) => {
-  const up = await request.post("/api/uploads", {
-    multipart: { file: { name: "ref.png", mimeType: "image/png", buffer: await png() } },
-  });
-  expect(up.status()).toBe(200);
-  const ref = (await up.json()) as Asset;
-  trackAsset(ref.id);
+  const ref = await uploadImage(request, await png());
   expect(ref.width).toBe(64);
+  expect(ref.mimeType).toBe("image/png");
 
   const prompt = tag("api edit");
   const gen = (await (
@@ -162,16 +159,52 @@ test("upload, then edit with it as a reference, then re-run the settings", async
   expect((await bad.json()).error).toMatch(/reference images? doesn't exist/);
 });
 
-test("upload refuses non-images and files over 10 MB", async ({ request }) => {
-  const text = await request.post("/api/uploads", {
-    multipart: { file: { name: "a.png", mimeType: "image/png", buffer: Buffer.from("not an image") } },
-  });
-  expect(text.status()).toBe(400);
-  expect((await text.json()).error).toMatch(/isn't an image/);
+test("signing an upload refuses the wrong type, an empty file and one over 10 MB", async ({ request }) => {
+  const gif = await request.post("/api/uploads/sign", { data: { contentType: "image/gif", size: 100 } });
+  expect(gif.status()).toBe(400);
+  expect((await gif.json()).error).toBe("Use a png, jpeg or webp image.");
 
-  const big = await request.post("/api/uploads", {
-    multipart: { file: { name: "big.png", mimeType: "image/png", buffer: Buffer.alloc(10 * 1024 * 1024 + 1) } },
-  });
+  const empty = await request.post("/api/uploads/sign", { data: { contentType: "image/png", size: 0 } });
+  expect((await empty.json()).error).toBe("That file is empty.");
+
+  const big = await request.post("/api/uploads/sign", { data: { contentType: "image/png", size: 10 * 1024 * 1024 + 1 } });
   expect(big.status()).toBe(400);
-  expect((await big.json()).error).toMatch(/over 10 MB/);
+  expect((await big.json()).error).toBe("That image is over 10 MB. Use a smaller one.");
+});
+
+test("completing an upload checks the real bytes, and cleans up when they're wrong", async ({ request }) => {
+  // Not an image at all, though it was signed and sent as a png.
+  const fake = await sign(request, "image/png", 12);
+  await putToStorage(fake, Buffer.from("not an image"), "image/png");
+  const refused = await complete(request, fake);
+  expect(refused.status()).toBe(400);
+  expect((await refused.json()).error).toMatch(/isn't an image/);
+  // The bad file was removed, so the upload can't be completed later.
+  expect((await (await complete(request, fake)).json()).error).toMatch(/didn't arrive/);
+
+  // A real png that was signed as a jpeg.
+  const bytes = await png();
+  const lying = await sign(request, "image/jpeg", bytes.length);
+  await putToStorage(lying, bytes, "image/png");
+  const mismatch = await complete(request, lying);
+  expect(mismatch.status()).toBe(400);
+  expect((await mismatch.json()).error).toMatch(/isn't the type it said/);
+
+  // A path that doesn't belong to this upload is refused outright.
+  const good = await sign(request, "image/png", bytes.length);
+  const forged = await request.post("/api/uploads/complete", {
+    data: { assetId: good.assetId, ext: "png", path: "someone-else/2026/11/" + good.assetId + ".png" },
+  });
+  expect(forged.status()).toBe(400);
+  expect((await forged.json()).error).toBe("That upload isn't valid.");
+});
+
+test("completing the same upload twice gives the same asset", async ({ request }) => {
+  const bytes = await png();
+  const signed = await sign(request, "image/png", bytes.length);
+  await putToStorage(signed, bytes, "image/png");
+  const first = (await (await complete(request, signed)).json()) as UploadedAsset;
+  trackAsset(first.id);
+  const second = (await (await complete(request, signed)).json()) as UploadedAsset;
+  expect(second.id).toBe(first.id);
 });

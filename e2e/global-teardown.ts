@@ -56,4 +56,6 @@ export default async function globalTeardown() {
 
   // Presets created by tests are named "[e2e] ...".
   await sb.from("presets").delete().like("name", "[e2e]%");
+  // Projects too (items that pointed at them were deleted above or just lose the link).
+  await sb.from("projects").delete().like("name", "[e2e]%");
 }
