@@ -121,6 +121,7 @@ export function Composer({
               placeholder="Describe the image you want"
               rows={5}
               maxLength={4000}
+              readOnly={refining} // typing during a refine would be overwritten by the result
             />
           </BorderBeam>
           <div className="flex items-center justify-between gap-2">

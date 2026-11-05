@@ -16,6 +16,7 @@ import { isTransientError, withRetry } from "@/lib/retry";
 
 export const AGENT_MODEL = MODELS.agent.default;
 const REQUEST_TIMEOUT_MS = 120_000;
+const MAX_REFINED_CHARS = 4000; // the Image studio's prompt limit
 
 export class AgentError extends Error {
   constructor(message: string) {
@@ -50,7 +51,6 @@ export async function* streamAgentReply(contents: Content[]): AsyncGenerator<Age
   }
 
   const spec = AGENT_MODEL;
-  let usage: TextUsage | undefined;
   try {
     const stream = await withRetry(
       () =>
@@ -80,12 +80,12 @@ export async function* streamAgentReply(contents: Content[]): AsyncGenerator<Age
         if (part.functionCall?.name === SHOT_TOOL_NAME) yield { type: "shots", shotList: part.functionCall.args };
         else if (part.text) yield { type: "text", delta: part.text };
       }
-      if (chunk.usageMetadata) usage = chunk.usageMetadata;
+      // Yielded as it arrives, so a stream that dies midway still reports the tokens seen so far.
+      if (chunk.usageMetadata) yield { type: "usage", usage: chunk.usageMetadata };
     }
   } catch (error) {
     throw new AgentError(agentErrorMessage(error));
   }
-  yield { type: "usage", usage: usage ?? {} };
 }
 
 const refineResultSchema = z.object({ prompt: z.string().trim().min(1) });
@@ -122,7 +122,7 @@ export async function refinePrompt(input: {
     );
     const parsed = refineResultSchema.safeParse(JSON.parse(res.text ?? "null"));
     if (!parsed.success) throw new Error("The agent didn't return a prompt.");
-    return { prompt: parsed.data.prompt, usage: res.usageMetadata ?? {} };
+    return { prompt: parsed.data.prompt.slice(0, MAX_REFINED_CHARS), usage: res.usageMetadata ?? {} };
   } catch (error) {
     throw new AgentError(agentErrorMessage(error));
   }

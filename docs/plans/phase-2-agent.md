@@ -41,3 +41,11 @@ Date: 2026-11-05. Done when: idea, to planned shots, to generated frames works i
 | Double send | Send is disabled while a reply streams |
 | Runaway history | Only the last 40 messages go to the model |
 | Costs | Real calls limited to the confirmation calls above and one final smoke call |
+
+## Outcome (2026-11-05)
+
+All slices built. Verified: 77 unit tests, 33 browser tests (AI mocked), production build, and real calls: one streamed plan and one prompt refinement before tuning, one more plan after (about $0.0049, $0.0024 and $0.0027). Tuning from those real runs: thinking level LOW (first output 11.5 s to 3.5 s, cost down about 45%) and a prompt line so the short reply streams before the cards.
+
+Independent review: no criticals. Fixed: a stopped reply is now saved at once and in order; the typed message comes back if the reply never starts; an in-flight reply only shows in its own chat; usage from a stream that dies midway is still recorded; a failed history save no longer loses a refined prompt; the prompt box is read-only during a refine; the refined prompt is capped at 4,000 characters; the message list shows the newest 500.
+
+Known and accepted: the server does not abort Google's stream when you press Stop, so a stopped reply is still billed in full and only the tokens seen so far are recorded. There is no Try again button for a dropped reply (send the message again). Migration `20261105000002` (six-decimal costs) is written but not applied: the auto-mode classifier blocked `supabase db push`, so the owner runs it. Until then costs are stored to four decimals, for example $0.0049 instead of $0.004916.

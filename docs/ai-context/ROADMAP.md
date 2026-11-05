@@ -10,7 +10,7 @@ Legend: ⬜ not started · 🟦 in progress · ✅ done
 
 ## 1. Where we are <!-- LIVING -->
 
-Phases 0 and 1 are done. Image Studio and the Library work end to end against real Vertex AI and Supabase. Next: Phase 2, the agent.
+Phases 0, 1 and 2 are done. Image Studio, Library and the Agent work end to end against real Vertex AI and Supabase. One owner step is pending: apply migration `20261105000002` (`npx supabase db push --linked`). Next: Phase 3, Video Studio and Presets.
 
 ## 2. Phases
 
@@ -37,10 +37,12 @@ Built: left-rail shell, composer (prompt with beam, model, aspect ratio, size, 1
 
 **Done when:** make, edit and find an image end to end, with cost shown.
 
-### Phase 2: Agent ⬜
+### Phase 2: Agent ✅
 - Chat threads with Gemini
 - Prompt refine, shot list and storyboard planning
 - "Send to Image / Video Studio" from the plan
+
+Built: `/agent` with a chat list (new, rename, soft delete), streamed replies with Stop, shot lists as cards (Send to Image, Refine this shot), Refine with agent with Undo in the Image Studio, token cost logging. Shots send to Image only until the Video Studio exists. Plan and decisions: `docs/plans/phase-2-agent.md`.
 
 **Done when:** idea → planned shots → generated frames in one flow.
 
@@ -66,3 +68,4 @@ Built: left-rail shell, composer (prompt with beam, model, aspect ratio, size, 1
 | 2026-11-05 | Plan approved. Phase 0 built: scaffold, design system, Vertex client, schema, skills, docs, test setup. |
 | 2026-11-05 | Supabase migration pushed. Vertex AI verified. Model IDs recorded in `models.ts`. |
 | 2026-11-05 | Phase 1 built: Image Studio, Library, generation service, uploads, thumbnails, cost logging. Verified with a real generate and a real edit (about $0.04 each). |
+| 2026-11-05 | Phase 2 built: Agent page, streaming shot lists, prefill into the Image Studio, Refine with agent. Verified with real calls (plan about $0.003, refine about $0.002). |

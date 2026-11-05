@@ -7,7 +7,7 @@ import type { AgentMessageDto, Shot, ShotList } from "@/features/agent/schemas";
 import { ShotCards } from "./shot-cards";
 
 /** The reply being written right now, before it is saved. */
-export type LiveReply = { text: string; shotList: ShotList | null; error: string | null };
+export type LiveReply = { threadId: string | null; text: string; shotList: ShotList | null; error: string | null };
 
 type Props = {
   messages: AgentMessageDto[];
@@ -70,7 +70,7 @@ export function MessageList({ messages, live, onRefineShot }: Props) {
   }, [messages.length, live?.text, live?.shotList]);
 
   return (
-    <div className={cn("flex flex-col gap-8")} data-testid="messages">
+    <div role="log" aria-label="Conversation messages" className={cn("flex flex-col gap-8")} data-testid="messages">
       {messages.map((m) =>
         m.role === "user" ? (
           <UserMessage key={m.id} text={m.text} />

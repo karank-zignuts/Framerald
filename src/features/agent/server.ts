@@ -120,10 +120,10 @@ export async function listMessages(threadId: string): Promise<AgentMessageDto[]>
     .from("agent_messages")
     .select(MESSAGE_COLUMNS)
     .eq("thread_id", threadId)
-    .order("created_at", { ascending: true })
-    .limit(500);
+    .order("created_at", { ascending: false })
+    .limit(500); // the newest 500, shown oldest first
   if (error) throw new Error(`Couldn't load the messages: ${error.message}`);
-  return (data as MessageRow[]).flatMap((r) => toMessageDto(r) ?? []);
+  return (data as MessageRow[]).reverse().flatMap((r) => toMessageDto(r) ?? []);
 }
 
 async function loadHistory(threadId: string): Promise<StoredMessage[]> {
@@ -208,6 +208,11 @@ export async function streamReply(threadId: string, text: string): Promise<Reada
 
   const encoder = new TextEncoder();
   let cancelled = false;
+  const CANCELLED = Symbol("cancelled");
+  let cancelNow: () => void = () => {};
+  const cancelled$ = new Promise<typeof CANCELLED>((resolve) => {
+    cancelNow = () => resolve(CANCELLED);
+  });
 
   return new ReadableStream<Uint8Array>({
     async start(controller) {
@@ -225,9 +230,17 @@ export async function streamReply(threadId: string, text: string): Promise<Reada
       let usage: TextUsage | undefined;
       let failure: string | null = null;
 
+      const iterator = streamAgentReply(buildContents(history))[Symbol.asyncIterator]();
       try {
-        for await (const event of streamAgentReply(buildContents(history))) {
-          if (cancelled) break;
+        for (;;) {
+          // Race the next chunk against "the browser left", so a stopped reply is saved at once, in order.
+          const step = await Promise.race([iterator.next(), cancelled$]);
+          if (step === CANCELLED) {
+            void iterator.return(undefined).catch(() => {});
+            break;
+          }
+          if (step.done) break;
+          const event = step.value;
           if (event.type === "text") {
             replyText += event.delta;
             send({ type: "text", delta: event.delta });
@@ -242,7 +255,7 @@ export async function streamReply(threadId: string, text: string): Promise<Reada
               send({ type: "text", delta: note });
             }
           } else {
-            usage = event.usage;
+            usage = event.usage; // the latest tokens seen; kept even if the stream later fails
           }
         }
       } catch (error) {
@@ -267,6 +280,7 @@ export async function streamReply(threadId: string, text: string): Promise<Reada
     },
     cancel() {
       cancelled = true;
+      cancelNow();
     },
   });
 }
@@ -294,8 +308,13 @@ export async function refineInThread(input: { prompt: string; aspectRatio?: stri
   } catch (error) {
     throw new HttpError(502, agentErrorMessage(error));
   }
-  const threadId = await refinementsThreadId();
-  await insertUserMessage(threadId, input.aspectRatio ? `${input.prompt}\n(Aspect ratio ${input.aspectRatio})` : input.prompt);
-  await saveAssistantMessage(threadId, { text: result.prompt, shotList: null, error: null, usage: result.usage });
+  // The call is already paid for, so a failure to keep the history must not lose the answer.
+  try {
+    const threadId = await refinementsThreadId();
+    await insertUserMessage(threadId, input.aspectRatio ? `${input.prompt}\n(Aspect ratio ${input.aspectRatio})` : input.prompt);
+    await saveAssistantMessage(threadId, { text: result.prompt, shotList: null, error: null, usage: result.usage });
+  } catch (error) {
+    console.error("[refine] couldn't save the exchange; cost not recorded", error);
+  }
   return { prompt: result.prompt };
 }

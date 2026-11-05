@@ -58,9 +58,9 @@ Google renames and replaces models often. Check the current Vertex AI model list
 |---|---|
 | Image make / edit | `gemini-nano-banana-2.1` (default), `gemini-3-pro-image`, `gemini-3.1-flash-image` |
 | Video | `veo-3.1-generate-001` / `-fast-` / `-lite-` (us-central1 only), `gemini-omni-1.1-flash-preview` |
-| Agent | `gemini-3.5-flash` (default), `gemini-3.1-pro-preview` (deep) |
+| Agent | `gemini-3.8-flash` (default, thinking level LOW), `gemini-3.1-pro-preview` (deep, not used yet) |
 
-IDs confirmed against this project on 2026-11-05 and kept in `src/lib/ai/models.ts`. Only the agent model has answered a real call so far.
+IDs confirmed against this project on 2026-11-05 and kept in `src/lib/ai/models.ts`. Real calls so far: Nano Banana 2.1 at 1K (image and edit) and `gemini-3.8-flash` (streamed plan and prompt refinement).
 
 ## 6. Ready for money later
 

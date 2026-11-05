@@ -52,9 +52,9 @@ export function AgentView() {
     const message = text.trim();
     if (!message || sending) return;
     let id = threadId;
-    let started = false;
+    let received = false; // true once the reply has started coming back
     let stopped = false;
-    setLive({ text: "", shotList: null, error: null });
+    setLive({ threadId: id, text: "", shotList: null, error: null });
     try {
       if (!id) {
         const created = await createThread();
@@ -65,6 +65,7 @@ export function AgentView() {
           ...old.filter((t) => t.id !== created.id),
         ]);
         qc.setQueryData<AgentMessageDto[]>(agentKeys.messages(id), []);
+        setLive((l) => l && { ...l, threadId: created.id });
         router.replace(`${pathname}?thread=${id}`);
       }
       // Show the message at once; the refetch below swaps in the saved one.
@@ -73,12 +74,12 @@ export function AgentView() {
         { id: `pending-${Date.now()}`, role: "user", text: message, shotList: null, error: null, createdAt: new Date().toISOString(), costUsd: null },
       ]);
       setDraft("");
-      started = true;
       abort.current = new AbortController();
       await streamMessage(
         id,
         message,
         (event) => {
+          received = true;
           if (event.type === "text") setLive((l) => l && { ...l, text: l.text + event.delta });
           else if (event.type === "shots") setLive((l) => l && { ...l, shotList: event.shotList });
           else if (event.type === "error") setLive((l) => l && { ...l, error: event.message });
@@ -90,7 +91,7 @@ export function AgentView() {
       stopped = (error as { name?: string })?.name === "AbortError";
       if (!stopped) {
         toast.error(error instanceof Error ? error.message : "Something went wrong. Try again.");
-        if (!started) setDraft(message);
+        if (!received) setDraft(message); // the reply never started, so give the message back
       }
     } finally {
       abort.current = null;
@@ -133,7 +134,8 @@ export function AgentView() {
   }
 
   const shown = messages.data ?? [];
-  const isEmpty = shown.length === 0 && !live;
+  const liveHere = live !== null && live.threadId === threadId;
+  const isEmpty = shown.length === 0 && !liveHere;
 
   return (
     <div className="flex min-h-0 flex-1 flex-col lg:flex-row">
@@ -247,7 +249,7 @@ export function AgentView() {
             </div>
           )}
 
-          {!isEmpty && !(threadId && messages.isPending) && <MessageList messages={shown} live={live} onRefineShot={refineShot} />}
+          {!isEmpty && !(threadId && messages.isPending) && <MessageList messages={shown} live={live && live.threadId === threadId ? live : null} onRefineShot={refineShot} />}
         </div>
 
         <form

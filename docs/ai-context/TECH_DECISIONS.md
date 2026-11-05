@@ -47,6 +47,8 @@ Legend: ✅ **Decided** · 🟡 **Recommended** (adopt when needed) · ⏳ **Lat
 | Video as a background job: store the Vertex operation, poll it | ✅ | Veo takes minutes. The UI shows progress and survives a reload |
 | Image generation runs inside the POST request (10 to 30 s). Fine locally; video will use jobs | ✅ | Simple, and one request equals one visible row |
 | Vertex image models need `generateContent`; the Interactions API is not supported for them on Vertex | ✅ | Confirmed with a real call, 2026-11-05 |
+| Agent replies stream as NDJSON over a POST; the shot list is a function call (`propose_shot_list`), validated with Zod. Past shot lists are replayed to the model as plain text | ✅ | No fragile parsing, no function-call history to store |
+| Agent thinking level LOW | ✅ | Measured: first output 3.5 s instead of 11.5 s, about $0.003 instead of $0.005 per plan |
 | Job polling from the client while a job is open, plus a sweep on each page load | ✅ | No extra worker service in v1 |
 | Vercel Cron or Supabase Edge Function for polling | 🟡 | When deployed, so jobs finish with the tab closed |
 | Supabase Auth + RLS per owner | ⏳ | When going multi-user |
