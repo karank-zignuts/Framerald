@@ -1,36 +1,53 @@
-// The only place model IDs live. Confirmed against this project's Vertex AI
-// model list on 2026-11-05. Google renames models often, so re-check with the
-// `gemini-api-dev` skill at the start of each phase.
+// The only place model IDs and prices live. IDs confirmed against this
+// project's Vertex AI model list on 2026-11-05. Google renames models often, so
+// re-check with the `gemini-api-dev` skill at the start of each phase.
 //
 // `location` matters: Veo and some other models are not served from "global",
 // so each model says where to call it.
 //
-// Prices are NOT here yet. Add `costUsd` per unit from Google's current Vertex AI
-// pricing page in Phase 1, before the first usage_events row is written.
+// Prices are USD per 1M tokens, taken from Google's published Gemini API price
+// list on 2026-11-05 (the Vertex pricing page would not load). Treat computed
+// costs as estimates. Models with no `pricing` give an unknown cost, not a guess.
+
+export type Pricing = {
+  inputPerM: number;
+  textOutPerM: number; // visible text and thinking tokens
+  imageOutPerM: number;
+};
+
+export type ImageSize = "1K" | "2K" | "4K";
 
 export type ModelSpec = {
   id: string;
   label: string;
   location: "global" | "us-central1";
+  pricing?: Pricing;
+  imageSizes?: readonly ImageSize[];
 };
 
 export const MODELS = {
-  // Images. Verified present; first real image call happens in Phase 1.
+  // Images. `default` was verified with real calls on 2026-11-05.
   image: {
     default: {
       id: "gemini-nano-banana-2.1",
       label: "Nano Banana 2.1",
       location: "global",
+      pricing: { inputPerM: 1.5, textOutPerM: 7.5, imageOutPerM: 30 },
+      imageSizes: ["1K", "2K", "4K"],
     },
     pro: {
       id: "gemini-3-pro-image",
-      label: "Gemini 3 Pro Image",
+      label: "Nano Banana Pro",
       location: "global",
+      pricing: { inputPerM: 2, textOutPerM: 12, imageOutPerM: 120 },
+      imageSizes: ["1K", "2K", "4K"],
     },
     fast: {
-      id: "gemini-3.1-flash-image",
-      label: "Gemini 3.1 Flash Image",
+      id: "gemini-3.1-flash-lite-image",
+      label: "Nano Banana 2 Lite",
       location: "global",
+      pricing: { inputPerM: 0.25, textOutPerM: 1.5, imageOutPerM: 30 },
+      imageSizes: ["1K"],
     },
   },
 
@@ -72,3 +89,15 @@ export const MODELS = {
     },
   },
 } as const satisfies Record<string, Record<string, ModelSpec>>;
+
+export type ImageModelKey = keyof typeof MODELS.image;
+export const IMAGE_MODEL_KEYS = Object.keys(MODELS.image) as ImageModelKey[];
+
+export function findPricing(modelId: string): Pricing | undefined {
+  for (const group of Object.values(MODELS)) {
+    for (const m of Object.values(group) as ModelSpec[]) {
+      if (m.id === modelId) return m.pricing;
+    }
+  }
+  return undefined;
+}
