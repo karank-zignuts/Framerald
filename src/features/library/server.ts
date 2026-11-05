@@ -30,7 +30,7 @@ export type AssetRow = {
 
 export const ASSET_SELECT =
   "id,kind,source,storage_path,thumbnail_path,width,height,is_favorite,created_at," +
-  "generation:generations(id,prompt,model,mode,params,cost_usd)";
+  "generation:generations!assets_generation_id_fkey(id,prompt,model,mode,params,cost_usd)";
 
 export const DEFAULT_PAGE_SIZE = 24;
 const MAX_PAGE_SIZE = 60;

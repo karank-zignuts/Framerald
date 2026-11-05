@@ -48,3 +48,7 @@ next-env.d.ts
 
 # supabase local
 supabase/.temp/
+
+# e2e
+/.next-e2e/
+/.e2e-assets.log

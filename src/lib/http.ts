@@ -28,3 +28,15 @@ export function handle<Args extends unknown[]>(fn: (...args: Args) => Promise<Re
     }
   };
 }
+
+/**
+ * Rejects browser requests that come from another website. Requests with no
+ * Origin header (curl, tests, server code) pass; browsers always send one on
+ * cross-site POST, PATCH and DELETE.
+ */
+export function assertSameOrigin(request: Request): void {
+  const origin = request.headers.get("origin");
+  if (!origin) return;
+  const host = request.headers.get("host");
+  if (!host || new URL(origin).host !== host) throw new HttpError(403, "That request came from another site.");
+}

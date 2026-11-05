@@ -11,6 +11,7 @@ export default defineConfig({
   workers: 2, // dev server compiles on demand; more workers cause slow first paint and flaky waits
   retries: 0,
   // Terse output keeps token cost low: only failures print detail.
+  globalTeardown: "./e2e/global-teardown.ts",
   reporter: [["line"], ["html", { open: "never", outputFolder: "playwright-report" }]],
   use: {
     baseURL: BASE_URL,
@@ -33,7 +34,8 @@ export default defineConfig({
   webServer: {
     command: `next dev -p ${PORT}`,
     url: BASE_URL,
-    reuseExistingServer: true,
+    // Never reuse: only a server started here is guaranteed to run with the AI mock.
+    reuseExistingServer: false,
     timeout: 180_000,
     // AI calls are mocked in e2e so tests never spend Vertex AI credits.
     env: { E2E_MOCK_AI: "1" },
