@@ -25,7 +25,7 @@ Phase 0 is done. Supabase is linked and the migration is applied. Vertex AI work
 - ✅ Supabase project linked, migration pushed
 - ✅ Vertex AI enabled, credentials working
 
-**Gate:** app runs locally, all checks pass, migration applied, one test call to Vertex AI succeeds.
+**Done when:** app runs locally, all checks pass, migration applied, one test call to Vertex AI succeeds.
 
 ### Phase 1: Image Studio + basic Library ⬜
 - App shell (sidebar: Image, Video, Agent, Library)
@@ -33,21 +33,21 @@ Phase 0 is done. Supabase is linked and the migration is applied. Vertex AI work
 - Generation rows, storage, thumbnails, cost logging
 - Library grid with favourites and re-run
 
-**Gate:** make, edit and find an image end to end, with cost shown.
+**Done when:** make, edit and find an image end to end, with cost shown.
 
 ### Phase 2: Agent ⬜
 - Chat threads with Gemini
 - Prompt refine, shot list and storyboard planning
 - "Send to Image / Video Studio" from the plan
 
-**Gate:** idea → planned shots → generated frames in one flow.
+**Done when:** idea → planned shots → generated frames in one flow.
 
 ### Phase 3: Video Studio + Presets ⬜
 - Text to video, image to video (first/last frame)
 - Background jobs with progress, survives reload
 - Camera-move and style presets
 
-**Gate:** a planned shot becomes a finished clip in the Library.
+**Done when:** a planned shot becomes a finished clip in the Library.
 
 ### Phase 4: Library, spend and polish ⬜
 - Projects, filters, search

@@ -77,7 +77,7 @@ Rules:
 
 ## 7. Performance
 
-- Check `performance-optimization` and `core-web-vitals` before each phase gate.
+- Check `performance-optimization` and `core-web-vitals` before each phase ends.
 - Lists are paginated (cursor on `created_at`). No unbounded selects.
 - Don't ship the Vertex SDK or Supabase client to the browser.
 

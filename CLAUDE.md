@@ -15,7 +15,7 @@ A personal AI studio for making images and video. You write a prompt (or let the
 
 Commands: `npm run dev`, `npm test` (unit), `npm run e2e -- e2e/<file>.spec.ts` (one e2e spec), `npm run lint`, `npm run typecheck`, `npm run build`. Database: `npx supabase db push --linked --dry-run`, then without `--dry-run`.
 
-Feature work runs through `/feature` (intake → research → plan → design → implement → critique → test → review → ship). See `AI_WORKFLOW.md`.
+Feature work runs through `/feature`: understand, plan, build in tested slices, design critique, independent review, commit, push, final report. It runs on its own and stops only for hard blockers. See `AI_WORKFLOW.md`.
 
 ## Testing the UI (keeps tokens low)
 
