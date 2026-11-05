@@ -33,6 +33,7 @@ Legend: ✅ **Decided** · 🟡 **Recommended** (adopt when needed) · ⏳ **Lat
 | Validation / data | `zod` / `@tanstack/react-query` | 4.6.7 / 5.105.0 |
 | Toasts | `sonner` | 2.0.8 |
 | Images | `sharp` (thumbnails, upload validation). Added in Phase 1; Next already ships it as an optional dependency | 0.35.5 |
+| Shader effects | `shaders` (MIT, WebGPU; React entry `shaders/react`). Installed on the owner's request, not used by any screen yet. Its React, Vue, Svelte and Solid peers are all optional | 4.0.6 |
 | Tests | Vitest / Playwright | 5.0.5 / 1.64.1 |
 | Accessibility tests | `@axe-core/playwright` (dev only). Added in Phase 4: one spec scans every screen for WCAG A and AA violations | 4.14.0 |
 | Tooling | `supabase` CLI | 2.122.0 |
@@ -74,6 +75,14 @@ Project and region come from `GOOGLE_CLOUD_PROJECT` and `GOOGLE_CLOUD_LOCATION` 
 - Video jobs: route handlers must return fast. Start the operation, store its name, return. Polling is a separate short request.
 - Large files: upload straight to Supabase Storage with a signed upload URL, not through a Vercel function (body size limits).
 - Supabase free plan caps a single file at 50 MB. Long 4K video needs the Pro plan or a lower resolution.
+
+## 5b. Using shaders
+
+- Put `"use client"` at the top of any file that renders a `<Shader>`, and in any file that only wraps one. It needs a browser with a GPU and can't render on the server.
+- A `<Shader>` has no size of its own. Size the `<Shader>` element (for example `className="h-24 w-full"`), never the canvas inside it.
+- On a device without WebGPU the canvas stays transparent and the rest of the page works. Never put something the user needs only in a shader.
+- Import only what a screen uses (`import { Shader, LinearGradient } from "shaders/react"`). The package is about 29 MB on disk, so check `npm run build` sizes after the first real use.
+- Colours still come from the design tokens (`brand` and the zinc surfaces). Respect `prefers-reduced-motion` for anything that moves.
 
 ## 6. Adding technology
 
