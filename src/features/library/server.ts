@@ -95,7 +95,7 @@ export async function listAssets(opts: {
   favoritesOnly?: boolean;
 }): Promise<LibraryPage> {
   await failStuckGenerations();
-  const limit = Math.min(Math.max(opts.limit ?? DEFAULT_PAGE_SIZE, 1), MAX_PAGE_SIZE);
+  const limit = Math.min(Math.max(Math.floor(opts.limit ?? DEFAULT_PAGE_SIZE), 1), MAX_PAGE_SIZE);
   const cursor = decodeCursor(opts.cursor);
   if (opts.cursor && !cursor) throw new HttpError(400, "That page link isn't valid.");
 

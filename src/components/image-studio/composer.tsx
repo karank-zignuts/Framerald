@@ -31,6 +31,8 @@ type Props = {
   onSubmit: () => void;
   onAddFiles: (files: File[]) => void;
   uploading: number;
+  /** A generation is running: block a second paid request from a double click or key repeat. */
+  busy: boolean;
   notice?: string | null;
 };
 
@@ -54,7 +56,7 @@ function RatioShape({ ratio }: { ratio: string }) {
   );
 }
 
-export function Composer({ values, onChange, onSubmit, onAddFiles, uploading, notice }: Props) {
+export function Composer({ values, onChange, onSubmit, onAddFiles, uploading, busy, notice }: Props) {
   const fileInput = useRef<HTMLInputElement>(null);
   const [dragging, setDragging] = useState(false);
   const sizes = MODELS.image[values.model].imageSizes as readonly ImageSize[];
@@ -70,7 +72,7 @@ export function Composer({ values, onChange, onSubmit, onAddFiles, uploading, no
     <form
       onSubmit={(e) => {
         e.preventDefault();
-        if (hasPrompt) onSubmit();
+        if (hasPrompt && !busy) onSubmit();
       }}
       className="flex min-h-0 flex-col"
     >
@@ -93,7 +95,7 @@ export function Composer({ values, onChange, onSubmit, onAddFiles, uploading, no
               value={values.prompt}
               onChange={(e) => onChange({ prompt: e.target.value })}
               onKeyDown={(e) => {
-                if (e.key === "Enter" && (e.metaKey || e.ctrlKey) && hasPrompt) {
+                if (e.key === "Enter" && (e.metaKey || e.ctrlKey) && hasPrompt && !busy) {
                   e.preventDefault();
                   onSubmit();
                 }
@@ -120,6 +122,7 @@ export function Composer({ values, onChange, onSubmit, onAddFiles, uploading, no
             </span>
           </div>
           <div
+            role="group"
             aria-labelledby="refs-label"
             onDragOver={(e) => {
               e.preventDefault();
@@ -154,7 +157,7 @@ export function Composer({ values, onChange, onSubmit, onAddFiles, uploading, no
               </div>
             ))}
             {Array.from({ length: uploading }, (_, i) => (
-              <div key={`up-${i}`} className="aspect-square rounded-md bg-secondary motion-safe:animate-pulse" aria-label="Uploading" />
+              <div key={`up-${i}`} role="status" className="aspect-square rounded-md bg-secondary motion-safe:animate-pulse" aria-label="Uploading" />
             ))}
             {canAddMore && (
               <button
@@ -262,10 +265,11 @@ export function Composer({ values, onChange, onSubmit, onAddFiles, uploading, no
         <Button
           type="submit"
           size="lg"
-          disabled={!hasPrompt || uploading > 0}
+          disabled={!hasPrompt || uploading > 0 || busy}
+          aria-busy={busy}
           className="w-full bg-brand text-brand-foreground hover:bg-brand-strong"
         >
-          {values.count > 1 ? `Generate ${formatCount(values.count, "image")}` : "Generate"}
+          {busy ? "Generating" : values.count > 1 ? `Generate ${formatCount(values.count, "image")}` : "Generate"}
         </Button>
       </div>
     </form>

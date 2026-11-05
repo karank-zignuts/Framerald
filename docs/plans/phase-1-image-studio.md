@@ -43,3 +43,9 @@ No schema change. Uses `generations`, `generation_inputs`, `assets`, `usage_even
 | Crash after the model call | Row is created first as `running`; a failed update leaves a visible running row. Page load marks rows stuck for over 10 minutes as failed |
 | Large reference uploads | Server checks type (png, jpeg, webp) and size (10 MB) before storing |
 | Costs add up | Real calls only in the final smoke test (about three) |
+
+## Outcome (2026-11-05)
+
+All slices built and committed. Verified: 40 unit tests, 19 browser tests (AI mocked), production build, and one real generate plus one real edit through the app (about $0.0405 and $0.0395, 30 s each). Independent review found no criticals; its four warnings and four small bugs were fixed (unrecorded-cost logging, orphan cleanup on partial uploads, double-submit guard, Vertex timeout, `Origin: null`, fractional `limit`, expired signed links).
+
+Known and accepted: the API has no password yet (Phase 4, `APP_PASSWORD`), so it must not be deployed before that. Costs are estimates from Google's published Gemini API prices. Pro and Lite image models and sizes above 1K have not been tried with real calls. The download filename always ends in .png.

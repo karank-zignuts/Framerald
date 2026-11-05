@@ -25,10 +25,15 @@ export async function saveUpload(file: File): Promise<AssetDto> {
   const id = randomUUID();
   const storagePath = mediaPath(OWNER_ID, id, info.ext);
   const thumbPath = mediaPath(OWNER_ID, id, "webp", "thumb");
-  await Promise.all([
-    uploadMedia(storagePath, bytes, info.mimeType),
-    makeThumbnail(bytes).then((t) => uploadMedia(thumbPath, t, "image/webp")),
-  ]);
+  try {
+    await Promise.all([
+      uploadMedia(storagePath, bytes, info.mimeType),
+      makeThumbnail(bytes).then((t) => uploadMedia(thumbPath, t, "image/webp")),
+    ]);
+  } catch (error) {
+    await removeMedia([storagePath, thumbPath]); // one file may have landed; don't leave it behind
+    throw error;
+  }
 
   const { data, error } = await db()
     .from("assets")

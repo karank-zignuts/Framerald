@@ -13,6 +13,9 @@ export function useLibrary(favoritesOnly: boolean) {
     queryFn: ({ pageParam }) => fetchLibraryPage({ cursor: pageParam, favoritesOnly }),
     initialPageParam: null as string | null,
     getNextPageParam: (last) => last.nextCursor,
+    // Signed image links last an hour. Refetching on focus after 10 minutes keeps a long-open tab from showing broken thumbnails.
+    staleTime: 10 * 60_000,
+    refetchOnWindowFocus: true,
   });
 }
 

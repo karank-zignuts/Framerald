@@ -10,7 +10,7 @@ Legend: ⬜ not started · 🟦 in progress · ✅ done
 
 ## 1. Where we are <!-- LIVING -->
 
-Phase 0 is done. Supabase is linked and the migration is applied. Vertex AI works (a real Gemini call succeeded). Next: Phase 1.
+Phases 0 and 1 are done. Image Studio and the Library work end to end against real Vertex AI and Supabase. Next: Phase 2, the agent.
 
 ## 2. Phases
 
@@ -27,11 +27,13 @@ Phase 0 is done. Supabase is linked and the migration is applied. Vertex AI work
 
 **Done when:** app runs locally, all checks pass, migration applied, one test call to Vertex AI succeeds.
 
-### Phase 1: Image Studio + basic Library ⬜
+### Phase 1: Image Studio + basic Library ✅
 - App shell (sidebar: Image, Video, Agent, Library)
 - Prompt box, aspect ratio, count, reference images, image edit
 - Generation rows, storage, thumbnails, cost logging
 - Library grid with favourites and re-run
+
+Built: left-rail shell, composer (prompt with beam, model, aspect ratio, size, 1 to 4 images, up to 14 references), edit through references, results with per-batch cost, Library with infinite scroll, detail dialog, favourites, soft delete with inline confirm, re-run settings and edit-this. Plan and decisions: `docs/plans/phase-1-image-studio.md`.
 
 **Done when:** make, edit and find an image end to end, with cost shown.
 
@@ -63,3 +65,4 @@ Phase 0 is done. Supabase is linked and the migration is applied. Vertex AI work
 |---|---|
 | 2026-11-05 | Plan approved. Phase 0 built: scaffold, design system, Vertex client, schema, skills, docs, test setup. |
 | 2026-11-05 | Supabase migration pushed. Vertex AI verified. Model IDs recorded in `models.ts`. |
+| 2026-11-05 | Phase 1 built: Image Studio, Library, generation service, uploads, thumbnails, cost logging. Verified with a real generate and a real edit (about $0.04 each). |

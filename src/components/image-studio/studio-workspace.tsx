@@ -64,7 +64,10 @@ export function StudioWorkspace({ initial, notice }: { initial: StudioInitial | 
     }
   }
 
+  const busy = batches.some((b) => b.status === "running");
+
   function submit() {
+    if (busy) return;
     void run({
       prompt: values.prompt,
       model: values.model,
@@ -127,7 +130,7 @@ export function StudioWorkspace({ initial, notice }: { initial: StudioInitial | 
   return (
     <div className="flex min-h-0 flex-1 flex-col lg:flex-row">
       <section aria-label="Controls" className="flex min-h-0 shrink-0 flex-col border-b border-border bg-card lg:w-[26rem] lg:border-b-0 lg:border-r">
-        <Composer values={values} onChange={patch} onSubmit={submit} onAddFiles={addFiles} uploading={uploading} notice={notice} />
+        <Composer values={values} onChange={patch} onSubmit={submit} onAddFiles={addFiles} uploading={uploading} busy={busy} notice={notice} />
       </section>
       <section aria-label="Results" className="flex min-h-[24rem] min-w-0 flex-1 flex-col lg:overflow-hidden">
         <Results batches={batches} onOpen={(a) => setOpenId(a.id)} onFavorite={favorite} onRetry={(b) => void run(b.input, b.key)} />

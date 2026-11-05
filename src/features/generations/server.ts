@@ -111,10 +111,15 @@ async function storeImage(generationId: string, image: ImageResult): Promise<str
   const assetId = randomUUID();
   const storagePath = mediaPath(OWNER_ID, assetId, info.ext);
   const thumbPath = mediaPath(OWNER_ID, assetId, "webp", "thumb");
-  await Promise.all([
-    uploadMedia(storagePath, image.bytes, info.mimeType),
-    makeThumbnail(image.bytes).then((t) => uploadMedia(thumbPath, t, "image/webp")),
-  ]);
+  try {
+    await Promise.all([
+      uploadMedia(storagePath, image.bytes, info.mimeType),
+      makeThumbnail(image.bytes).then((t) => uploadMedia(thumbPath, t, "image/webp")),
+    ]);
+  } catch (error) {
+    await removeMedia([storagePath, thumbPath]); // one file may have landed; don't leave it behind
+    throw error;
+  }
   const { error } = await db().from("assets").insert({
     id: assetId,
     owner_id: OWNER_ID,
@@ -136,7 +141,11 @@ async function storeImage(generationId: string, image: ImageResult): Promise<str
 }
 
 async function recordUsage(generationId: string, model: string, cost: number | null): Promise<void> {
-  if (cost === null) return; // unknown price: write nothing rather than a guess
+  if (cost === null) {
+    // Google charged for this call but we can't price it. Write nothing rather than a guess, but never silently.
+    console.error(`[cost] paid ${model} call for generation ${generationId} has an unknown cost; no usage_events row written`);
+    return;
+  }
   const { error } = await db()
     .from("usage_events")
     .insert({ owner_id: OWNER_ID, generation_id: generationId, model, unit_type: "image", units: 1, cost_usd: cost });

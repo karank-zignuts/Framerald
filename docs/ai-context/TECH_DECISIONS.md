@@ -32,6 +32,7 @@ Legend: ✅ **Decided** · 🟡 **Recommended** (adopt when needed) · ⏳ **Lat
 | Database / storage | Supabase (`@supabase/supabase-js`) | 2.118.0 |
 | Validation / data | `zod` / `@tanstack/react-query` | 4.6.7 / 5.105.0 |
 | Toasts | `sonner` | 2.0.8 |
+| Images | `sharp` (thumbnails, upload validation). Added in Phase 1; Next already ships it as an optional dependency | 0.35.5 |
 | Tests | Vitest / Playwright | 5.0.5 / 1.64.1 |
 | Tooling | `supabase` CLI | 2.122.0 |
 | Hosting | Local now; Vercel later | — |
@@ -44,6 +45,8 @@ Legend: ✅ **Decided** · 🟡 **Recommended** (adopt when needed) · ⏳ **Lat
 | Server-only data access with the Supabase secret key | ✅ | No sign-in, so no browser sessions. RLS on, no policies, so public keys see nothing |
 | Private `media` bucket, signed URLs | ✅ | Files stay private even when deployed |
 | Video as a background job: store the Vertex operation, poll it | ✅ | Veo takes minutes. The UI shows progress and survives a reload |
+| Image generation runs inside the POST request (10 to 30 s). Fine locally; video will use jobs | ✅ | Simple, and one request equals one visible row |
+| Vertex image models need `generateContent`; the Interactions API is not supported for them on Vertex | ✅ | Confirmed with a real call, 2026-11-05 |
 | Job polling from the client while a job is open, plus a sweep on each page load | ✅ | No extra worker service in v1 |
 | Vercel Cron or Supabase Edge Function for polling | 🟡 | When deployed, so jobs finish with the tab closed |
 | Supabase Auth + RLS per owner | ⏳ | When going multi-user |

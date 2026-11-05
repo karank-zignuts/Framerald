@@ -41,5 +41,11 @@ export function assertSameOrigin(request: Request): void {
   const origin = request.headers.get("origin");
   if (!origin) return;
   const host = request.headers.get("host");
-  if (!host || new URL(origin).host !== host) throw new HttpError(403, "That request came from another site.");
+  let originHost: string | null = null;
+  try {
+    originHost = new URL(origin).host;
+  } catch {
+    // "null" or garbage: treat as another site
+  }
+  if (!host || originHost !== host) throw new HttpError(403, "That request came from another site.");
 }

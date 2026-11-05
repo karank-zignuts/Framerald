@@ -38,6 +38,15 @@ test("refuses requests that come from another website", async ({ request }) => {
   expect(res.status()).toBe(403);
 });
 
+test("an Origin of 'null' is refused, not a server error", async ({ request }) => {
+  const res = await request.post("/api/generations", { headers: { origin: "null" }, data: { prompt: tag("x") } });
+  expect(res.status()).toBe(403);
+});
+
+test("a fractional page size is accepted", async ({ request }) => {
+  expect((await request.get("/api/library?limit=2.5")).status()).toBe(200);
+});
+
 test("makes an image: stored, linked, thumbnailed, with its cost", async ({ request }) => {
   const res = await request.post("/api/generations", {
     data: { prompt: tag("red door"), aspectRatio: "16:9" },

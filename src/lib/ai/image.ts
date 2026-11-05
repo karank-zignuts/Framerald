@@ -65,6 +65,8 @@ export function extractImage(res: ModelResponse): { bytes: Buffer; mimeType: str
   throw new ImageGenerationError(`The model returned no image${reason ? ` (${reason})` : ""}. Try again.`);
 }
 
+const REQUEST_TIMEOUT_MS = 240_000;
+
 export async function generateImage(req: ImageRequest): Promise<ImageResult> {
   const spec = MODELS.image[req.modelKey];
   if (process.env.E2E_MOCK_AI === "1" && process.env.NODE_ENV !== "production") {
@@ -81,6 +83,7 @@ export async function generateImage(req: ImageRequest): Promise<ImageResult> {
         model: spec.id,
         contents: [{ role: "user", parts }],
         config: {
+          httpOptions: { timeout: REQUEST_TIMEOUT_MS }, // a hung call fails clearly instead of running into the route limit
           responseModalities: ["IMAGE"],
           imageConfig: { aspectRatio: req.aspectRatio, imageSize: req.imageSize },
         },

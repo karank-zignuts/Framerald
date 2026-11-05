@@ -29,7 +29,7 @@ The full list is in `https://better-design.com/registry/cinematic-dark/all.json`
 
 ## 2. Tokens
 
-Don't edit the Cinematic Dark block in `globals.css`. It is a byte-for-byte copy of the registry's `globals.css`. Our additions sit below it.
+Don't edit the Cinematic Dark block in `globals.css`. It is a copy of the registry's `globals.css`. Our additions sit around it: a Hallmark stamp and waivers on top, the emerald tokens and the page-level rules (overflow clip, themed scrollbar, reduced-motion pulse) below.
 
 | Token | Value | Use |
 |---|---|---|
@@ -84,3 +84,8 @@ Checked by `hallmark` and `impeccable` on every screen:
 - centered hero with three feature cards
 - purple-to-blue gradients, sparkle icons for "AI"
 - vague copy ("Unleash your creativity"). Say what the button does.
+
+## 7. Known findings from the Hallmark linter (app scope)
+
+- Zero-chroma neutrals and pure white primary come from Cinematic Dark itself. Waived on record in the stamp.
+- One FAIL in the design system's own CSS: its `[aria-invalid]` rule uses border colour for the invalid state. Phase 1 has no invalid fields. Revisit when forms with validation arrive.
