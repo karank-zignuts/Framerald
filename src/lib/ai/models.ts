@@ -12,7 +12,7 @@
 export type Pricing = {
   inputPerM: number;
   textOutPerM: number; // visible text and thinking tokens
-  imageOutPerM: number;
+  imageOutPerM?: number; // image models only
 };
 
 export type ImageSize = "1K" | "2K" | "4K";
@@ -22,6 +22,8 @@ export type ModelSpec = {
   label: string;
   location: "global" | "us-central1";
   pricing?: Pricing;
+  /** A lower launch price that ends on a known date (inclusive, UTC). After it, `pricing` applies. */
+  introPricing?: { until: string; pricing: Pricing };
   imageSizes?: readonly ImageSize[];
 };
 
@@ -75,17 +77,22 @@ export const MODELS = {
     },
   },
 
-  // Agent (planning, prompt refinement). gemini-3.5-flash answered a real call.
+  // Agent (planning, prompt refinement). `default` streamed text and a tool call in real calls on 2026-11-05.
   agent: {
     default: {
-      id: "gemini-3.5-flash",
-      label: "Gemini 3.5 Flash",
+      id: "gemini-3.8-flash",
+      label: "Gemini 3.8 Flash",
       location: "global",
+      // Google's list: $0.75 / $3.75 per 1M through 2026-12-31, then $1.50 / $7.50.
+      pricing: { inputPerM: 1.5, textOutPerM: 7.5 },
+      introPricing: { until: "2026-12-31", pricing: { inputPerM: 0.75, textOutPerM: 3.75 } },
     },
     deep: {
       id: "gemini-3.1-pro-preview",
       label: "Gemini 3.1 Pro (preview)",
       location: "global",
+      // Prompts up to 200k tokens. Longer prompts cost more and are not priced here.
+      pricing: { inputPerM: 2, textOutPerM: 12 },
     },
   },
 } as const satisfies Record<string, Record<string, ModelSpec>>;
@@ -103,10 +110,17 @@ export function modelLabel(modelId: string): string {
   return modelId;
 }
 
-export function findPricing(modelId: string): Pricing | undefined {
+const DAY_MS = 86_400_000;
+
+/** The price in force at `at` (default now), or undefined when we don't know it. */
+export function findPricing(modelId: string, at: Date = new Date()): Pricing | undefined {
   for (const group of Object.values(MODELS)) {
     for (const m of Object.values(group) as ModelSpec[]) {
-      if (m.id === modelId) return m.pricing;
+      if (m.id !== modelId) continue;
+      if (m.introPricing && at.getTime() < Date.parse(`${m.introPricing.until}T00:00:00Z`) + DAY_MS) {
+        return m.introPricing.pricing;
+      }
+      return m.pricing;
     }
   }
   return undefined;
