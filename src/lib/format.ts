@@ -1,0 +1,22 @@
+// Display helpers. No server imports, so client components can use them.
+
+/** "≈ $0.039". The tilde is honest: costs are estimated from list prices. */
+export function formatCost(usd: number | null): string {
+  if (usd === null) return "Cost unknown";
+  return `≈ $${usd >= 1 ? usd.toFixed(2) : usd.toFixed(3)}`;
+}
+
+export function formatCount(n: number, noun: string): string {
+  return `${n} ${noun}${n === 1 ? "" : "s"}`;
+}
+
+/** Supabase signed links download with a chosen filename when given ?download=. */
+export function downloadUrl(signedUrl: string, filename: string): string {
+  const url = new URL(signedUrl);
+  url.searchParams.set("download", filename);
+  return url.toString();
+}
+
+export function formatDate(iso: string): string {
+  return new Date(iso).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" });
+}

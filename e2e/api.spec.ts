@@ -129,7 +129,7 @@ test("upload, then edit with it as a reference, then re-run the settings", async
   trackAsset(ref.id);
   expect(ref.width).toBe(64);
 
-  const prompt = tag("make it night");
+  const prompt = tag("api edit");
   const gen = (await (
     await request.post("/api/generations", {
       data: { prompt, referenceAssetIds: [ref.id], aspectRatio: "4:3", count: 1 },

@@ -10,14 +10,7 @@ import { HttpError } from "@/lib/http";
 import { ASSET_SELECT, failStuckGenerations, toAssetDtos, type AssetRow } from "@/features/library/server";
 import type { AssetDto } from "@/features/library/types";
 import type { GenerateRequest } from "./schemas";
-
-export type GenerationResult = {
-  id: string;
-  status: "succeeded" | "failed";
-  error: string | null;
-  costUsd: number | null; // null = unknown
-  assets: AssetDto[];
-};
+import type { GenerationResult } from "./types";
 
 type Reference = { id: string; bytes: Buffer; mimeType: string };
 

@@ -1,0 +1,146 @@
+"use client";
+
+import { useQueryClient } from "@tanstack/react-query";
+import { useState } from "react";
+import { toast } from "sonner";
+import { AssetDialog } from "@/components/media/asset-dialog";
+import { generate, uploadReference, type GenerateInput } from "@/features/generations/api";
+import { MAX_REFERENCES } from "@/features/generations/schemas";
+import { deleteAsset, setFavorite } from "@/features/library/api";
+import { libraryKeys } from "@/features/library/queries";
+import type { AssetDto, ReRunSettings } from "@/features/library/types";
+import type { ImageSize } from "@/lib/ai/models";
+import { Composer, type ComposerValues } from "./composer";
+import { Results, type Batch } from "./results";
+
+export type StudioInitial = Partial<ReRunSettings> & { sourceGenerationId?: string };
+
+const BLANK: ComposerValues = {
+  prompt: "",
+  model: "default",
+  aspectRatio: "1:1",
+  imageSize: "1K",
+  count: 1,
+  references: [],
+};
+
+let batchCounter = 0;
+const nextKey = () => `batch-${Date.now()}-${batchCounter++}`;
+
+/** The composer on the left, this session's results on the right. Mount with a key to start from new settings. */
+export function StudioWorkspace({ initial, notice }: { initial: StudioInitial | null; notice?: string | null }) {
+  const qc = useQueryClient();
+  const [values, setValues] = useState<ComposerValues>({
+    ...BLANK,
+    ...(initial?.prompt !== undefined && { prompt: initial.prompt }),
+    ...(initial?.model && { model: initial.model }),
+    ...(initial?.aspectRatio && { aspectRatio: initial.aspectRatio }),
+    ...(initial?.imageSize && { imageSize: initial.imageSize as ImageSize }),
+    ...(initial?.count && { count: initial.count }),
+    ...(initial?.references && { references: initial.references }),
+  });
+  const [batches, setBatches] = useState<Batch[]>([]);
+  const [uploading, setUploading] = useState(0);
+  const [openId, setOpenId] = useState<string | null>(null);
+
+  const openAsset = batches.flatMap((b) => b.result?.assets ?? []).find((a) => a.id === openId) ?? null;
+
+  const patch = (p: Partial<ComposerValues>) => setValues((v) => ({ ...v, ...p }));
+  const updateAsset = (id: string, fn: (a: AssetDto) => AssetDto) =>
+    setBatches((all) =>
+      all.map((b) => (b.result ? { ...b, result: { ...b.result, assets: b.result.assets.map((a) => (a.id === id ? fn(a) : a)) } } : b)),
+    );
+
+  async function run(input: GenerateInput, replaceKey?: string) {
+    const key = nextKey();
+    setBatches((all) => [{ key, input, status: "running" }, ...all.filter((b) => b.key !== replaceKey)]);
+    const finish = (change: Partial<Batch>) => setBatches((all) => all.map((b) => (b.key === key ? { ...b, ...change } : b)));
+    try {
+      const result = await generate(input);
+      finish({ status: result.status === "succeeded" ? "done" : "failed", result, error: result.error ?? undefined });
+      void qc.invalidateQueries({ queryKey: libraryKeys.all });
+    } catch (error) {
+      finish({ status: "failed", error: error instanceof Error ? error.message : "Something went wrong. Try again." });
+    }
+  }
+
+  function submit() {
+    void run({
+      prompt: values.prompt,
+      model: values.model,
+      aspectRatio: values.aspectRatio as GenerateInput["aspectRatio"],
+      imageSize: values.imageSize,
+      count: values.count,
+      referenceAssetIds: values.references.map((r) => r.id),
+      sourceGenerationId: initial?.sourceGenerationId,
+    });
+  }
+
+  async function addFiles(files: File[]) {
+    const images = files.filter((f) => f.type.startsWith("image/"));
+    if (images.length < files.length) toast.error("Only png, jpeg and webp images work as references.");
+    const room = MAX_REFERENCES - values.references.length - uploading;
+    const batch = images.slice(0, Math.max(room, 0));
+    if (images.length > batch.length) toast.error(`You can add up to ${MAX_REFERENCES} reference images.`);
+    if (batch.length === 0) return;
+    setUploading((n) => n + batch.length);
+    await Promise.all(
+      batch.map(async (file) => {
+        try {
+          const asset = await uploadReference(file);
+          setValues((v) => ({ ...v, references: [...v.references, asset] }));
+        } catch (error) {
+          toast.error(error instanceof Error ? error.message : "That upload failed.");
+        } finally {
+          setUploading((n) => n - 1);
+        }
+      }),
+    );
+  }
+
+  async function favorite(asset: AssetDto, value: boolean) {
+    updateAsset(asset.id, (a) => ({ ...a, isFavorite: value }));
+    try {
+      await setFavorite(asset.id, value);
+      void qc.invalidateQueries({ queryKey: libraryKeys.all });
+    } catch (error) {
+      updateAsset(asset.id, (a) => ({ ...a, isFavorite: !value }));
+      toast.error(error instanceof Error ? error.message : "Couldn't update the favourite.");
+    }
+  }
+
+  async function remove(asset: AssetDto) {
+    try {
+      await deleteAsset(asset.id);
+      setOpenId(null);
+      setBatches((all) =>
+        all
+          .map((b) => (b.result ? { ...b, result: { ...b.result, assets: b.result.assets.filter((a) => a.id !== asset.id) } } : b))
+          .filter((b) => b.status !== "done" || (b.result?.assets.length ?? 0) > 0),
+      );
+      void qc.invalidateQueries({ queryKey: libraryKeys.all });
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Couldn't delete that image.");
+    }
+  }
+
+  return (
+    <div className="flex min-h-0 flex-1 flex-col lg:flex-row">
+      <section aria-label="Controls" className="flex min-h-0 shrink-0 flex-col border-b border-border bg-card lg:w-[26rem] lg:border-b-0 lg:border-r">
+        <Composer values={values} onChange={patch} onSubmit={submit} onAddFiles={addFiles} uploading={uploading} notice={notice} />
+      </section>
+      <section aria-label="Results" className="flex min-h-[24rem] min-w-0 flex-1 flex-col lg:overflow-hidden">
+        <Results batches={batches} onOpen={(a) => setOpenId(a.id)} onFavorite={favorite} onRetry={(b) => void run(b.input, b.key)} />
+      </section>
+      {openAsset && (
+        <AssetDialog
+          key={openAsset.id}
+          asset={openAsset}
+          onClose={() => setOpenId(null)}
+          onFavorite={(v) => void favorite(openAsset, v)}
+          onDelete={() => remove(openAsset)}
+        />
+      )}
+    </div>
+  );
+}

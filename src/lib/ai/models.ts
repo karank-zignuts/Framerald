@@ -93,6 +93,16 @@ export const MODELS = {
 export type ImageModelKey = keyof typeof MODELS.image;
 export const IMAGE_MODEL_KEYS = Object.keys(MODELS.image) as ImageModelKey[];
 
+/** Friendly name for a stored model id, falling back to the id itself. */
+export function modelLabel(modelId: string): string {
+  for (const group of Object.values(MODELS)) {
+    for (const m of Object.values(group) as ModelSpec[]) {
+      if (m.id === modelId) return m.label;
+    }
+  }
+  return modelId;
+}
+
 export function findPricing(modelId: string): Pricing | undefined {
   for (const group of Object.values(MODELS)) {
     for (const m of Object.values(group) as ModelSpec[]) {

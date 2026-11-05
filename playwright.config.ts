@@ -10,6 +10,8 @@ export default defineConfig({
   fullyParallel: true,
   workers: 2, // dev server compiles on demand; more workers cause slow first paint and flaky waits
   retries: 0,
+  timeout: 90_000, // the dev server compiles each route on its first visit
+  expect: { timeout: 15_000 },
   // Terse output keeps token cost low: only failures print detail.
   globalTeardown: "./e2e/global-teardown.ts",
   reporter: [["line"], ["html", { open: "never", outputFolder: "playwright-report" }]],
