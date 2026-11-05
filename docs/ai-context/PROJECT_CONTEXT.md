@@ -56,9 +56,11 @@ Google renames and replaces models often. Check the current Vertex AI model list
 
 | Job | Family today |
 |---|---|
-| Image make / edit | Nano Banana (Gemini image models) |
-| Video | Veo 3.x, and Gemini Omni Flash |
-| Agent | Gemini text models with tool calls |
+| Image make / edit | `gemini-nano-banana-2.1` (default), `gemini-3-pro-image`, `gemini-3.1-flash-image` |
+| Video | `veo-3.1-generate-001` / `-fast-` / `-lite-` (us-central1 only), `gemini-omni-1.1-flash-preview` |
+| Agent | `gemini-3.5-flash` (default), `gemini-3.1-pro-preview` (deep) |
+
+IDs confirmed against this project on 2026-11-05 and kept in `src/lib/ai/models.ts`. Only the agent model has answered a real call so far.
 
 ## 6. Ready for money later
 

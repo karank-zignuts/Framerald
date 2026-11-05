@@ -10,11 +10,11 @@ Legend: ⬜ not started · 🟦 in progress · ✅ done
 
 ## 1. Where we are <!-- LIVING -->
 
-Phase 0 is done in code. Before Phase 1 can run against real services, two things need the owner: a Supabase project (create and link it, then push the migration) and Vertex AI credentials in `.env.local`.
+Phase 0 is done. Supabase is linked and the migration is applied. Vertex AI works (a real Gemini call succeeded). Next: Phase 1.
 
 ## 2. Phases
 
-### Phase 0: Foundation 🟦
+### Phase 0: Foundation ✅
 - ✅ Next.js 16 scaffold, pinned versions, lint, typecheck
 - ✅ Cinematic Dark tokens and core components, BorderBeam, emerald brand tokens
 - ✅ Vertex AI client (ADC locally, service account key on Vercel), Zod env
@@ -22,8 +22,8 @@ Phase 0 is done in code. Before Phase 1 can run against real services, two thing
 - ✅ Skill team and `/feature` pipeline
 - ✅ Context docs
 - ✅ Vitest and Playwright (Organizr method), smoke and shots specs
-- ⬜ Owner: create the Supabase project, link it, push the migration
-- ⬜ Owner: Google Cloud project with Vertex AI enabled, credentials in `.env.local`
+- ✅ Supabase project linked, migration pushed
+- ✅ Vertex AI enabled, credentials working
 
 **Gate:** app runs locally, all checks pass, migration applied, one test call to Vertex AI succeeds.
 
@@ -62,3 +62,4 @@ Phase 0 is done in code. Before Phase 1 can run against real services, two thing
 | Date | Change |
 |---|---|
 | 2026-11-05 | Plan approved. Phase 0 built: scaffold, design system, Vertex client, schema, skills, docs, test setup. |
+| 2026-11-05 | Supabase migration pushed. Vertex AI verified. Model IDs recorded in `models.ts`. |
