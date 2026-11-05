@@ -1,4 +1,5 @@
 import "server-only";
+import { unstable_rethrow } from "next/navigation";
 import { ZodError } from "zod";
 
 /** An error with a status code and a message that is safe to show the user. */
@@ -18,6 +19,8 @@ export function handle<Args extends unknown[]>(fn: (...args: Args) => Promise<Re
     try {
       return await fn(...args);
     } catch (error) {
+      // Next uses thrown signals for control flow (bailing out of prerender, redirects, 404s). Let them pass.
+      unstable_rethrow(error);
       if (error instanceof HttpError) return Response.json({ error: error.message }, { status: error.status });
       if (error instanceof ZodError) {
         return Response.json({ error: error.issues[0]?.message ?? "That request isn't valid." }, { status: 400 });

@@ -36,8 +36,13 @@ export const DEFAULT_PAGE_SIZE = 24;
 const MAX_PAGE_SIZE = 60;
 const STUCK_AFTER_MINUTES = 10;
 
-/** Marks generations that never finished (server crashed mid-call) as failed. */
+let lastSweep = 0;
+const SWEEP_EVERY_MS = 60_000;
+
+/** Marks generations that never finished (server crashed mid-call) as failed. At most once a minute per server. */
 export async function failStuckGenerations(): Promise<void> {
+  if (Date.now() - lastSweep < SWEEP_EVERY_MS) return;
+  lastSweep = Date.now();
   const cutoff = new Date(Date.now() - STUCK_AFTER_MINUTES * 60_000).toISOString();
   await db()
     .from("generations")

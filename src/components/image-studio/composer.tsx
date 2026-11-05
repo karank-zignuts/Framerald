@@ -154,7 +154,7 @@ export function Composer({ values, onChange, onSubmit, onAddFiles, uploading, no
               </div>
             ))}
             {Array.from({ length: uploading }, (_, i) => (
-              <div key={`up-${i}`} className="aspect-square animate-pulse rounded-md bg-secondary" aria-label="Uploading" />
+              <div key={`up-${i}`} className="aspect-square rounded-md bg-secondary motion-safe:animate-pulse" aria-label="Uploading" />
             ))}
             {canAddMore && (
               <button
@@ -195,7 +195,8 @@ export function Composer({ values, onChange, onSubmit, onAddFiles, uploading, no
           </Label>
           <Select value={values.model} onValueChange={(v) => changeModel(v as ImageModelKey)}>
             <SelectTrigger id="model" aria-label="Model">
-              <SelectValue />
+              {/* Only the name in the field; the one-line notes show in the list. */}
+              <SelectValue>{MODELS.image[values.model].label}</SelectValue>
             </SelectTrigger>
             <SelectContent>
               {IMAGE_MODEL_KEYS.map((key) => (
@@ -219,7 +220,7 @@ export function Composer({ values, onChange, onSubmit, onAddFiles, uploading, no
             aria-labelledby="ratio-label"
             value={values.aspectRatio}
             onValueChange={(v) => v && onChange({ aspectRatio: v })}
-            className="grid grid-cols-5 gap-1.5"
+            className="grid grid-cols-5 gap-1.5 border-0 bg-transparent p-0"
           >
             {ASPECT_RATIOS.map((r) => (
               <ToggleGroupItem
@@ -257,7 +258,7 @@ export function Composer({ values, onChange, onSubmit, onAddFiles, uploading, no
         </div>
       </div>
 
-      <div className="border-t border-border bg-card p-5">
+      <div className="sticky bottom-0 z-10 border-t border-border bg-card p-5">
         <Button
           type="submit"
           size="lg"

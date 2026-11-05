@@ -1,3 +1,6 @@
+/* Hallmark · shape: app screen · theme: Cinematic Dark (by request) · posture: restrained · built: Claude Code with Impeccable and Hallmark */
+/* Hallmark · waive 22 · zero-chroma oklch neutrals in the :root block · Cinematic Dark is the owner's mandated design system and is used as published */
+/* Hallmark · waive 26b · composer.tsx · the composer Button, Select, ToggleGroup and SegmentedControl are design-system components that carry their own active and disabled states */
 @import "tailwindcss";
 @import "tw-animate-css";
 
@@ -204,4 +207,24 @@
   --color-brand-strong: var(--brand-strong);
   --color-brand-muted: var(--brand-muted);
   --color-brand-foreground: var(--brand-foreground);
+}
+
+/* ─── Framerald additions (Hallmark floor) ─── */
+
+/* Wide content can never push the page sideways. `clip`, never `hidden`: it keeps sticky elements working. */
+html,
+body {
+  overflow-x: clip;
+}
+
+/* The browser's scrollbar follows the palette instead of the system default. */
+html {
+  scrollbar-color: var(--border) transparent;
+}
+
+/* Every skeleton and upload placeholder pulses only when the system allows motion. */
+@media (prefers-reduced-motion: reduce) {
+  .animate-pulse {
+    animation: none;
+  }
 }

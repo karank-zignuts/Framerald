@@ -48,6 +48,13 @@ export function AssetDialog({ asset, onClose, onFavorite, onDelete }: Props) {
             width={asset.width ?? undefined}
             height={asset.height ?? undefined}
             className="max-h-[60dvh] w-full object-contain lg:max-h-[92dvh]"
+            // The grid already loaded the thumbnail, so it shows at once while the full file arrives.
+            style={{
+              backgroundImage: `url(${asset.thumbnailUrl})`,
+              backgroundSize: "contain",
+              backgroundPosition: "center",
+              backgroundRepeat: "no-repeat",
+            }}
           />
         </div>
 

@@ -104,7 +104,7 @@ export function Results({ batches, onOpen, onFavorite, onRetry }: Props) {
                 )}
                 <div className={`grid gap-3 ${GRID[Math.max(1, assets.length)] ?? GRID[4]}`}>
                   {assets.map((asset) => (
-                    <AssetTile key={asset.id} asset={asset} onOpen={() => onOpen(asset)} onFavorite={(v) => onFavorite(asset, v)} />
+                    <AssetTile key={asset.id} asset={asset} eager={batch === batches[0]} onOpen={() => onOpen(asset)} onFavorite={(v) => onFavorite(asset, v)} />
                   ))}
                 </div>
               </>

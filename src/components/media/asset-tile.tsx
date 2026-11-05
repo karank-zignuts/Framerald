@@ -12,13 +12,15 @@ type Props = {
   onFavorite: (value: boolean) => void;
   /** "native" keeps the picture's own shape; "square" crops to a uniform grid. */
   fit?: "native" | "square";
+  /** Above the fold: load now instead of lazily (helps Largest Contentful Paint). */
+  eager?: boolean;
 };
 
-export function AssetTile({ asset, onOpen, onFavorite, fit = "native" }: Props) {
+export function AssetTile({ asset, onOpen, onFavorite, fit = "native", eager = false }: Props) {
   const ratio = asset.width && asset.height ? asset.width / asset.height : 1;
   const prompt = asset.generation?.prompt ?? "Generated image";
   return (
-    <div className="group relative overflow-hidden rounded-lg border border-border bg-card" data-testid="asset-tile">
+    <div className="group relative overflow-hidden rounded-lg border border-border bg-secondary" data-testid="asset-tile">
       <button
         type="button"
         onClick={onOpen}
@@ -33,7 +35,8 @@ export function AssetTile({ asset, onOpen, onFavorite, fit = "native" }: Props) 
           alt={prompt}
           width={asset.width ?? undefined}
           height={asset.height ?? undefined}
-          loading="lazy"
+          loading={eager ? "eager" : "lazy"}
+          fetchPriority={eager ? "high" : "auto"}
           decoding="async"
           className="size-full object-cover"
         />

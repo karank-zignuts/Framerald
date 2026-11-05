@@ -126,8 +126,8 @@ export function LibraryView() {
         {items.length > 0 && (
           <>
             <div className={GRID} data-testid="library-grid">
-              {items.map((asset) => (
-                <AssetTile key={asset.id} asset={asset} fit="square" onOpen={() => setOpenId(asset.id)} onFavorite={(v) => void favorite(asset, v)} />
+              {items.map((asset, index) => (
+                <AssetTile key={asset.id} asset={asset} fit="square" eager={index < 4} onOpen={() => setOpenId(asset.id)} onFavorite={(v) => void favorite(asset, v)} />
               ))}
             </div>
             <div ref={sentinel} className="flex justify-center py-6">
