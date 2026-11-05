@@ -21,3 +21,15 @@ export function downloadUrl(signedUrl: string, filename: string): string {
 export function formatDate(iso: string): string {
   return new Date(iso).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" });
 }
+
+const EXTENSIONS: Record<string, string> = {
+  "image/png": "png",
+  "image/jpeg": "jpg",
+  "image/webp": "webp",
+  "video/mp4": "mp4",
+};
+
+/** The file extension for a real mime type. */
+export function extensionFor(mimeType: string): string {
+  return EXTENSIONS[mimeType] ?? "bin";
+}

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { downloadUrl, formatCost, formatCount } from "./format";
+import { downloadUrl, extensionFor, formatCost, formatCount } from "./format";
 
 describe("formatCost", () => {
   it("shows three decimals under a dollar", () => {
@@ -33,5 +33,15 @@ describe("downloadUrl", () => {
     const out = new URL(downloadUrl("https://x.supabase.co/storage/v1/object/sign/media/a.png?token=abc", "framerald-1.png"));
     expect(out.searchParams.get("token")).toBe("abc");
     expect(out.searchParams.get("download")).toBe("framerald-1.png");
+  });
+});
+
+describe("extensionFor", () => {
+  it("uses the real type of the file, not a guess", () => {
+    expect(extensionFor("image/png")).toBe("png");
+    expect(extensionFor("image/jpeg")).toBe("jpg");
+    expect(extensionFor("image/webp")).toBe("webp");
+    expect(extensionFor("video/mp4")).toBe("mp4");
+    expect(extensionFor("application/x-whatever")).toBe("bin");
   });
 });

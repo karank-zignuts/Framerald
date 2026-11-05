@@ -1,6 +1,7 @@
 import "server-only";
 import { GoogleGenAI } from "@google/genai";
 import { env } from "@/lib/env";
+import { parseServiceAccountKey } from "./credentials";
 
 // One Vertex AI client per region per server process. Every image, video and
 // agent call goes through here, so credentials never reach the browser.
@@ -22,7 +23,7 @@ export function vertex(location?: string): GoogleGenAI {
       ...(key
         ? {
             googleAuthOptions: {
-              credentials: JSON.parse(Buffer.from(key, "base64").toString("utf8")),
+              credentials: parseServiceAccountKey(key),
             },
           }
         : {}),

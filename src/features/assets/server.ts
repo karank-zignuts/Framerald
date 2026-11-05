@@ -4,10 +4,9 @@ import { db, OWNER_ID } from "@/lib/supabase/server";
 import { mediaPath, removeMedia, uploadMedia } from "@/lib/storage";
 import { inspectImage, makeThumbnail } from "@/lib/image-processing";
 import { HttpError } from "@/lib/http";
+import { MAX_UPLOAD_BYTES } from "./schemas";
 import { ASSET_SELECT, toAssetDtos, type AssetRow } from "@/features/library/server";
 import type { AssetDto } from "@/features/library/types";
-
-export const MAX_UPLOAD_BYTES = 10 * 1024 * 1024;
 
 /** Stores a reference image the user picked from their computer. */
 export async function saveUpload(file: File): Promise<AssetDto> {
