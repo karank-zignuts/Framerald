@@ -1,7 +1,7 @@
 import "server-only";
 import { randomUUID } from "node:crypto";
 import { db, OWNER_ID } from "@/lib/supabase/server";
-import { downloadMedia, mediaPath, uploadMedia } from "@/lib/storage";
+import { downloadMedia, mediaPath, removeMedia, uploadMedia } from "@/lib/storage";
 import { inspectImage, makeThumbnail } from "@/lib/image-processing";
 import { generateImage, type ImageResult } from "@/lib/ai/image";
 import { imageCostUsd } from "@/lib/ai/cost";
@@ -135,7 +135,10 @@ async function storeImage(generationId: string, image: ImageResult): Promise<str
     width: info.width,
     height: info.height,
   });
-  if (error) throw new Error(`Couldn't record the image: ${error.message}`);
+  if (error) {
+    await removeMedia([storagePath, thumbPath]); // no row, so don't leave the files behind
+    throw new Error(`Couldn't record the image: ${error.message}`);
+  }
   return assetId;
 }
 

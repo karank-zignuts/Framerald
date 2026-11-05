@@ -33,3 +33,9 @@ export async function signedUrlMap(paths: string[]): Promise<Map<string, string>
   for (const item of data ?? []) if (item.path && item.signedUrl) map.set(item.path, item.signedUrl);
   return map;
 }
+
+/** Best effort: used to clean up after a failed save, so it never throws. */
+export async function removeMedia(paths: string[]): Promise<void> {
+  if (paths.length === 0) return;
+  await db().storage.from(MEDIA_BUCKET).remove(paths).catch(() => {});
+}

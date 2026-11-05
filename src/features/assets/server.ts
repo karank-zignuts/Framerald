@@ -1,7 +1,7 @@
 import "server-only";
 import { randomUUID } from "node:crypto";
 import { db, OWNER_ID } from "@/lib/supabase/server";
-import { mediaPath, uploadMedia } from "@/lib/storage";
+import { mediaPath, removeMedia, uploadMedia } from "@/lib/storage";
 import { inspectImage, makeThumbnail } from "@/lib/image-processing";
 import { HttpError } from "@/lib/http";
 import { ASSET_SELECT, toAssetDtos, type AssetRow } from "@/features/library/server";
@@ -46,7 +46,10 @@ export async function saveUpload(file: File): Promise<AssetDto> {
     })
     .select(ASSET_SELECT)
     .single();
-  if (error) throw new Error(`Couldn't record the upload: ${error.message}`);
+  if (error) {
+    await removeMedia([storagePath, thumbPath]); // no row, so don't leave the files behind
+    throw new Error(`Couldn't record the upload: ${error.message}`);
+  }
   const [dto] = await toAssetDtos([data as unknown as AssetRow]);
   return dto;
 }
