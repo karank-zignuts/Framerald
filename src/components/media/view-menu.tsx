@@ -64,11 +64,11 @@ export function ViewMenu({
         </label>
         {variant === "studio" && (
           <label className="flex cursor-pointer items-center justify-between gap-3 text-sm text-foreground">
-            Clear prompt on submit
+            Clear prompt and references on submit
             <Switch
               checked={view.clearOnSubmit}
               onCheckedChange={(v) => updateView({ clearOnSubmit: v })}
-              aria-label="Clear prompt on submit"
+              aria-label="Clear prompt and references on submit"
             />
           </label>
         )}

@@ -111,6 +111,9 @@ The sidebar is a full-height glass panel flush with the top, left and bottom of 
 - The project you are in is highlighted in the switcher and on the Projects page.
 - Every glass surface has a faint accent-tinted edge.
 - Generate has a star border: a 1px accent hairline ring, a 3px dark gap, and two bright glints travelling the ring, for as long as the button is enabled. It fades out when the button is disabled.
+- The Look dropdown is a panel of style cards (icon tile, name, one line about what it adds, a check on the chosen one), a Clear action and an add-your-own form. The chip shows the chosen look's name.
+- Attached references: Generate clears them with the prompt (the same switch). A click near the edge of a thumbnail opens it larger in a dialog; the circled X in its middle removes it.
+- The top right shows the project's total spend (images, clips and chats), refreshed when something paid finishes. The Spend page has the all-projects total.
 - Loading: a ripple (two rings growing and fading, `src/components/loading/ripple.tsx`) for anything that loads. `PageLoader` fills a page or panel, waits 200 ms before it appears so a quick load never flashes, then fades in. Small waits use `<Ripple />` inline. No skeleton cards and no placeholder boxes.
 - First paint: a script in the page head copies the saved sidebar state onto `<html>` before the first frame, so a hidden sidebar never flashes open. Its animation is off until the page has hydrated.
 

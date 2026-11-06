@@ -141,11 +141,11 @@ test("Reuse brings the prompt back into the composer", async ({ page, request })
   await expect(page.getByRole("textbox", { name: "Prompt" })).toHaveValue(text, FIRST_PAINT);
 });
 
-test("with Clear prompt on submit turned off, the prompt stays", async ({ page }) => {
+test("with the clear-on-submit switch turned off, the prompt and references stay", async ({ page }) => {
   const text = tag("keep this prompt");
   await page.goto("/image");
   await page.getByRole("button", { name: "View" }).click();
-  await page.getByRole("switch", { name: "Clear prompt on submit" }).click();
+  await page.getByRole("switch", { name: "Clear prompt and references on submit" }).click();
   await page.keyboard.press("Escape");
   await page.getByRole("textbox", { name: "Prompt" }).fill(text);
   await page.getByRole("button", { name: /^Generate/ }).click();
@@ -312,4 +312,83 @@ test("the Generate button's star border shows while it is active and fades out w
   await expect.poll(opacity).toBe(1);
   await prompt.fill("");
   await expect.poll(opacity).toBe(0);
+});
+
+test("Generate clears the attached references with the prompt, and a reference has a centred remove control", async ({ page }) => {
+  const ref = Buffer.from(
+    "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==",
+    "base64",
+  );
+  await page.goto("/image");
+  await expect(page.getByRole("textbox", { name: "Prompt" })).toBeVisible(FIRST_PAINT);
+  await page.getByTestId("reference-input").setInputFiles({ name: "ref.png", mimeType: "image/png", buffer: ref });
+  const thumb = page.getByTestId("reference");
+  await expect(thumb).toHaveCount(1);
+
+  // The remove control covers the thumbnail and sits in its middle.
+  await thumb.hover();
+  const remove = thumb.getByRole("button", { name: "Remove reference image" });
+  await expect(remove).toBeVisible();
+  const [t, r] = [(await thumb.boundingBox())!, (await remove.boundingBox())!];
+  expect(Math.abs(r.x + r.width / 2 - (t.x + t.width / 2))).toBeLessThan(1);
+  expect(Math.abs(r.y + r.height / 2 - (t.y + t.height / 2))).toBeLessThan(1);
+
+  await page.getByRole("textbox", { name: "Prompt" }).fill("[e2e] with a reference");
+  await page.getByRole("button", { name: /^Generate/ }).click();
+  await expect(page.getByTestId("reference")).toHaveCount(0); // sent with the request, then cleared
+  await expect(page.getByRole("textbox", { name: "Prompt" })).toHaveValue("");
+});
+
+test("the Look panel is a set of style cards with a line about each, and the chip shows the chosen look", async ({ page }) => {
+  await page.goto("/image");
+  await expect(page.getByRole("textbox", { name: "Prompt" })).toBeVisible(FIRST_PAINT);
+  await page.getByRole("button", { name: /^Look/ }).click();
+  const group = page.getByRole("radiogroup", { name: "Look" });
+  await expect(group.getByRole("radio")).toHaveCount(9, { timeout: 15_000 });
+  const film = group.getByRole("radio", { name: /35mm film/ });
+  await expect(film).toContainText("Shot on 35mm film"); // a line about what it adds
+  await film.click();
+  await expect(film).toHaveAttribute("aria-checked", "true");
+  await page.getByRole("button", { name: "Clear" }).click();
+  await expect(film).toHaveAttribute("aria-checked", "false");
+  await film.click();
+  await page.keyboard.press("Escape");
+  await expect(page.getByRole("button", { name: /^Look.*35mm film|35mm film/ }).first()).toBeVisible(); // the chip names it
+});
+
+test("a click on an attached reference opens it larger, and the remove control still removes it", async ({ page }) => {
+  const png = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==", "base64");
+  await page.goto("/image");
+  await expect(page.getByRole("textbox", { name: "Prompt" })).toBeVisible(FIRST_PAINT);
+  await page.getByTestId("reference-input").setInputFiles({ name: "ref.png", mimeType: "image/png", buffer: png });
+  const thumb = page.getByTestId("reference");
+  await expect(thumb).toHaveCount(1);
+  // The remove control sits in the middle of the thumbnail, so the preview is a click anywhere around it.
+  await thumb.getByRole("button", { name: "Preview reference image" }).click({ position: { x: 4, y: 4 } });
+  const dialog = page.getByRole("dialog", { name: "Reference image" });
+  await expect(dialog.getByRole("img", { name: "Reference image, larger" })).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(dialog).toBeHidden();
+  await thumb.hover();
+  await thumb.getByRole("button", { name: "Remove reference image" }).click();
+  await expect(thumb).toHaveCount(0);
+});
+
+test("the top right shows what the project has spent, and it grows when something paid finishes", async ({ page, request }) => {
+  const made = await request.post("/api/projects", { data: { name: tag("spend") } });
+  const project = (await made.json()) as { id: string };
+  const zero = (await (await request.get(`/api/projects/${project.id}/spend`)).json()) as { usd: number };
+  expect(zero.usd).toBe(0);
+
+  await page.goto(`/p/${project.id}/image`);
+  const chip = page.getByTestId("project-spend");
+  await expect(chip).toContainText("₹0.00", FIRST_PAINT);
+  await page.getByRole("textbox", { name: "Prompt" }).fill(tag("something that costs"));
+  await page.getByRole("button", { name: /^Generate/ }).click();
+  await expect(chip).toContainText("₹3.43", { timeout: 30_000 }); // one mock image, about $0.039
+  const after = (await (await request.get(`/api/projects/${project.id}/spend`)).json()) as { usd: number };
+  expect(after.usd).toBeCloseTo(0.039, 3);
+
+  await page.goto("/spend");
+  await expect(page.getByTestId("project-spend")).toHaveCount(0); // the Spend page is for everything, so no project total there
 });

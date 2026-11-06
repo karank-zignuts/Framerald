@@ -98,6 +98,7 @@ export function AgentView() {
     } finally {
       abort.current = null;
       if (id) await qc.invalidateQueries({ queryKey: agentKeys.messages(id) });
+      void qc.invalidateQueries({ queryKey: ["project-spend"] });
       setLive(null); // the saved reply is in now; showing both would repeat it for a moment
       await qc.invalidateQueries({ queryKey: agentKeys.threads });
       // The server saves a stopped reply a moment after the connection closes; look again once it has.

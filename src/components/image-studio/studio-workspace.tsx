@@ -96,6 +96,7 @@ export function StudioWorkspace({ initial, notice }: { initial: StudioInitial | 
       const result = await generate(input);
       finish({ status: result.status === "succeeded" ? "done" : "failed", result, error: result.error ?? undefined });
       void qc.invalidateQueries({ queryKey: libraryKeys.all });
+      void qc.invalidateQueries({ queryKey: ["project-spend"] }); // the project has cost something more
     } catch (error) {
       finish({ status: "failed", error: error instanceof Error ? error.message : "Something went wrong. Try again." });
     }
@@ -111,9 +112,10 @@ export function StudioWorkspace({ initial, notice }: { initial: StudioInitial | 
       toast.error(`With the preset added, the prompt is ${prompt.length} characters. The limit is 4,000.`);
       return;
     }
-    // The box clears once the request is on its way. A failed batch keeps its own input for Try again.
+    // The prompt and the attached references clear once the request is on its way. A failed batch keeps its own input, references
+    // included, for Try again.
     if (view.clearOnSubmit) {
-      setValues((v) => ({ ...v, prompt: "" }));
+      setValues((v) => ({ ...v, prompt: "", references: [] }));
       setBeforeRefine(null);
     }
     void run({

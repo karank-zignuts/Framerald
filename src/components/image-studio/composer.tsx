@@ -5,13 +5,13 @@ import {
   ChevronDown,
   ChevronLeft,
   ChevronRight,
+  CircleX,
   Minus,
   PenLine,
   Plus,
   SlidersHorizontal,
   Sparkles,
   Undo2,
-  X,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
@@ -20,13 +20,15 @@ import { DockGradient } from "./dock-gradient";
 import { MediaPickerPanel } from "@/components/media/media-picker";
 import { ModelPickerPanel, ModelTrigger } from "./model-picker";
 import { Anchor as PopoverAnchor } from "@radix-ui/react-popover";
-import { PresetPicker } from "@/components/presets/preset-picker";
+import { PresetPicker, selectedPresets } from "@/components/presets/preset-picker";
+import { usePresets } from "@/features/presets/queries";
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { StarBorder } from "@/components/ui/star-border";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -117,7 +119,7 @@ function Chip({
   return (
     <>
       {icon}
-      <span className="sr-only">{label}: </span>
+      {label !== value && <span className="sr-only">{label}: </span>}
       <span className="tabular-nums">{value}</span>
       <ChevronDown aria-hidden className="size-3.5 text-muted-foreground" />
     </>
@@ -220,6 +222,9 @@ export function Composer({
   const router = useRouter();
   const scoped = useScopedHref();
   const fileInput = useRef<HTMLInputElement>(null);
+  const looks = usePresets("image");
+  const chosenLook = selectedPresets(looks.data, values.presetIds)[0];
+  const [previewing, setPreviewing] = useState<AssetDto | null>(null);
   const dockRef = useRef<HTMLDivElement>(null);
   // Which big panel is open above the dock. They share one popover, anchored to the whole dock.
   const [panel, setPanel] = useState<"media" | "model" | null>(null);
@@ -311,31 +316,29 @@ export function Composer({
             {values.references.map((ref) => (
               <div
                 key={ref.id}
-                className="group relative size-14 overflow-hidden rounded-md border border-border"
+                className="group relative size-14 overflow-hidden rounded-xl border border-[var(--glass-border)]"
                 data-testid="reference"
               >
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={ref.thumbnailUrl}
-                  alt="Reference"
-                  className="size-full object-cover"
-                />
+                <button
+                  type="button"
+                  aria-label="Preview reference image"
+                  onClick={() => setPreviewing(ref)}
+                  className={cn("block size-full cursor-zoom-in", focusRing)}
+                >
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={ref.thumbnailUrl} alt="Reference" className="size-full object-cover" />
+                </button>
+                <span aria-hidden className="pointer-events-none absolute inset-0 bg-background/55 opacity-0 transition-opacity duration-fast group-hover:opacity-100 group-focus-within:opacity-100 pointer-coarse:opacity-100" />
                 <button
                   type="button"
                   aria-label="Remove reference image"
-                  onClick={() =>
-                    onChange({
-                      references: values.references.filter(
-                        (r) => r.id !== ref.id,
-                      ),
-                    })
-                  }
+                  onClick={() => onChange({ references: values.references.filter((r) => r.id !== ref.id) })}
                   className={cn(
-                    "absolute right-0.5 top-0.5 flex size-5 items-center justify-center rounded bg-background/80 text-foreground opacity-0 transition-opacity duration-fast hover:bg-background group-hover:opacity-100 focus-visible:opacity-100",
+                    "absolute left-1/2 top-1/2 flex size-8 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full text-foreground opacity-0 transition-opacity duration-fast hover:bg-[var(--wash-active)] group-hover:opacity-100 group-focus-within:opacity-100 pointer-coarse:opacity-100",
                     focusRing,
                   )}
                 >
-                  <X aria-hidden className="size-3" />
+                  <CircleX aria-hidden className="size-6" />
                 </button>
               </div>
             ))}
@@ -543,18 +546,13 @@ export function Composer({
 
             <Popover>
               <PopoverTrigger className={chipClass}>
-                <Chip label="Look" value="Look" />
+                <Chip label="Look" value={chosenLook?.name ?? "Look"} />
               </PopoverTrigger>
               <PopoverContent
                 align="start"
-                className="flex w-80 flex-col gap-4 p-3"
+                className="flex w-[23rem] flex-col gap-4 rounded-2xl p-4"
               >
-                <PresetPicker
-                  kind="image"
-                  selected={values.presetIds}
-                  onChange={(presetIds) => onChange({ presetIds })}
-                  defaultOpen
-                />
+                <PresetPicker kind="image" variant="cards" selected={values.presetIds} onChange={(presetIds) => onChange({ presetIds })} />
               </PopoverContent>
             </Popover>
           </ChipScroller>
@@ -641,6 +639,18 @@ export function Composer({
       )}
       {panel === "model" && <ModelPickerPanel value={values.model} onChange={changeModel} onClose={() => setPanel(null)} />}
     </PopoverContent>
+      <Dialog open={previewing !== null} onOpenChange={(open) => !open && setPreviewing(null)}>
+        <DialogContent className="max-w-[min(56rem,92vw)] gap-3 p-3">
+          <DialogHeader className="sr-only">
+            <DialogTitle>Reference image</DialogTitle>
+            <DialogDescription>A larger view of the reference image you attached.</DialogDescription>
+          </DialogHeader>
+          {previewing && (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={previewing.url} alt="Reference image, larger" className="max-h-[78vh] w-full rounded-xl object-contain" />
+          )}
+        </DialogContent>
+      </Dialog>
     </Popover>
   );
 }

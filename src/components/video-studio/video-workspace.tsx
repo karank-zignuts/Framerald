@@ -94,6 +94,7 @@ export function VideoWorkspace({ initial, notice }: { initial: VideoInitial | nu
     qc.setQueryData<VideoJobDto[]>(videoKeys.jobsFor(projectId), (old) => [job, ...(old ?? [])]);
     // If the list was still loading, its late answer would erase this card. Asking again cancels that answer.
     void qc.invalidateQueries({ queryKey: videoKeys.jobs });
+    void qc.invalidateQueries({ queryKey: ["project-spend"] });
   };
 
   /** Returns whether the clip started, so the prompt is only cleared when it did. */

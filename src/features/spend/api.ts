@@ -6,3 +6,5 @@ export const fetchSpend = () => fetch("/api/spend").then((r) => readJson<SpendDt
 
 export const fetchSpentSince = (fromIso: string) =>
   fetch(`/api/spend/since?from=${encodeURIComponent(fromIso)}`).then((r) => readJson<{ usd: number }>(r));
+
+export const fetchProjectSpend = (projectId: string) => fetch(`/api/projects/${projectId}/spend`).then((r) => readJson<{ usd: number }>(r));

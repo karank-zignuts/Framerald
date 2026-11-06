@@ -1,7 +1,7 @@
 "use client";
 
 import { useQueryClient } from "@tanstack/react-query";
-import { ChevronDown, Plus, X } from "lucide-react";
+import { Brush, Camera, Check, ChevronDown, Clapperboard, Film, Moon, Palette, Plus, Shapes, Sparkles, Trash2, Tv, X, Zap, type LucideIcon } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -22,7 +22,27 @@ type Props = {
   onChange: (ids: string[]) => void;
   /** Start expanded (for use inside a popover). */
   defaultOpen?: boolean;
+  /** "details" is a collapsible row. "cards" is a panel of style cards, for use in a popover. */
+  variant?: "details" | "cards";
 };
+
+const ICONS: Record<string, LucideIcon> = {
+  "style-noir": Moon,
+  "style-documentary": Camera,
+  "style-anime": Brush,
+  "style-35mm": Film,
+  "style-neon": Zap,
+  "style-vhs": Tv,
+  "style-teal-orange": Palette,
+  "style-silent": Clapperboard,
+  "style-clay": Shapes,
+};
+
+/** What a preset adds, as a sentence for a card: the {prompt} slot removed and a capital letter. */
+function describe(template: string): string {
+  const text = template.replace(/^\{prompt\},?\s*/, "").replace(/,?\s*\{prompt\}/, "").trim();
+  return text.charAt(0).toUpperCase() + text.slice(1);
+}
 
 const GROUP_LABEL: Record<PresetGroup, string> = { camera: "Camera move", style: "Look" };
 const chip =
@@ -34,7 +54,7 @@ export function selectedPresets(all: PresetTemplate[] | undefined, ids: string[]
   return [...picked.filter((p) => p.group === "camera"), ...picked.filter((p) => p.group === "style")];
 }
 
-export function PresetPicker({ kind, selected, onChange, defaultOpen }: Props) {
+export function PresetPicker({ kind, selected, onChange, defaultOpen, variant = "details" }: Props) {
   const qc = useQueryClient();
   const query = usePresets(kind);
   const [adding, setAdding] = useState(false);
@@ -81,6 +101,136 @@ export function PresetPicker({ kind, selected, onChange, defaultOpen }: Props) {
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Couldn't delete the preset.");
     }
+  }
+
+  const addBlock = (
+    <>
+      {adding ? (
+        // Not a <form>: this picker sits inside the studio's own form, and a nested one would let Enter in
+        // the name field submit that form and start a paid generation.
+        <div role="group" aria-label="New preset" className="flex flex-col gap-2 rounded-lg border border-border p-3">
+          <Input
+            aria-label="Preset name"
+            placeholder="Name"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key !== "Enter") return;
+              e.preventDefault(); // Enter here means "save the preset", never "generate"
+              if (canSave) void save();
+            }}
+            maxLength={60}
+            autoFocus
+          />
+          {kind === "video" && (
+            <SegmentedControl
+              label="Preset type"
+              value={group}
+              onValueChange={(v) => setGroup(v as PresetGroup)}
+              options={[
+                { value: "style", label: "Look" },
+                { value: "camera", label: "Camera move" },
+              ]}
+            />
+          )}
+          <Textarea
+            aria-label="What the preset adds"
+            placeholder="What it adds to your prompt, for example: shot on grainy 16mm"
+            value={template}
+            onChange={(e) => setTemplate(e.target.value)}
+            rows={2}
+            maxLength={300}
+          />
+          <div className="flex gap-2">
+            <Button type="button" size="sm" variant="secondary" disabled={saving || !canSave} onClick={() => void save()}>
+              {saving ? "Saving" : "Save preset"}
+            </Button>
+            <Button type="button" size="sm" variant="ghost" onClick={() => setAdding(false)}>
+              Cancel
+            </Button>
+          </div>
+        </div>
+      ) : (
+        <Button type="button" variant="ghost" size="sm" className="w-fit text-muted-foreground" onClick={() => setAdding(true)}>
+          <Plus aria-hidden className="size-3.5" />
+          Add your own
+        </Button>
+      )}
+    </>
+  );
+
+  if (variant === "cards") {
+    const styles = presets.filter((p) => p.group === "style");
+    const current = selected.find((id) => styles.some((p) => p.id === id)) ?? "";
+    return (
+      <div data-testid="preset-picker" className="flex flex-col gap-4">
+        <header className="flex items-start justify-between gap-3">
+          <div className="flex flex-col gap-0.5">
+            <p className="text-sm font-medium text-foreground">Look</p>
+            <p className="text-xs text-muted-foreground">Adds a style to your prompt when you generate.</p>
+          </div>
+          {current && (
+            <Button type="button" variant="ghost" size="sm" onClick={() => pick("style", "")}>
+              Clear
+            </Button>
+          )}
+        </header>
+
+        {query.isPending && <Ripple label="Loading presets" className="mx-auto size-6" />}
+        {query.isError && (
+          <p role="alert" className="text-xs">
+            Couldn&apos;t load presets.{" "}
+            <button type="button" className="underline" onClick={() => void query.refetch()}>
+              Try again
+            </button>
+          </p>
+        )}
+
+        <div role="radiogroup" aria-label="Look" className="grid grid-cols-2 gap-2">
+          {styles.map((p) => {
+            const on = p.id === current;
+            const Icon = ICONS[p.id] ?? Sparkles;
+            return (
+              <div key={p.id} className="group/card relative">
+                <button
+                  type="button"
+                  role="radio"
+                  aria-checked={on}
+                  onClick={() => pick("style", on ? "" : p.id)}
+                  className={cn(
+                    "flex h-full w-full flex-col gap-2 rounded-xl border p-3 text-left transition-colors duration-fast focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                    on ? "border-brand/60 bg-[var(--wash-active)]" : "border-[var(--glass-border)] bg-[var(--wash-hover)] hover:bg-[var(--wash-active)]",
+                  )}
+                >
+                  <span className="flex items-center justify-between">
+                    <span className={cn("flex size-8 items-center justify-center rounded-lg border border-border bg-background", on ? "text-brand" : "text-muted-foreground")}>
+                      <Icon aria-hidden className="size-4" />
+                    </span>
+                    {on && <Check aria-hidden className="size-4 text-brand" />}
+                  </span>
+                  <span className="flex flex-col gap-0.5">
+                    <span className="text-sm font-medium text-foreground">{p.name}</span>
+                    <span className="line-clamp-2 text-xs text-muted-foreground">{describe(p.template)}</span>
+                  </span>
+                </button>
+                {!p.builtin && (
+                  <button
+                    type="button"
+                    aria-label={`Delete preset ${p.name}`}
+                    onClick={() => void remove(p)}
+                    className="absolute right-2 top-2 flex size-6 items-center justify-center rounded-md text-muted-foreground opacity-0 transition-opacity duration-fast hover:text-foreground focus-visible:opacity-100 group-hover/card:opacity-100 pointer-coarse:opacity-100"
+                  >
+                    <Trash2 aria-hidden className="size-3.5" />
+                  </button>
+                )}
+              </div>
+            );
+          })}
+        </div>
+
+        {addBlock}
+      </div>
+    );
   }
 
   const chosen = selectedPresets(presets, selected).map((p) => p.name);
@@ -148,57 +298,7 @@ export function PresetPicker({ kind, selected, onChange, defaultOpen }: Props) {
         );
       })}
 
-      {adding ? (
-        // Not a <form>: this picker sits inside the studio's own form, and a nested one would let Enter in
-        // the name field submit that form and start a paid generation.
-        <div role="group" aria-label="New preset" className="flex flex-col gap-2 rounded-lg border border-border p-3">
-          <Input
-            aria-label="Preset name"
-            placeholder="Name"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key !== "Enter") return;
-              e.preventDefault(); // Enter here means "save the preset", never "generate"
-              if (canSave) void save();
-            }}
-            maxLength={60}
-            autoFocus
-          />
-          {kind === "video" && (
-            <SegmentedControl
-              label="Preset type"
-              value={group}
-              onValueChange={(v) => setGroup(v as PresetGroup)}
-              options={[
-                { value: "style", label: "Look" },
-                { value: "camera", label: "Camera move" },
-              ]}
-            />
-          )}
-          <Textarea
-            aria-label="What the preset adds"
-            placeholder="What it adds to your prompt, for example: shot on grainy 16mm"
-            value={template}
-            onChange={(e) => setTemplate(e.target.value)}
-            rows={2}
-            maxLength={300}
-          />
-          <div className="flex gap-2">
-            <Button type="button" size="sm" variant="secondary" disabled={saving || !canSave} onClick={() => void save()}>
-              {saving ? "Saving" : "Save preset"}
-            </Button>
-            <Button type="button" size="sm" variant="ghost" onClick={() => setAdding(false)}>
-              Cancel
-            </Button>
-          </div>
-        </div>
-      ) : (
-        <Button type="button" variant="ghost" size="sm" className="w-fit text-muted-foreground" onClick={() => setAdding(true)}>
-          <Plus aria-hidden className="size-3.5" />
-          Add your own
-        </Button>
-      )}
+      {addBlock}
       </div>
     </details>
   );

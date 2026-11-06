@@ -1,5 +1,6 @@
 import "server-only";
 import { db, OWNER_ID } from "@/lib/supabase/server";
+import { assertProject } from "@/features/projects/server";
 import { aggregateSpend, type SpendSummary, type UsageRow } from "./aggregate";
 
 export type ExpensiveGeneration = {
@@ -94,4 +95,42 @@ export async function getSpend(now = new Date()): Promise<SpendDto> {
 export async function getSpentSince(sinceIso: string): Promise<number> {
   const rows = await fetchUsage(sinceIso);
   return rows.reduce((sum, r) => sum + Number(r.cost_usd ?? 0), 0);
+}
+
+/** Adds up cost_usd over pages of rows, since one request returns at most 1000. */
+async function sumPaged(page: (from: number, to: number) => PromiseLike<{ data: { cost_usd: number | string | null }[] | null; error: { message: string } | null }>): Promise<number> {
+  let total = 0;
+  for (let i = 0; i < MAX_PAGES; i++) {
+    const { data, error } = await page(i * PAGE, i * PAGE + PAGE - 1);
+    if (error) throw new Error(`Couldn't add up this project's spend: ${error.message}`);
+    for (const row of data ?? []) total += Number(row.cost_usd ?? 0);
+    if ((data?.length ?? 0) < PAGE) break;
+  }
+  return total;
+}
+
+/** Everything paid for inside one project, in USD: its images and clips, and its chats with the agent. */
+export async function getProjectSpend(projectId: string): Promise<number> {
+  await assertProject(projectId);
+  const [generations, chats] = await Promise.all([
+    sumPaged((from, to) =>
+      db()
+        .from("usage_events")
+        .select("cost_usd, generation:generations!inner(project_id)")
+        .eq("owner_id", OWNER_ID)
+        .eq("generation.project_id", projectId)
+        .order("id")
+        .range(from, to),
+    ),
+    sumPaged((from, to) =>
+      db()
+        .from("usage_events")
+        .select("cost_usd, message:agent_messages!inner(thread:agent_threads!inner(project_id))")
+        .eq("owner_id", OWNER_ID)
+        .eq("message.thread.project_id", projectId)
+        .order("id")
+        .range(from, to),
+    ),
+  ]);
+  return generations + chats;
 }
