@@ -56,6 +56,44 @@ Cinematic Dark's `accent` is a hover surface, so the brand color has its own tok
 
 Use the brand color for: the one main action on a screen (Generate), the active nav item, progress of a running job, the logo. Never as a big fill or for decoration.
 
+## 3b. Spacing
+
+One 4 px scale, with these fixed places for each size. Use them instead of picking a number each time.
+
+| Where | Size | Class |
+|---|---|---|
+| Page gutter (every page, the header bar and the Image dock's sides) | 20 px | `p-5`, `px-5` |
+| Between a page's sections | 20 px (40 px between repeated blocks such as batches or clips) | `gap-5`, `gap-10` |
+| Between tiles and cards in a grid (Library, Projects, results) | 16 px | `gap-4` (masonry: `columnGap: 1rem`, `mb-4`) |
+| Fields in a form, and a label to its field | 12 px, 8 px | `gap-3`, `gap-2` |
+| A row of controls or chips | 8 px | `gap-2` |
+| Floating panel with a header (media picker, model list) | header and body 16 px | `px-4 py-3`, `p-4` |
+| List menus and popovers (switcher, aspect, quality, three-dot menus) | 8 px around, rows `px-2`, so their content lines up with a 16 px header | `p-2`, `px-2` |
+| Icon to text in a row | 12 px (8 px in a compact button) | `gap-3`, `gap-2` |
+| Sidebar | 8 px inset, items `px-3`, 4 px between items | `p-2`, `gap-1` |
+| Floating radius | panels and tiles `rounded-2xl`; controls `rounded-lg` | |
+
+## 3c. Glass
+
+The app is frosted glass over a quiet zinc page. Three weights in `globals.css`, chosen by what the surface does:
+
+| Class | Use | Fill and blur |
+|---|---|---|
+| `.glass` | Panels on the page: sidebar, cards, tiles, empty states | 62% of `card`, blur 24 px |
+| `.glass-strong` | Anything that floats over content: menus, popovers, selects, dialogs, the dock | 84% of `popover`, blur 28 px |
+| `.glass-chip` | Small controls: chips, icon buttons, the balance | 6% white wash, blur 14 px |
+
+Every glass surface has a 1 px hairline (`--glass-border`), a 1 px top highlight and a soft shadow. Rules that keep data readable:
+
+- Text colours never change on glass. `foreground` and `muted-foreground` stay above 4.5:1 on all three weights (the accessibility scan covers every screen).
+- Floating glass is the most opaque, so a menu over a busy grid is still readable.
+- Never put a CSS `filter` or `opacity` below 1 on an ancestor of glass: it hides the page from `backdrop-filter`. Entrances end in `filter: none`.
+- Without `backdrop-filter` support each class falls back to its solid token.
+- Behind everything: the neutral `.ambient` light and the faint magnetic-filings layer. No accent colour in the background.
+- Floating glass fades in from a 10 px blur and out to an 8 px blur. Pages fade in from a blur. Nothing cuts.
+
+The sidebar is a full-height glass panel flush with the top, left and bottom of the screen. It hides completely (button in the header, Ctrl or Cmd + B, or a click on its right edge, which glows with the accent on hover). While hidden, the whole left edge of the screen is one strip that glows top to bottom and brings it back on click.
+
 ## 4. BorderBeam (not used)
 
 The rainbow border beam is **off everywhere**: the owner removed it from the prompt fields (2026-11-05). `@/components/ui/border-beam` stays in the repo, unused. Do not add it back without asking. Running jobs show progress with the brand color instead.

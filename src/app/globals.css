@@ -354,3 +354,186 @@ button:disabled,
     display: none;
   }
 }
+
+/* Star border: two brand-coloured stars run along a button's edge while it is hovered or focused. Hidden at rest and when disabled. */
+.star-border-stars {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  border-radius: inherit;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--transition-duration-base) ease;
+}
+.star-border:hover .star-border-stars,
+.star-border:focus-within .star-border-stars {
+  opacity: 1;
+}
+.star-border:has(:disabled) .star-border-stars {
+  display: none;
+}
+.star-border-bottom,
+.star-border-top {
+  position: absolute;
+  width: 300%;
+  height: 50%;
+  border-radius: 9999px;
+  background: radial-gradient(circle, var(--brand), transparent 10%);
+  animation-duration: 5s;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+  animation-direction: alternate;
+}
+.star-border-bottom {
+  bottom: -11px;
+  right: -250%;
+  animation-name: star-movement-bottom;
+}
+.star-border-top {
+  top: -10px;
+  left: -250%;
+  animation-name: star-movement-top;
+}
+@keyframes star-movement-bottom {
+  0% {
+    transform: translate(0%, 0%);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(-100%, 0%);
+    opacity: 0;
+  }
+}
+@keyframes star-movement-top {
+  0% {
+    transform: translate(0%, 0%);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(100%, 0%);
+    opacity: 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .star-border-stars {
+    display: none;
+  }
+}
+
+/* ─── Glass ───────────────────────────────────────────────────────────────────────────────────────────────────────
+   Frosted surfaces over the ambient background. Three weights, so legibility is decided by the surface, not by taste:
+   - .glass         panels that sit on the page (sidebar, dock, cards): 62% of the card colour, blur 24px
+   - .glass-strong  anything that floats over other content (menus, popovers, dialogs): 84%, blur 28px, so text on it stays
+                    readable whatever is behind it
+   - .glass-chip    small controls (chips, icon buttons, the balance): a 6% white wash and a hairline
+   Every glass surface has a hairline border, a 1px top highlight and a soft drop shadow. Text colours are never changed on glass:
+   --foreground and --muted-foreground are both above 7:1 against the darkest and lightest the blurred background can be. */
+:root {
+  --glass-border: color-mix(in oklab, var(--foreground) 11%, transparent);
+  --glass-highlight: color-mix(in oklab, var(--foreground) 12%, transparent);
+  --glass-shadow: 0 10px 32px -10px rgb(0 0 0 / 0.55), 0 2px 6px -2px rgb(0 0 0 / 0.4);
+}
+.glass,
+.glass-strong,
+.glass-chip {
+  /* Width and colour only, so a utility like border-dashed still decides the style. */
+  border-width: 1px;
+  border-color: var(--glass-border);
+  box-shadow: inset 0 1px 0 var(--glass-highlight), var(--glass-shadow);
+}
+.glass {
+  background:
+    linear-gradient(180deg, color-mix(in oklab, var(--foreground) 5%, transparent), transparent 55%),
+    color-mix(in oklab, var(--card) 62%, transparent);
+  -webkit-backdrop-filter: blur(24px) saturate(1.5);
+  backdrop-filter: blur(24px) saturate(1.5);
+}
+.glass-strong {
+  background:
+    linear-gradient(180deg, color-mix(in oklab, var(--foreground) 6%, transparent), transparent 60%),
+    color-mix(in oklab, var(--popover) 84%, transparent);
+  -webkit-backdrop-filter: blur(28px) saturate(1.6);
+  backdrop-filter: blur(28px) saturate(1.6);
+}
+.glass-chip {
+  background: color-mix(in oklab, var(--foreground) 6%, transparent);
+  box-shadow: inset 0 1px 0 var(--glass-highlight);
+  -webkit-backdrop-filter: blur(14px) saturate(1.4);
+  backdrop-filter: blur(14px) saturate(1.4);
+  transition: background-color var(--transition-duration-fast) ease, border-color var(--transition-duration-fast) ease;
+}
+.glass-chip:hover:not(:disabled) {
+  background: color-mix(in oklab, var(--foreground) 11%, transparent);
+  border-color: color-mix(in oklab, var(--foreground) 18%, transparent);
+}
+/* Without backdrop blur the translucent fill would let the page show through, so use the solid colour instead. */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .glass { background: var(--card); }
+  .glass-strong { background: var(--popover); }
+  .glass-chip { background: var(--secondary); }
+}
+
+/* The ambient light behind everything: soft neutral light on the zinc page, so the glass has depth to refract. No colour. */
+.ambient {
+  background:
+    radial-gradient(60% 50% at 18% 6%, color-mix(in oklab, var(--foreground) 5%, transparent), transparent 70%),
+    radial-gradient(55% 50% at 88% 94%, color-mix(in oklab, var(--foreground) 3.5%, transparent), transparent 70%);
+}
+
+/* States of the dock. Their colours sit here because .glass-strong's border and fill are not utility classes. */
+.glass-strong[data-agent="true"] {
+  border-color: color-mix(in oklab, var(--brand) 45%, transparent);
+  background:
+    linear-gradient(180deg, color-mix(in oklab, var(--brand) 8%, transparent), transparent 70%),
+    color-mix(in oklab, var(--popover) 66%, transparent);
+}
+.glass-strong[data-dragging="true"] {
+  border-color: var(--brand);
+  background: color-mix(in oklab, var(--brand) 14%, color-mix(in oklab, var(--popover) 84%, transparent));
+}
+
+/* Floating glass (menus, popovers, selects, dialogs) fades in and out and loses its blur, never a hard cut. Only opacity and filter
+   move, so a dialog's own centring transform is left alone. Radix keeps the element until the closing animation ends. */
+@keyframes glass-in {
+  from {
+    opacity: 0;
+    filter: blur(10px);
+  }
+  to {
+    opacity: 1;
+    filter: blur(0);
+  }
+}
+@keyframes glass-out {
+  from {
+    opacity: 1;
+    filter: blur(0);
+  }
+  to {
+    opacity: 0;
+    filter: blur(8px);
+  }
+}
+.glass-strong[data-state="open"] {
+  animation: glass-in 240ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+.glass-strong[data-state="closed"] {
+  animation: glass-out 160ms cubic-bezier(0.4, 0, 1, 1) both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .glass-strong[data-state="open"],
+  .glass-strong[data-state="closed"] {
+    animation-duration: 1ms;
+  }
+}
+
+/* A glass panel pinned to the screen's edges: the sidebar touches the top, left and bottom, and only its right edge is a hairline.
+   These come after .glass so they win on border width and shadow. */
+.glass-sidebar {
+  border-width: 0 1px 0 0;
+  box-shadow: inset -1px 0 0 var(--glass-highlight), 12px 0 32px -16px rgb(0 0 0 / 0.5);
+}
+.glass-bar {
+  border-width: 0 0 1px 0;
+  box-shadow: inset 0 -1px 0 var(--glass-highlight);
+}

@@ -29,7 +29,7 @@ const library = async (request: APIRequestContext, query: string) =>
 
 test("projects: create, list, rename, soft delete", async ({ request }) => {
   const p = await makeProject(request);
-  expect(((await (await request.get("/api/projects")).json()) as Project[]).map((x) => x.id)).toContain(p.id);
+  expect(((await (await request.get("/api/projects")).json()) as { projects: Project[] }).projects.map((x) => x.id)).toContain(p.id);
 
   const name = tag("renamed");
   expect((await (await request.patch(`/api/projects/${p.id}`, { data: { name } })).json()).name).toBe(name);
@@ -39,7 +39,7 @@ test("projects: create, list, rename, soft delete", async ({ request }) => {
   expect((await empty.json()).error).toBe("Give the project a name.");
 
   expect((await request.delete(`/api/projects/${p.id}`)).status()).toBe(200);
-  expect(((await (await request.get("/api/projects")).json()) as Project[]).map((x) => x.id)).not.toContain(p.id);
+  expect(((await (await request.get("/api/projects")).json()) as { projects: Project[] }).projects.map((x) => x.id)).not.toContain(p.id);
   expect((await request.delete(`/api/projects/${p.id}`)).status()).toBe(404);
   expect((await request.patch(`/api/projects/not-a-uuid`, { data: { name: "x" } })).status()).toBe(400);
 });

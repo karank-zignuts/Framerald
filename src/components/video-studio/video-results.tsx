@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useScopedHref } from "@/features/projects/context";
 import { GeneratingBackdrop, GeneratingCorners } from "@/components/media/generating";
 import { downloadUrl, extensionFor, formatCost } from "@/lib/format";
 import type { VideoJobDto } from "@/features/videos/types";
@@ -44,6 +45,7 @@ function Elapsed({ since }: { since: string }) {
 const frame = (aspect: string) => (aspect === "9:16" ? "aspect-[9/16] max-h-[32rem]" : "aspect-video w-full max-w-2xl");
 
 function JobCard({ job, onTryAgain, retrying }: { job: VideoJobDto; onTryAgain: (job: VideoJobDto) => void; retrying: boolean }) {
+  const scoped = useScopedHref();
   return (
     <section aria-label={`Clip: ${job.prompt.slice(0, 60)}`} className="flex flex-col gap-3" data-testid="job" data-status={job.status}>
       <header className="flex items-start justify-between gap-4">
@@ -109,7 +111,7 @@ function JobCard({ job, onTryAgain, retrying }: { job: VideoJobDto; onTryAgain: 
               </a>
             </Button>
             <Button asChild variant="ghost" size="sm">
-              <Link href={`/video?from=${job.id}`}>
+              <Link href={scoped(`/video?from=${job.id}`)}>
                 <RotateCcw aria-hidden className="size-3.5" />
                 Re-run these settings
               </Link>

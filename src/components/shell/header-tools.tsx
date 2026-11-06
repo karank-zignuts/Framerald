@@ -9,7 +9,8 @@ export function HeaderTools() {
   const pathname = usePathname();
   return (
     <div className="flex items-center gap-2">
-      {pathname.startsWith("/image") && <ViewMenu />}
+      {/^\/p\/[^/]+\/image/.test(pathname) && <ViewMenu />}
+      {/^\/p\/[^/]+\/library/.test(pathname) && <ViewMenu variant="library" />}
       <BalanceChip />
     </div>
   );

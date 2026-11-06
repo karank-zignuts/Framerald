@@ -1,11 +1,12 @@
 import { useInfiniteQuery, useQueryClient, type InfiniteData } from "@tanstack/react-query";
-import { deleteAsset, fetchLibraryPage, moveAssetRequest, renameAssetRequest, setFavorite } from "./api";
+import { deleteAsset, fetchLibraryPage, moveAssetRequest, renameAssetRequest, restoreAssetRequest, setFavorite } from "./api";
 import type { AssetDto, LibraryPage } from "./types";
 import type { LibraryView } from "./view";
 
 export type LibraryFilters = {
   q?: string | null;
   projectId?: string | null;
+  unsorted?: boolean;
   source?: "generated" | "upload";
   order?: "newest" | "oldest";
   limit?: number;
@@ -57,6 +58,13 @@ export function useAssetActions() {
       await moveAssetRequest(asset.id, projectId);
       await qc.invalidateQueries({ queryKey: libraryKeys.all });
     },
+    /** Takes an item out of the trash; its project's counts and cover change too. */
+    async restore(asset: AssetDto) {
+      await restoreAssetRequest(asset.id);
+      mapPages((items) => items.filter((a) => a.id !== asset.id));
+      void qc.invalidateQueries({ queryKey: libraryKeys.all });
+      void qc.invalidateQueries({ queryKey: ["projects"] });
+    },
     /** Saves the name, then shows it. Throws when it can't be saved (for example before the migration is applied). */
     async rename(asset: AssetDto, name: string | null) {
       await renameAssetRequest(asset.id, name);
@@ -67,6 +75,9 @@ export function useAssetActions() {
       mapPages((items) => items.filter((a) => a.id !== asset.id));
       try {
         await deleteAsset(asset.id);
+        // Other views (the trash, favourites) and the project's counts and cover are out of date now.
+        void qc.invalidateQueries({ queryKey: libraryKeys.all });
+        void qc.invalidateQueries({ queryKey: ["projects"] });
       } catch (error) {
         for (const [key, data] of snapshot) qc.setQueryData(key, data);
         throw error;

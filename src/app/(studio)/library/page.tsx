@@ -1,22 +1,11 @@
-import type { Metadata } from "next";
 import { Suspense } from "react";
-import { LibraryView } from "@/components/library/library-view";
-import { Skeleton } from "@/components/ui/skeleton";
+import { LegacyRedirect } from "@/components/projects/legacy-redirect";
 
-export const metadata: Metadata = { title: "Library" };
-
-export default function LibraryPage() {
+// The old address. It sends you to the same page inside your current project.
+export default function LibraryRedirect() {
   return (
-    <Suspense
-      fallback={
-        <div className="grid grid-cols-2 gap-3 p-5 md:grid-cols-3 xl:grid-cols-4" role="status" aria-label="Loading">
-          {Array.from({ length: 8 }, (_, i) => (
-            <Skeleton key={i} className="aspect-square w-full rounded-lg" />
-          ))}
-        </div>
-      }
-    >
-      <LibraryView />
+    <Suspense fallback={null}>
+      <LegacyRedirect section="library" />
     </Suspense>
   );
 }

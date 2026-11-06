@@ -76,6 +76,17 @@ Project and region come from `GOOGLE_CLOUD_PROJECT` and `GOOGLE_CLOUD_LOCATION` 
 - Large files: upload straight to Supabase Storage with a signed upload URL, not through a Vercel function (body size limits).
 - Supabase free plan caps a single file at 50 MB. Long 4K video needs the Pro plan or a lower resolution.
 
+## 5a. Projects, history and backgrounds
+
+| Decision | Why |
+|---|---|
+| Each project has its own address, `/p/<id>/image|video|agent|library`. The old addresses (`/image` and so on) open the same page in the project you were last in, or the first, or make one | Stable links, and the project is in the address, not hidden state |
+| Work made before projects stays in a virtual "Unsorted" view (`/p/unsorted/library`), with no data rewritten | Nothing existing was touched. Unsorted only has a Library |
+| Deleting a project is a soft delete: the project and everything in it go to a trash, and Restore brings it all back. Deleted images wait in the project's own trash (`?view=trash`) | Deletes are soft everywhere |
+| Image history is a masonry (`motion`, no new dependency) fed by the Library API. Layout is a pure, tested function (`layoutMasonry`) | Every aspect ratio keeps its shape; items glide when the width or size changes |
+| Magnetic filings (`shaders`) sit behind the app at 35% opacity, with a weak, short-reaching magnet and neutral zinc colours | Depth for the glass without drawing the eye. It follows the cursor on `window`, so it never blocks the page |
+| Costs are shown in rupees from `NEXT_PUBLIC_USD_INR`; prices are stored in USD | Display only |
+
 ## 5b. Using shaders
 
 - Put `"use client"` at the top of any file that renders a `<Shader>`, and in any file that only wraps one. It needs a browser with a GPU and can't render on the server.

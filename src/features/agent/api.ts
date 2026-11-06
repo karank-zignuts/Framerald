@@ -6,7 +6,7 @@ import { createEventParser, type AgentEvent } from "./stream";
 
 const json = { "content-type": "application/json" };
 
-export const fetchThreads = () => fetch("/api/agent/threads").then((r) => readJson<ThreadDto[]>(r));
+export const fetchThreads = (projectId: string) => fetch(`/api/agent/threads?project=${projectId}`).then((r) => readJson<ThreadDto[]>(r));
 
 export const createThread = (title?: string, projectId?: string | null) =>
   fetch("/api/agent/threads", { method: "POST", headers: json, body: JSON.stringify({ ...(title && { title }), ...(projectId && { projectId }) }) }).then((r) =>

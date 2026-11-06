@@ -1,7 +1,11 @@
 "use client";
 
 import { Image as ImageIcon, RotateCcw } from "lucide-react";
+import { useEffect, useRef } from "react";
+import type { useLibrary } from "@/features/library/queries";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Masonry, type MasonryItem } from "@/components/media/masonry";
 import { TILE_WIDTH, useViewSettings } from "@/features/view/settings";
 import { EmptyState } from "@/components/ui/empty-state";
 import { GeneratingTile } from "@/components/media/generating";
@@ -21,6 +25,8 @@ export type Batch = {
 };
 
 type Props = {
+  /** The project's earlier images. */
+  history: ReturnType<typeof useLibrary>;
   batches: Batch[];
   onOpen: (asset: AssetDto) => void;
   onFavorite: (asset: AssetDto, value: boolean) => void;
@@ -34,14 +40,45 @@ function ratioOf(input: GenerateInput) {
   return w / h;
 }
 
-/** A masonry grid: pictures of any shape keep their own proportions and fill the width. */
-function Masonry({ width, children }: { width: number; children: React.ReactNode }) {
+/** The same shape-keeping masonry, as plain CSS columns, for the grouped view where each batch is small. */
+function Columns({ width, children }: { width: number; children: React.ReactNode }) {
   return (
-    <div style={{ columnWidth: width, columnGap: "0.75rem" }} className="[&>*]:mb-3 [&>*]:break-inside-avoid">
+    <div style={{ columnWidth: width, columnGap: "1rem" }} className="[&>*]:mb-4 [&>*]:break-inside-avoid">
       {children}
     </div>
   );
 }
+
+const ratioOfAsset = (a: AssetDto) => (a.width && a.height ? a.width / a.height : a.kind === "video" ? 16 / 9 : 1);
+
+/** Loads the next page of history when this scrolls into view. */
+function LoadMore({ query }: { query: Props["history"] }) {
+  const sentinel = useRef<HTMLDivElement>(null);
+  const { hasNextPage, isFetchingNextPage, fetchNextPage } = query;
+  useEffect(() => {
+    const node = sentinel.current;
+    if (!node || !hasNextPage) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && !isFetchingNextPage) void fetchNextPage();
+      },
+      { rootMargin: "600px" },
+    );
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
+  return (
+    <div ref={sentinel} className="flex justify-center py-4">
+      {hasNextPage && (
+        <Button variant="secondary" size="sm" onClick={() => void fetchNextPage()} disabled={isFetchingNextPage}>
+          {isFetchingNextPage ? "Loading" : "Load more"}
+        </Button>
+      )}
+    </div>
+  );
+}
+
+const PLACEHOLDER_RATIOS = [1, 0.75, 1.33, 1, 0.8, 1.5, 1, 0.66];
 
 function FailedBatch({ batch, onRetry }: { batch: Batch; onRetry: (batch: Batch) => void }) {
   return (
@@ -56,11 +93,24 @@ function FailedBatch({ batch, onRetry }: { batch: Batch; onRetry: (batch: Batch)
   );
 }
 
-export function Results({ batches, onOpen, onFavorite, onDelete, onRename, onRetry }: Props) {
+export function Results({ history, batches, onOpen, onFavorite, onDelete, onRename, onRetry }: Props) {
   const view = useViewSettings();
   const width = TILE_WIDTH[view.size];
 
-  if (batches.length === 0) {
+  const historyItems = history.data?.pages.flatMap((p) => p.items) ?? [];
+
+  if (view.mode === "grid" && batches.length === 0 && history.isPending) {
+    return (
+      <div className="mx-auto w-full max-w-[110rem] p-5" role="status" aria-label="Loading">
+        <Masonry
+          columnWidth={width}
+          items={PLACEHOLDER_RATIOS.map((ratio, i) => ({ id: `placeholder-${i}`, ratio, node: <Skeleton className="size-full rounded-2xl" /> }))}
+        />
+      </div>
+    );
+  }
+
+  if (batches.length === 0 && (view.mode === "batch" || historyItems.length === 0)) {
     return (
       <div className="flex flex-1 items-center justify-center p-6">
         <EmptyState
@@ -86,24 +136,32 @@ export function Results({ batches, onOpen, onFavorite, onDelete, onRename, onRet
 
   if (view.mode === "grid") {
     const failed = batches.filter((b) => b.status === "failed");
+    const historyIds = new Set(historyItems.map((a) => a.id));
+    // New images are shown before the history has caught up with them.
+    const fresh = batches.flatMap((b) => (b.status === "done" ? (b.result?.assets ?? []) : [])).filter((a) => !historyIds.has(a.id));
+    const items: MasonryItem[] = [
+      ...batches.flatMap((batch) =>
+        batch.status === "running"
+          ? Array.from({ length: batch.input.count }, (_, i): MasonryItem => ({
+              id: `${batch.key}-${i}`,
+              ratio: ratioOf(batch.input),
+              node: (
+                <div role="status" aria-label="Generating" className="size-full">
+                  <GeneratingTile ratio={ratioOf(batch.input)} prompt={batch.input.prompt} />
+                </div>
+              ),
+            }))
+          : [],
+      ),
+      ...[...fresh, ...historyItems].map((asset, i): MasonryItem => ({ id: asset.id, ratio: ratioOfAsset(asset), node: tile(asset, i < 4) })),
+    ];
     return (
       <div className="mx-auto flex w-full max-w-[110rem] flex-col gap-4 p-5" data-testid="results">
         {failed.map((b) => (
           <FailedBatch key={b.key} batch={b} onRetry={onRetry} />
         ))}
-        <Masonry width={width}>
-          {batches.flatMap((batch, bi) => {
-            if (batch.status === "running") {
-              return Array.from({ length: batch.input.count }, (_, i) => (
-                <div key={`${batch.key}-${i}`} role="status" aria-label="Generating">
-                  <GeneratingTile ratio={ratioOf(batch.input)} prompt={batch.input.prompt} />
-                </div>
-              ));
-            }
-            if (batch.status === "done") return (batch.result?.assets ?? []).map((a) => tile(a, bi === 0));
-            return [];
-          })}
-        </Masonry>
+        <Masonry items={items} columnWidth={width} data-testid="history-grid" />
+        <LoadMore query={history} />
       </div>
     );
   }
@@ -136,11 +194,11 @@ export function Results({ batches, onOpen, onFavorite, onDelete, onRename, onRet
 
             {batch.status === "running" && (
               <div role="status" aria-label="Generating">
-                <Masonry width={width}>
+                <Columns width={width}>
                   {Array.from({ length: input.count }, (_, i) => (
                     <GeneratingTile key={i} ratio={ratioOf(input)} prompt={input.prompt} />
                   ))}
-                </Masonry>
+                </Columns>
               </div>
             )}
 
@@ -153,7 +211,7 @@ export function Results({ batches, onOpen, onFavorite, onDelete, onRename, onRet
                     {failedCount} of {input.count} didn&apos;t finish: {batch.result.error}
                   </p>
                 )}
-                <Masonry width={width}>{assets.map((a) => tile(a, batch === batches[0]))}</Masonry>
+                <Columns width={width}>{assets.map((a) => tile(a, batch === batches[0]))}</Columns>
               </>
             )}
           </section>

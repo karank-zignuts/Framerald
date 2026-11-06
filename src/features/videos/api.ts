@@ -8,7 +8,7 @@ export type StartVideoInput = Omit<GenerateVideoRequest, "firstFrameAssetId" | "
   sourceGenerationId?: string;
 };
 
-export const fetchVideoJobs = () => fetch("/api/videos?limit=30").then((r) => readJson<VideoJobDto[]>(r));
+export const fetchVideoJobs = (projectId: string) => fetch(`/api/videos?limit=30&project=${projectId}`).then((r) => readJson<VideoJobDto[]>(r));
 
 /** Also asks Google how the clip is doing, and saves it when it's ready. */
 export const fetchVideoJob = (id: string) => fetch(`/api/videos/${id}`).then((r) => readJson<VideoJobDto>(r));

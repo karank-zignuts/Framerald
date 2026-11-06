@@ -22,13 +22,13 @@ function EmptyState({
   return (
     <div
       className={cn(
-        "flex flex-col items-center justify-center gap-4 rounded-[1.25rem] border border-dashed border-border bg-secondary/30 p-10 text-center",
+        "glass flex flex-col items-center justify-center gap-4 rounded-3xl p-10 text-center",
         className
       )}
       {...props}
     >
       {icon && (
-        <div className="flex h-12 w-12 items-center justify-center rounded-[0.75rem] bg-background ring-1 ring-border shadow-[0_0.0625rem_0.125rem_0_rgb(0_0_0/0.04)] text-muted-foreground">
+        <div className="flex h-12 w-12 items-center justify-center rounded-xl glass-chip text-muted-foreground">
           {icon}
         </div>
       )}

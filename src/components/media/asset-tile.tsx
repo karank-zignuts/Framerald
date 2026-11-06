@@ -32,7 +32,7 @@ export function AssetTile({ asset, onOpen, onFavorite, onDelete, onRename, fit =
   const isVideo = asset.kind === "video";
   const seconds = asset.durationMs ? Math.round(asset.durationMs / 1000) : null;
   return (
-    <div className="group relative overflow-hidden rounded-2xl border border-border bg-card" data-testid="asset-tile">
+    <div className="glass group relative overflow-hidden rounded-2xl" data-testid="asset-tile">
       <button
         type="button"
         onClick={onOpen}

@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { modelLabel } from "@/lib/ai/models";
 import { downloadUrl, extensionFor, formatCost, formatDate } from "@/lib/format";
+import { useScopedHref } from "@/features/projects/context";
 import { ProjectSelect } from "@/components/projects/project-select";
 import type { AssetDto } from "@/features/library/types";
 
@@ -21,6 +22,7 @@ type Props = {
 
 /** One image, large, with what made it and what to do next. Mount with key={asset.id}. */
 export function AssetDialog({ asset, onClose, onFavorite, onDelete, onMove }: Props) {
+  const scoped = useScopedHref();
   const [confirming, setConfirming] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const g = asset.generation;
@@ -121,7 +123,7 @@ export function AssetDialog({ asset, onClose, onFavorite, onDelete, onMove }: Pr
             {isVideo ? (
               g && (
                 <Button variant="secondary" asChild>
-                  <Link href={`/video?from=${g.id}`}>
+                  <Link href={scoped(`/video?from=${g.id}`)}>
                     <RotateCcw aria-hidden className="size-4" />
                     Re-run these settings
                   </Link>
@@ -130,20 +132,20 @@ export function AssetDialog({ asset, onClose, onFavorite, onDelete, onMove }: Pr
             ) : (
               <>
                 <Button variant="secondary" asChild>
-                  <Link href={`/image?edit=${asset.id}`}>
+                  <Link href={scoped(`/image?edit=${asset.id}`)}>
                     <Pencil aria-hidden className="size-4" />
                     Edit this image
                   </Link>
                 </Button>
                 <Button variant="secondary" asChild>
-                  <Link href={`/video?first=${asset.id}`}>
+                  <Link href={scoped(`/video?first=${asset.id}`)}>
                     <Clapperboard aria-hidden className="size-4" />
                     Animate this image
                   </Link>
                 </Button>
                 {g && (
                   <Button variant="secondary" asChild>
-                    <Link href={`/image?from=${g.id}`}>
+                    <Link href={scoped(`/image?from=${g.id}`)}>
                       <RotateCcw aria-hidden className="size-4" />
                       Re-run these settings
                     </Link>

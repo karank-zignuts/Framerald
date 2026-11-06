@@ -164,6 +164,10 @@ export async function listAssets(opts: {
   source?: "generated" | "upload";
   /** Newest first by default. */
   order?: "newest" | "oldest";
+  /** Only work made before projects existed (no project). */
+  unsorted?: boolean;
+  /** The trash: deleted items instead of live ones. */
+  trashed?: boolean;
 }): Promise<LibraryPage> {
   await failStuckGenerations();
   const limit = Math.min(Math.max(Math.floor(opts.limit ?? DEFAULT_PAGE_SIZE), 1), MAX_PAGE_SIZE);
@@ -177,13 +181,14 @@ export async function listAssets(opts: {
     .select(search ? ASSET_SELECT_WITH_PROMPT_FILTER : ASSET_SELECT)
     .eq("owner_id", OWNER_ID)
     .eq("source", opts.source ?? "generated")
-    .is("deleted_at", null)
     .order("created_at", { ascending: oldest })
     .order("id", { ascending: oldest })
     .limit(limit + 1);
   if (opts.favoritesOnly) q = q.eq("is_favorite", true);
   if (opts.kind) q = q.eq("kind", opts.kind);
-  if (opts.projectId) q = q.eq("project_id", opts.projectId);
+  q = opts.trashed ? q.not("deleted_at", "is", null) : q.is("deleted_at", null);
+  if (opts.unsorted) q = q.is("project_id", null);
+  else if (opts.projectId) q = q.eq("project_id", opts.projectId);
   if (search) q = q.ilike("generation.prompt", likePattern(search)); // a parameter, not part of a filter string
   if (cursor) {
     const [before, ties] = oldest ? ["gt", "gt"] : ["lt", "lt"]; // the next page is older when newest first, newer when oldest first
@@ -256,6 +261,19 @@ export async function softDeleteAsset(id: string): Promise<void> {
     .select("id");
   if (error) throw new Error(`Couldn't delete that image: ${error.message}`);
   if (!data?.length) throw new HttpError(404, "That image doesn't exist any more.");
+}
+
+/** Takes an item out of the trash. */
+export async function restoreAsset(id: string): Promise<void> {
+  const { data, error } = await db()
+    .from("assets")
+    .update({ deleted_at: null })
+    .eq("owner_id", OWNER_ID)
+    .eq("id", id)
+    .not("deleted_at", "is", null)
+    .select("id");
+  if (error) throw new Error(`Couldn't restore that item: ${error.message}`);
+  if (!data?.length) throw new HttpError(404, "That item isn't in the trash.");
 }
 
 /** Everything the Image Studio form needs to repeat an earlier generation. */

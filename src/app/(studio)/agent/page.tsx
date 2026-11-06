@@ -1,21 +1,11 @@
-import type { Metadata } from "next";
 import { Suspense } from "react";
-import { AgentView } from "@/components/agent/agent-view";
-import { Skeleton } from "@/components/ui/skeleton";
+import { LegacyRedirect } from "@/components/projects/legacy-redirect";
 
-export const metadata: Metadata = { title: "Agent" };
-
-export default function AgentPage() {
+// The old address. It sends you to the same page inside your current project.
+export default function AgentRedirect() {
   return (
-    <Suspense
-      fallback={
-        <div className="flex flex-1 flex-col gap-4 p-5" role="status" aria-label="Loading">
-          <Skeleton className="h-6 w-32" />
-          <Skeleton className="h-24 w-full max-w-xl rounded-lg" />
-        </div>
-      }
-    >
-      <AgentView />
+    <Suspense fallback={null}>
+      <LegacyRedirect section="agent" />
     </Suspense>
   );
 }

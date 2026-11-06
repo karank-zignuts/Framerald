@@ -9,7 +9,6 @@ import { Select, SelectContent, SelectItem, SelectSeparator, SelectTrigger, Sele
 import { createProjectRequest } from "@/features/projects/api";
 import { projectKeys, useProjects } from "@/features/projects/queries";
 
-const NONE = "__none__";
 const NEW = "__new__";
 
 type Props = {
@@ -47,17 +46,16 @@ export function ProjectSelect({ value, onChange, label = "Project", id }: Props)
   return (
     <div className="flex flex-col gap-2">
       <Select
-        value={value ?? NONE}
+        value={value ?? undefined}
         onValueChange={(v) => {
           if (v === NEW) setCreating(true);
-          else onChange(v === NONE ? null : v);
+          else onChange(v);
         }}
       >
         <SelectTrigger id={id} aria-label={label}>
-          <SelectValue>{current?.name ?? "No project"}</SelectValue>
+          <SelectValue placeholder="Unsorted">{current?.name}</SelectValue>
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value={NONE}>No project</SelectItem>
           {projects.data?.map((p) => (
             <SelectItem key={p.id} value={p.id}>
               {p.name}

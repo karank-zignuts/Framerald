@@ -9,7 +9,7 @@ import { uploadReference } from "@/features/generations/api";
 import { libraryKeys } from "@/features/library/queries";
 import { applyPresets } from "@/features/presets/templates";
 import { usePresets } from "@/features/presets/queries";
-import { useCurrentProject } from "@/features/projects/queries";
+import { useProjectId } from "@/features/projects/context";
 import { fetchVideoJob, fetchVideoReRunSettings, startVideo, type StartVideoInput } from "@/features/videos/api";
 import { MAX_VIDEO_PROMPT } from "@/features/videos/schemas";
 import { useVideoJobs, videoKeys } from "@/features/videos/queries";
@@ -37,9 +37,9 @@ const POLL_MS = 4000;
 /** The composer on the left, your clips on the right. Mount with a key to start from new settings. */
 export function VideoWorkspace({ initial, notice }: { initial: VideoInitial | null; notice?: string | null }) {
   const qc = useQueryClient();
-  const jobs = useVideoJobs();
   const presets = usePresets("video");
-  const [projectId, setProjectId] = useCurrentProject();
+  const projectId = useProjectId();
+  const jobs = useVideoJobs(projectId);
   const [values, setValues] = useState<VideoValues>({ ...BLANK, ...(initial && Object.fromEntries(Object.entries(initial).filter(([, v]) => v !== undefined))) });
   const [submitting, setSubmitting] = useState(false);
   const [retrying, setRetrying] = useState<string[]>([]); // clips whose Try again is in flight
@@ -71,7 +71,7 @@ export function VideoWorkspace({ initial, notice }: { initial: VideoInitial | nu
           if (cancelled) return;
           try {
             const job = await fetchVideoJob(id);
-            qc.setQueryData<VideoJobDto[]>(videoKeys.jobs, (old) => old?.map((j) => (j.id === id ? job : j)));
+            qc.setQueryData<VideoJobDto[]>(videoKeys.jobsFor(projectId), (old) => old?.map((j) => (j.id === id ? job : j)));
             if (job.status !== "running") void qc.invalidateQueries({ queryKey: libraryKeys.all });
           } catch {
             // A failed check says nothing about the clip. Try again on the next tick.
@@ -88,10 +88,10 @@ export function VideoWorkspace({ initial, notice }: { initial: VideoInitial | nu
       clearTimeout(first);
       clearInterval(timer);
     };
-  }, [runningKey, qc]);
+  }, [runningKey, qc, projectId]);
 
   const addJob = (job: VideoJobDto) => {
-    qc.setQueryData<VideoJobDto[]>(videoKeys.jobs, (old) => [job, ...(old ?? [])]);
+    qc.setQueryData<VideoJobDto[]>(videoKeys.jobsFor(projectId), (old) => [job, ...(old ?? [])]);
     // If the list was still loading, its late answer would erase this card. Asking again cancels that answer.
     void qc.invalidateQueries({ queryKey: videoKeys.jobs });
   };
@@ -128,7 +128,7 @@ export function VideoWorkspace({ initial, notice }: { initial: VideoInitial | nu
       firstFrameAssetId: values.firstFrame?.id,
       lastFrameAssetId: values.lastFrame?.id,
       sourceGenerationId: initial?.sourceGenerationId,
-      projectId: projectId ?? undefined,
+      projectId,
     });
     setSubmitting(false);
     if (started && view.clearOnSubmit) {
@@ -157,7 +157,7 @@ export function VideoWorkspace({ initial, notice }: { initial: VideoInitial | nu
         firstFrameAssetId: s.firstFrame?.id,
         lastFrameAssetId: s.lastFrame?.id,
         sourceGenerationId: job.id,
-        projectId: projectId ?? undefined,
+        projectId,
       });
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Couldn't start the clip again.");
@@ -198,7 +198,7 @@ export function VideoWorkspace({ initial, notice }: { initial: VideoInitial | nu
   }
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col gap-3 lg:flex-row lg:p-3">
+    <div className="flex min-h-0 flex-1 flex-col gap-4 lg:flex-row lg:px-5 lg:pb-5">
       <section aria-label="Controls" className="flex min-h-0 shrink-0 flex-col border-b border-border bg-card lg:w-[22rem] lg:rounded-2xl lg:border">
         <VideoComposer
           values={values}
@@ -207,8 +207,6 @@ export function VideoWorkspace({ initial, notice }: { initial: VideoInitial | nu
           onUploadFrame={(slot, file) => void uploadFrame(slot, file)}
           uploadingSlot={uploadingSlot}
           submitting={submitting}
-          projectId={projectId}
-          onProjectChange={setProjectId}
           onRefine={() => void refine()}
           refining={refining}
           canUndoRefine={beforeRefine !== null}

@@ -22,6 +22,7 @@ export default defineConfig({
   timeout: 90_000, // the dev server compiles each route on its first visit
   expect: { timeout: 15_000 },
   // Terse output keeps token cost low: only failures print detail.
+  globalSetup: "./e2e/global-setup.ts",
   globalTeardown: "./e2e/global-teardown.ts",
   reporter: [["line"], ["html", { open: "never", outputFolder: "playwright-report" }]],
   use: {

@@ -10,9 +10,8 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
-import { createThread, deleteThread, renameThread, setThreadProject, streamMessage } from "@/features/agent/api";
-import { ProjectSelect } from "@/components/projects/project-select";
-import { useCurrentProject } from "@/features/projects/queries";
+import { createThread, deleteThread, renameThread, streamMessage } from "@/features/agent/api";
+import { useProjectId } from "@/features/projects/context";
 import { agentKeys, useMessages, useThreads } from "@/features/agent/queries";
 import { titleFromMessage, type AgentMessageDto, type Shot, type ThreadDto } from "@/features/agent/schemas";
 import { MessageList, type LiveReply } from "./message-list";
@@ -31,7 +30,8 @@ export function AgentView() {
   const qc = useQueryClient();
   const threadId = params.get("thread");
 
-  const threads = useThreads();
+  const projectId = useProjectId();
+  const threads = useThreads(projectId);
   const messages = useMessages(threadId);
 
   const [draft, setDraft] = useState(() => params.get("idea")?.slice(0, 4000) ?? ""); // set when the Image dock's Agent mode hands an idea over
@@ -41,11 +41,8 @@ export function AgentView() {
   const abort = useRef<AbortController | null>(null);
   const input = useRef<HTMLTextAreaElement>(null);
 
-  const [currentProject, setCurrentProject] = useCurrentProject();
   const thread = threads.data?.find((t) => t.id === threadId);
   const title = thread?.title ?? "New chat";
-  // An open chat shows its own project; a new chat shows the one it will be created in.
-  const activeProject = threadId ? (thread?.projectId ?? null) : currentProject;
   const sending = live !== null;
 
   function open(id: string | null) {
@@ -64,9 +61,9 @@ export function AgentView() {
     try {
       if (!id) {
         // Created under its real name, so the placeholder "New chat" never reaches the list.
-        const created = await createThread(titleFromMessage(message), currentProject);
+        const created = await createThread(titleFromMessage(message), projectId);
         id = created.id;
-        qc.setQueryData<ThreadDto[]>(agentKeys.threads, (old = []) => [created, ...old.filter((t) => t.id !== created.id)]);
+        qc.setQueryData<ThreadDto[]>(agentKeys.threadsFor(projectId), (old = []) => [created, ...old.filter((t) => t.id !== created.id)]);
         // If the list was still loading, its late answer would erase this entry. Asking again cancels that answer.
         void qc.invalidateQueries({ queryKey: agentKeys.threads });
         qc.setQueryData<AgentMessageDto[]>(agentKeys.messages(id), []);
@@ -114,17 +111,6 @@ export function AgentView() {
     input.current?.focus();
   }
 
-  async function changeProject(id: string | null) {
-    setCurrentProject(id);
-    if (!threadId) return;
-    try {
-      await setThreadProject(threadId, id);
-      await qc.invalidateQueries({ queryKey: agentKeys.threads });
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Couldn't move the chat.");
-    }
-  }
-
   async function saveTitle() {
     const next = renaming?.trim();
     setRenaming(null);
@@ -167,9 +153,6 @@ export function AgentView() {
       <section aria-label="Conversation" className="flex min-h-[28rem] min-w-0 flex-1 flex-col lg:min-h-0">
         <header className="flex flex-col gap-2 border-b border-border px-5 py-3">
           <ThreadSelect threads={threads.data} activeId={threadId} onSelect={open} />
-          <div className="w-full max-w-xs">
-            <ProjectSelect label="Project" value={activeProject} onChange={(id) => void changeProject(id)} />
-          </div>
           <div className="flex min-h-9 items-center justify-between gap-3">
             {renaming !== null ? (
               <form
@@ -224,7 +207,7 @@ export function AgentView() {
           </div>
         </header>
 
-        <div className="min-h-0 flex-1 overflow-y-auto px-5 py-6">
+        <div className="min-h-0 flex-1 overflow-y-auto px-5 py-5">
           {threadId && messages.isPending && (
             <div role="status" aria-label="Loading messages" className="flex flex-col gap-6">
               <Skeleton className="ml-auto h-12 w-2/3 rounded-lg" />
@@ -272,7 +255,7 @@ export function AgentView() {
         </div>
 
         <form
-          className="flex items-end gap-3 border-t border-border bg-card p-4"
+          className="flex items-end gap-3 border-t border-[var(--glass-border)] bg-card/60 p-4 backdrop-blur-xl"
           onSubmit={(e) => {
             e.preventDefault();
             void send(draft);

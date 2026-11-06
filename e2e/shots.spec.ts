@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test";
+import { test, expect, projectId } from "./fixtures";
 
 // Visual review only. Run with: E2E_SHOTS=1 npx playwright test e2e/shots.spec.ts
 // Writes one screenshot per screen to test-results/shots/. View each once.
@@ -19,6 +19,7 @@ test("screenshots", async ({ page, request }) => {
   // Studio with a two-image batch and a failed one.
   await page.getByRole("button", { name: /^Aspect ratio/ }).click();
   await page.getByRole("radio", { name: "Aspect ratio 16:9" }).click();
+  await page.waitForTimeout(450); // let the menu finish fading in
   await shot("studio-aspect-menu");
   await page.keyboard.press("Escape");
   await page.getByRole("button", { name: "More images" }).click();
@@ -30,7 +31,7 @@ test("screenshots", async ({ page, request }) => {
 
   // Library with a few more images so the grid has something to show.
   for (const t of ["a glass cube on black", "foggy harbour at dawn", "a red door in a white wall", "portrait in window light"]) {
-    await request.post("/api/generations", { data: { prompt: tag(t), aspectRatio: "3:4" } });
+    await request.post("/api/generations", { data: { projectId: projectId(), prompt: tag(t), aspectRatio: "3:4" } });
   }
   await page.goto("/library");
   await expect(page.getByTestId("asset-tile").first()).toBeVisible(FIRST_PAINT);
@@ -101,13 +102,20 @@ test("screenshots", async ({ page, request }) => {
   await page.waitForTimeout(600);
   await shot("spend");
 
-  // Library with search and the projects dialog.
-  await page.goto("/library");
-  await expect(page.getByTestId("asset-tile").first()).toBeVisible(FIRST_PAINT);
-  await page.getByRole("button", { name: "Projects" }).click();
-  await page.waitForTimeout(400);
-  await shot("projects-dialog");
+  // Projects page, the switcher open, and the sidebar collapsed.
+  await page.goto("/projects");
+  await expect(page.getByTestId("project-card").first()).toBeVisible(FIRST_PAINT);
+  await page.waitForTimeout(500);
+  await shot("projects");
+  await page.goto(`/p/${projectId()}/image`);
+  await page.locator("#sidebar").getByTestId("project-switcher").click();
+  await page.waitForTimeout(500);
+  await shot("project-switcher");
   await page.keyboard.press("Escape");
+  await page.getByRole("button", { name: "Collapse sidebar" }).click();
+  await page.waitForTimeout(500);
+  await shot("sidebar-collapsed");
+  await page.getByRole("button", { name: "Expand sidebar" }).click();
 
   // Phone width.
   await page.setViewportSize({ width: 390, height: 844 });

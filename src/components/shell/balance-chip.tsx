@@ -72,7 +72,7 @@ export function BalanceChip() {
       }}
     >
       <PopoverTrigger
-        className="inline-flex h-9 items-center gap-2 rounded-lg border border-border bg-card px-3 text-sm text-foreground transition-colors duration-fast hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        className="glass-chip inline-flex h-9 items-center gap-2 rounded-xl px-3 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         data-testid="balance-chip"
       >
         <Wallet aria-hidden className="size-4 text-muted-foreground" />

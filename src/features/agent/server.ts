@@ -51,14 +51,10 @@ const MESSAGE_COLUMNS = "id,role,content,cost_usd,created_at";
 
 // ─── Threads ─────────────────────────────────────────────────────────────────
 
-export async function listThreads(): Promise<ThreadDto[]> {
-  const { data, error } = await db()
-    .from("agent_threads")
-    .select(THREAD_COLUMNS)
-    .eq("owner_id", OWNER_ID)
-    .is("deleted_at", null)
-    .order("updated_at", { ascending: false })
-    .limit(100);
+export async function listThreads(projectId?: string | null): Promise<ThreadDto[]> {
+  let q = db().from("agent_threads").select(THREAD_COLUMNS).eq("owner_id", OWNER_ID).is("deleted_at", null);
+  if (projectId) q = q.eq("project_id", projectId);
+  const { data, error } = await q.order("updated_at", { ascending: false }).limit(100);
   if (error) throw new Error(`Couldn't load your chats: ${error.message}`);
   return (data as ThreadRow[]).map(toThreadDto);
 }

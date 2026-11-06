@@ -45,7 +45,7 @@ export function MediaPickerPanel({ selectedIds, room, onPick, onUnpick, onUpload
 
   return (
     <div className="flex flex-col">
-        <div className="flex items-center gap-2 border-b border-border p-3">
+        <div className="flex items-center gap-2 border-b border-border px-4 py-3">
           <div role="tablist" aria-label="Where to pick from" className="flex items-center gap-1">
             {TABS.map((t) => (
               <button
@@ -69,7 +69,7 @@ export function MediaPickerPanel({ selectedIds, room, onPick, onUnpick, onUpload
           </Button>
         </div>
 
-        <div className="flex items-center gap-2 border-b border-border px-3 py-2">
+        <div className="flex items-center gap-2 border-b border-border px-4 py-2">
           {tab === "uploads" && (
             <div role="group" aria-label="How much to show" className="flex items-center gap-1">
               {(["recent", "all"] as const).map((s) => (
@@ -94,7 +94,7 @@ export function MediaPickerPanel({ selectedIds, room, onPick, onUnpick, onUpload
               <ArrowDownUp aria-hidden className="size-4" />
               Sort by
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-48">
+            <DropdownMenuContent align="end" className="w-48 p-2">
               <DropdownMenuRadioGroup value={order} onValueChange={(v) => setOrder(v as "newest" | "oldest")}>
                 <DropdownMenuRadioItem value="newest">Last created</DropdownMenuRadioItem>
                 <DropdownMenuRadioItem value="oldest">First created</DropdownMenuRadioItem>
@@ -103,8 +103,8 @@ export function MediaPickerPanel({ selectedIds, room, onPick, onUnpick, onUpload
           </DropdownMenu>
         </div>
 
-        <div className="max-h-[min(55vh,26rem)] overflow-y-auto p-3">
-          <div className="grid gap-2 [grid-template-columns:repeat(auto-fill,minmax(7.5rem,1fr))]">
+        <div className="max-h-[min(55vh,26rem)] overflow-y-auto p-4">
+          <div className="grid gap-3 [grid-template-columns:repeat(auto-fill,minmax(7.5rem,1fr))]">
             {tab === "uploads" && (
               <button
                 type="button"

@@ -4,8 +4,8 @@ import { PenLine, Plus, X } from "lucide-react";
 import { useRef, useState } from "react";
 import { ImagePickerDialog } from "@/components/media/image-picker-dialog";
 import { PresetPicker } from "@/components/presets/preset-picker";
-import { ProjectSelect } from "@/components/projects/project-select";
 import { Button } from "@/components/ui/button";
+import { StarBorder } from "@/components/ui/star-border";
 import { Kbd } from "@/components/ui/kbd";
 import { Label } from "@/components/ui/label";
 import { SegmentedControl } from "@/components/ui/ix-segmented-control";
@@ -57,8 +57,6 @@ type Props = {
   uploadingSlot: Slot | null;
   submitting: boolean;
   /** The project new clips go into. */
-  projectId: string | null;
-  onProjectChange: (id: string | null) => void;
   onRefine: () => void;
   refining: boolean;
   canUndoRefine: boolean;
@@ -169,8 +167,6 @@ export function VideoComposer({
   onUploadFrame,
   uploadingSlot,
   submitting,
-  projectId,
-  onProjectChange,
   onRefine,
   refining,
   canUndoRefine,
@@ -313,14 +309,6 @@ export function VideoComposer({
           </Select>
         </div>
 
-        <div className="flex flex-col gap-2">
-          <span className="text-sm text-muted-foreground">Project</span>
-          <ProjectSelect
-            label="Project"
-            value={projectId}
-            onChange={onProjectChange}
-          />
-        </div>
 
         <div className="flex flex-col gap-2">
           <span
@@ -455,15 +443,17 @@ export function VideoComposer({
             {formatCost(estimate)}
           </span>
         </div>
-        <Button
-          type="submit"
-          size="lg"
-          disabled={!hasPrompt || submitting || uploadingSlot !== null}
-          aria-busy={submitting}
-          className="w-full bg-brand text-brand-foreground hover:bg-brand-strong"
-        >
-          {submitting ? "Starting" : "Generate video"}
-        </Button>
+        <StarBorder className="flex w-full">
+          <Button
+            type="submit"
+            size="lg"
+            disabled={!hasPrompt || submitting || uploadingSlot !== null}
+            aria-busy={submitting}
+            className="w-full bg-brand text-brand-foreground hover:bg-brand-strong"
+          >
+            {submitting ? "Starting" : "Generate video"}
+          </Button>
+        </StarBorder>
       </div>
 
       {picking && (

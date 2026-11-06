@@ -1,21 +1,11 @@
-import type { Metadata } from "next";
 import { Suspense } from "react";
-import { ImageStudio } from "@/components/image-studio/image-studio";
-import { Skeleton } from "@/components/ui/skeleton";
+import { LegacyRedirect } from "@/components/projects/legacy-redirect";
 
-export const metadata: Metadata = { title: "Image" };
-
-export default function ImagePage() {
+// The old address. It sends you to the same page inside your current project.
+export default function ImageRedirect() {
   return (
-    <Suspense
-      fallback={
-        <div className="flex flex-1 flex-col gap-4 p-5" role="status" aria-label="Loading">
-          <Skeleton className="h-6 w-24" />
-          <Skeleton className="h-32 w-full max-w-sm rounded-lg" />
-        </div>
-      }
-    >
-      <ImageStudio />
+    <Suspense fallback={null}>
+      <LegacyRedirect section="image" />
     </Suspense>
   );
 }

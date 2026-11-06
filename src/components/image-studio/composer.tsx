@@ -15,17 +15,18 @@ import {
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
+import { useScopedHref } from "@/features/projects/context";
 import { MediaPickerPanel } from "@/components/media/media-picker";
 import { ModelPickerPanel, ModelTrigger } from "./model-picker";
 import { Anchor as PopoverAnchor } from "@radix-ui/react-popover";
 import { PresetPicker } from "@/components/presets/preset-picker";
-import { ProjectSelect } from "@/components/projects/project-select";
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
+import { StarBorder } from "@/components/ui/star-border";
 import { Textarea } from "@/components/ui/textarea";
 import {
   MODELS,
@@ -63,8 +64,6 @@ type Props = {
   busy: boolean;
   /** Asks the agent to rewrite the prompt. */
   /** The project new images go into. */
-  projectId: string | null;
-  onProjectChange: (id: string | null) => void;
   onRefine: () => void;
   refining: boolean;
   /** The last refine can be undone until the prompt is edited by hand. */
@@ -102,7 +101,7 @@ const SIZE_NOTES = { "1K": "Fastest and cheapest", "2K": "Sharper detail, costs 
 const RATIO_ORDER = ["9:16", "2:3", "3:4", "4:5", "1:1", "5:4", "4:3", "3:2", "16:9", "21:9"] as const;
 
 const chipClass =
-  "inline-flex h-9 shrink-0 items-center whitespace-nowrap gap-1.5 rounded-lg border border-border bg-secondary px-3 text-sm text-foreground transition-colors duration-fast hover:bg-accent " +
+  "glass-chip inline-flex h-9 shrink-0 items-center whitespace-nowrap gap-1.5 rounded-xl px-3 text-sm text-foreground " +
   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
 
 function Chip({
@@ -169,7 +168,7 @@ function ChipScroller({ children }: { children: React.ReactNode }) {
 
   const arrow = (active: boolean) =>
     cn(
-      "flex size-9 shrink-0 items-center justify-center rounded-lg border border-border bg-secondary text-foreground transition-opacity duration-base hover:bg-accent motion-reduce:transition-none",
+      "glass-chip flex size-9 shrink-0 items-center justify-center rounded-xl text-foreground transition-opacity duration-base motion-reduce:transition-none",
       !state.overflowing && "hidden",
       active ? "opacity-100" : "pointer-events-none opacity-0",
       focusRing,
@@ -204,8 +203,6 @@ export function Composer({
   onAddFiles,
   uploading,
   busy,
-  projectId,
-  onProjectChange,
   onRefine,
   refining,
   canUndoRefine,
@@ -213,6 +210,7 @@ export function Composer({
   notice,
 }: Props) {
   const router = useRouter();
+  const scoped = useScopedHref();
   const fileInput = useRef<HTMLInputElement>(null);
   const dockRef = useRef<HTMLDivElement>(null);
   // Which big panel is open above the dock. They share one popover, anchored to the whole dock.
@@ -239,7 +237,7 @@ export function Composer({
     if (agentMode) {
       const idea = values.prompt.trim();
       onChange({ prompt: "" });
-      router.push(`/agent?idea=${encodeURIComponent(idea)}`);
+      router.push(scoped(`/agent?idea=${encodeURIComponent(idea)}`));
       return;
     }
     onSubmit();
@@ -254,6 +252,8 @@ export function Composer({
       data-agent-mode={agentMode}
     >
       <form
+        data-agent={agentMode}
+        data-dragging={dragging}
         onSubmit={(e) => {
           e.preventDefault();
           if (hasPrompt && !busy) send();
@@ -269,15 +269,8 @@ export function Composer({
           onAddFiles([...e.dataTransfer.files]);
         }}
         className={cn(
-          "relative isolate flex w-full flex-col gap-3 border p-4 shadow-lg transition-[border-radius,background-color,border-color,backdrop-filter] duration-slow",
-          agentMode
-            ? "rounded-[1.75rem] border-brand/40 bg-popover/60 backdrop-blur-2xl"
-            : "rounded-2xl bg-popover",
-          dragging
-            ? "border-brand bg-brand-muted"
-            : agentMode
-              ? ""
-              : "border-border",
+          "glass-strong relative isolate flex w-full flex-col gap-3 p-4 transition-[border-radius,background-color,border-color] duration-slow",
+          agentMode ? "rounded-[1.75rem]" : "rounded-2xl",
         )}
       >
         {/* Agent mode: a glow that stays inside the dock, and a bright arc that runs once around its edge. */}
@@ -493,7 +486,7 @@ export function Composer({
                         disabled={!supported}
                         onClick={() => onChange({ imageSize: size })}
                         className={cn(
-                          "flex items-center gap-3 rounded-lg px-3 py-2 text-left text-sm text-foreground transition-colors duration-fast hover:bg-accent/60 disabled:opacity-40",
+                          "flex items-center gap-3 rounded-lg px-2 py-2 text-left text-sm text-foreground transition-colors duration-fast hover:bg-accent/60 disabled:opacity-40",
                           selected && "bg-secondary",
                           focusRing,
                         )}
@@ -510,7 +503,7 @@ export function Composer({
               </PopoverContent>
             </Popover>
 
-            <div role="group" aria-label="Number of images" className="inline-flex h-9 shrink-0 items-center rounded-lg border border-border bg-secondary text-sm">
+            <div role="group" aria-label="Number of images" className="glass-chip inline-flex h-9 shrink-0 items-center rounded-xl text-sm">
               <button
                 type="button"
                 aria-label="Fewer images"
@@ -537,7 +530,7 @@ export function Composer({
 
             <Popover>
               <PopoverTrigger className={chipClass}>
-                <Chip label="Look and project" value="Look" />
+                <Chip label="Look" value="Look" />
               </PopoverTrigger>
               <PopoverContent
                 align="start"
@@ -549,14 +542,6 @@ export function Composer({
                   onChange={(presetIds) => onChange({ presetIds })}
                   defaultOpen
                 />
-                <div className="flex flex-col gap-2">
-                  <span className="text-sm text-muted-foreground">Project</span>
-                  <ProjectSelect
-                    label="Project"
-                    value={projectId}
-                    onChange={onProjectChange}
-                  />
-                </div>
               </PopoverContent>
             </Popover>
           </ChipScroller>
@@ -585,6 +570,7 @@ export function Composer({
             >
               <PenLine aria-hidden className={cn("size-4", refining && "motion-safe:animate-pulse")} />
             </Button>
+            <StarBorder>
             <Button
               type="submit"
               size="lg"
@@ -611,6 +597,7 @@ export function Composer({
                 </>
               )}
             </Button>
+            </StarBorder>
           </div>
         </div>
       </form>

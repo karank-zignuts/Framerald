@@ -3,6 +3,7 @@
 import { ArrowRight, Clapperboard, MessageSquareQuote } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { useScopedHref } from "@/features/projects/context";
 import { imageStudioUrl, videoStudioUrl } from "@/features/agent/prefill";
 import type { Shot, ShotList } from "@/features/agent/schemas";
 
@@ -14,6 +15,7 @@ type Props = {
 
 /** A plan as cards. Each card opens the Image studio with that shot ready to generate. */
 export function ShotCards({ list, onRefine }: Props) {
+  const scoped = useScopedHref();
   return (
     <section aria-label={`Shot list: ${list.title}`} className="flex flex-col gap-3" data-testid="shot-list">
       <header className="flex flex-col gap-0.5">
@@ -27,7 +29,7 @@ export function ShotCards({ list, onRefine }: Props) {
         {list.shots.map((shot, index) => (
           <li
             key={index}
-            className="flex flex-col gap-3 rounded-lg border border-border bg-card p-4"
+            className="flex flex-col gap-3 glass rounded-2xl p-4"
             data-testid="shot-card"
           >
             <div className="flex items-baseline justify-between gap-3">
@@ -41,13 +43,13 @@ export function ShotCards({ list, onRefine }: Props) {
             {shot.notes && <p className="text-xs leading-relaxed text-muted-foreground">{shot.notes}</p>}
             <div className="mt-auto flex flex-wrap gap-2">
               <Button asChild size="sm" variant="secondary">
-                <Link href={imageStudioUrl(shot)}>
+                <Link href={scoped(imageStudioUrl(shot))}>
                   Send to Image
                   <ArrowRight aria-hidden className="size-3.5" />
                 </Link>
               </Button>
               <Button asChild size="sm" variant="secondary">
-                <Link href={videoStudioUrl(shot)}>
+                <Link href={scoped(videoStudioUrl(shot))}>
                   <Clapperboard aria-hidden className="size-3.5" />
                   Send to Video
                 </Link>

@@ -9,6 +9,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import type { AssetDto } from "@/features/library/types";
+import { useScopedHref } from "@/features/projects/context";
 import { renameAsset } from "@/features/view/names";
 import { downloadUrl, extensionFor } from "@/lib/format";
 import { cn } from "@/lib/utils";
@@ -37,9 +38,10 @@ export function TileActions({ asset, name, onFavorite, onDelete, onRename }: Pro
   const [draftName, setDraftName] = useState(name);
   const [deleting, setDeleting] = useState(false);
   const [busy, setBusy] = useState(false);
+  const scoped = useScopedHref();
   const g = asset.generation;
   const isVideo = asset.kind === "video";
-  const reuseHref = g ? (isVideo ? `/video?from=${g.id}` : `/image?from=${g.id}`) : null;
+  const reuseHref = g ? scoped(isVideo ? `/video?from=${g.id}` : `/image?from=${g.id}`) : null;
 
   async function copyPrompt() {
     try {
@@ -71,7 +73,7 @@ export function TileActions({ asset, name, onFavorite, onDelete, onRename }: Pro
           <DropdownMenuTrigger aria-label="More actions" title="More" className={cn(iconButton, hoverOnly)}>
             <MoreVertical aria-hidden className="size-4" />
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-56">
+          <DropdownMenuContent align="end" className="w-56 p-2">
             <DropdownMenuItem onSelect={() => onFavorite(!asset.isFavorite)}>
               <Heart aria-hidden className="mr-2 size-4" />
               {asset.isFavorite ? "Remove favourite" : "Favourite"}
@@ -86,7 +88,7 @@ export function TileActions({ asset, name, onFavorite, onDelete, onRename }: Pro
             )}
             {!isVideo && (
               <DropdownMenuItem asChild>
-                <Link href={`/video?first=${asset.id}`}>
+                <Link href={scoped(`/video?first=${asset.id}`)}>
                   <Film aria-hidden className="mr-2 size-4" />
                   Animate this image
                 </Link>

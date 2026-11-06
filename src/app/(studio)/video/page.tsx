@@ -1,21 +1,11 @@
-import type { Metadata } from "next";
 import { Suspense } from "react";
-import { Skeleton } from "@/components/ui/skeleton";
-import { VideoStudio } from "@/components/video-studio/video-studio";
+import { LegacyRedirect } from "@/components/projects/legacy-redirect";
 
-export const metadata: Metadata = { title: "Video" };
-
-export default function VideoPage() {
+// The old address. It sends you to the same page inside your current project.
+export default function VideoRedirect() {
   return (
-    <Suspense
-      fallback={
-        <div className="flex flex-1 flex-col gap-4 p-5" role="status" aria-label="Loading">
-          <Skeleton className="h-6 w-24" />
-          <Skeleton className="h-32 w-full max-w-sm rounded-lg" />
-        </div>
-      }
-    >
-      <VideoStudio />
+    <Suspense fallback={null}>
+      <LegacyRedirect section="video" />
     </Suspense>
   );
 }

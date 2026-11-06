@@ -8,10 +8,9 @@ import { AssetDialog } from "@/components/media/asset-dialog";
 import { refinePromptRequest } from "@/features/agent/api";
 import { generate, uploadReference, type GenerateInput } from "@/features/generations/api";
 import { MAX_REFERENCES } from "@/features/generations/schemas";
-import { deleteAsset, renameAssetRequest, setFavorite } from "@/features/library/api";
-import { libraryKeys } from "@/features/library/queries";
+import { libraryKeys, useAssetActions, useLibrary } from "@/features/library/queries";
 import { usePresets } from "@/features/presets/queries";
-import { useCurrentProject } from "@/features/projects/queries";
+import { useProjectId } from "@/features/projects/context";
 import { applyPresets } from "@/features/presets/templates";
 import type { AssetDto, ReRunSettings } from "@/features/library/types";
 import type { ImageSize } from "@/lib/ai/models";
@@ -38,7 +37,7 @@ const nextKey = () => `batch-${Date.now()}-${batchCounter++}`;
 export function StudioWorkspace({ initial, notice }: { initial: StudioInitial | null; notice?: string | null }) {
   const qc = useQueryClient();
   const presets = usePresets("image");
-  const [projectId, setProjectId] = useCurrentProject();
+  const projectId = useProjectId();
   const [values, setValues] = useState<ComposerValues>({
     ...BLANK,
     ...(initial?.prompt !== undefined && { prompt: initial.prompt }),
@@ -55,7 +54,11 @@ export function StudioWorkspace({ initial, notice }: { initial: StudioInitial | 
   const [refining, setRefining] = useState(false);
   const [beforeRefine, setBeforeRefine] = useState<string | null>(null); // the prompt as it was, for Undo
 
-  const openAsset = batches.flatMap((b) => b.result?.assets ?? []).find((a) => a.id === openId) ?? null;
+  // The project's earlier images, newest first. This session's new ones are shown on top of them straight away.
+  const history = useLibrary("images", { projectId });
+  const actions = useAssetActions();
+  const historyItems = history.data?.pages.flatMap((p) => p.items) ?? [];
+  const openAsset = [...batches.flatMap((b) => b.result?.assets ?? []), ...historyItems].find((a) => a.id === openId) ?? null;
 
   const patch = (p: Partial<ComposerValues>) => {
     setValues((v) => ({ ...v, ...p }));
@@ -121,7 +124,7 @@ export function StudioWorkspace({ initial, notice }: { initial: StudioInitial | 
       count: values.count,
       referenceAssetIds: values.references.map((r) => r.id),
       sourceGenerationId: initial?.sourceGenerationId,
-      projectId: projectId ?? undefined,
+      projectId,
     });
   }
 
@@ -150,8 +153,7 @@ export function StudioWorkspace({ initial, notice }: { initial: StudioInitial | 
   async function favorite(asset: AssetDto, value: boolean) {
     updateAsset(asset.id, (a) => ({ ...a, isFavorite: value }));
     try {
-      await setFavorite(asset.id, value);
-      void qc.invalidateQueries({ queryKey: libraryKeys.all });
+      await actions.favorite(asset, value); // the history updates at once and rolls back if it fails
     } catch (error) {
       updateAsset(asset.id, (a) => ({ ...a, isFavorite: !value }));
       toast.error(error instanceof Error ? error.message : "Couldn't update the favourite.");
@@ -159,21 +161,19 @@ export function StudioWorkspace({ initial, notice }: { initial: StudioInitial | 
   }
 
   async function rename(asset: AssetDto, name: string | null) {
-    await renameAssetRequest(asset.id, name); // throws when it can't be saved; the tile then keeps the name in this browser
+    await actions.rename(asset, name); // throws when it can't be saved; the tile then keeps the name in this browser
     updateAsset(asset.id, (a) => ({ ...a, name }));
-    void qc.invalidateQueries({ queryKey: libraryKeys.all });
   }
 
   async function remove(asset: AssetDto) {
     try {
-      await deleteAsset(asset.id);
+      await actions.remove(asset);
       setOpenId(null);
       setBatches((all) =>
         all
           .map((b) => (b.result ? { ...b, result: { ...b.result, assets: b.result.assets.filter((a) => a.id !== asset.id) } } : b))
           .filter((b) => b.status !== "done" || (b.result?.assets.length ?? 0) > 0),
       );
-      void qc.invalidateQueries({ queryKey: libraryKeys.all });
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Couldn't delete that image.");
     }
@@ -183,10 +183,10 @@ export function StudioWorkspace({ initial, notice }: { initial: StudioInitial | 
     <div className="flex min-h-0 flex-1 flex-col">
       <h1 className="sr-only">Image</h1>
       <section aria-label="Results" className="flex min-h-[20rem] min-w-0 flex-1 flex-col lg:overflow-y-auto">
-        <Results batches={batches} onOpen={(a) => setOpenId(a.id)} onFavorite={favorite} onDelete={remove} onRename={rename} onRetry={(b) => void run(b.input, b.key)} />
+        <Results history={history} batches={batches} onOpen={(a) => setOpenId(a.id)} onFavorite={favorite} onDelete={remove} onRename={rename} onRetry={(b) => void run(b.input, b.key)} />
       </section>
-      <section aria-label="Controls" className="sticky bottom-0 z-10 shrink-0 bg-gradient-to-t from-background from-70% to-transparent px-3 pb-3 pt-6 sm:px-5 sm:pb-5">
-        <Composer values={values} onChange={patch} onSubmit={submit} onAddFiles={addFiles} uploading={uploading} busy={busy} projectId={projectId} onProjectChange={setProjectId} notice={notice} refining={refining} canUndoRefine={beforeRefine !== null} onRefine={() => void refine()} onUndoRefine={undoRefine} />
+      <section aria-label="Controls" className="sticky bottom-0 z-10 shrink-0 px-5 pb-5 pt-4">
+        <Composer values={values} onChange={patch} onSubmit={submit} onAddFiles={addFiles} uploading={uploading} busy={busy} notice={notice} refining={refining} canUndoRefine={beforeRefine !== null} onRefine={() => void refine()} onUndoRefine={undoRefine} />
       </section>
       {openAsset && (
         <AssetDialog

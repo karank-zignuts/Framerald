@@ -7,17 +7,20 @@ export function fetchLibraryPage(opts: {
   view: LibraryView;
   q?: string | null;
   projectId?: string | null;
+  unsorted?: boolean;
   source?: "generated" | "upload";
   order?: "newest" | "oldest";
   limit?: number;
 }): Promise<LibraryPage> {
-  const { kind, favoritesOnly } = parseLibraryView(opts.view);
+  const { kind, favoritesOnly, trashed } = parseLibraryView(opts.view);
   const p = new URLSearchParams({ limit: String(opts.limit ?? 24) });
   if (opts.cursor) p.set("cursor", opts.cursor);
   if (favoritesOnly) p.set("favorites", "1");
   if (kind) p.set("kind", kind);
   if (opts.q) p.set("q", opts.q);
-  if (opts.projectId) p.set("project", opts.projectId);
+  if (opts.unsorted) p.set("unsorted", "1");
+  else if (opts.projectId) p.set("project", opts.projectId);
+  if (trashed) p.set("trash", "1");
   if (opts.source) p.set("source", opts.source);
   if (opts.order) p.set("order", opts.order);
   return fetch(`/api/library?${p}`).then((r) => readJson<LibraryPage>(r));
@@ -49,5 +52,13 @@ export function renameAssetRequest(assetId: string, name: string | null): Promis
     method: "PATCH",
     headers: { "content-type": "application/json" },
     body: JSON.stringify({ name }),
+  }).then((r) => readJson<unknown>(r).then(() => undefined));
+}
+
+export function restoreAssetRequest(assetId: string): Promise<void> {
+  return fetch(`/api/assets/${assetId}`, {
+    method: "PATCH",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ restore: true }),
   }).then((r) => readJson<unknown>(r).then(() => undefined));
 }

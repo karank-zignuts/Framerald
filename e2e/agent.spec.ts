@@ -46,7 +46,7 @@ test("idea to shot list to a generated frame, in one flow", async ({ page }) => 
   await page.keyboard.press("Escape");
 
   await page.getByRole("button", { name: /^Generate/ }).click();
-  await expect(page.getByTestId("asset-tile")).toHaveCount(1, { timeout: 30_000 });
+  await expect(page.getByTestId("asset-tile").first()).toBeVisible({ timeout: 30_000 }); // the project's history is shown too
 });
 
 test("Refine this shot puts the shot back in the chat box", async ({ page }) => {

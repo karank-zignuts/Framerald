@@ -21,7 +21,7 @@ const focusRing = "focus-visible:outline-none focus-visible:ring-2 focus-visible
 /** The chat list, shown beside the conversation from 64rem up. */
 export function ThreadList({ threads, isPending, error, onRetry, activeId, onSelect }: Props) {
   return (
-    <aside aria-label="Chats" className="hidden w-64 shrink-0 flex-col gap-3 border-r border-border bg-card p-3 lg:flex">
+    <aside aria-label="Chats" className="hidden w-64 shrink-0 flex-col gap-3 border-r border-[var(--glass-border)] bg-card/50 p-3 backdrop-blur-xl lg:flex">
       <Button variant="secondary" size="sm" onClick={() => onSelect(null)} className="justify-start">
         <Plus aria-hidden className="size-3.5" />
         New chat

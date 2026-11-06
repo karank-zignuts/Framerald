@@ -3,7 +3,7 @@ import { test, expect } from "./fixtures";
 const FIRST_PAINT = { timeout: 60_000 };
 const tag = (s: string) => `[e2e] ${s} ${Math.random().toString(36).slice(2, 8)}`;
 
-test("the sidebar collapses to icons, stays collapsed after a reload, and opens again", async ({ page }) => {
+test("the sidebar hides completely, stays hidden after a reload, and comes back from the screen's edge", async ({ page }) => {
   await page.goto("/image");
   const toggle = page.getByRole("button", { name: "Collapse sidebar" });
   await expect(toggle).toBeVisible(FIRST_PAINT);
@@ -11,11 +11,26 @@ test("the sidebar collapses to icons, stays collapsed after a reload, and opens 
   await toggle.click();
   await expect(page.getByRole("button", { name: "Expand sidebar" })).toHaveAttribute("aria-expanded", "false");
   await expect(page.locator("#sidebar")).toHaveAttribute("data-collapsed", "true");
-  await expect(page.getByRole("link", { name: "Library" })).toBeVisible(); // still reachable by name when only icons show
+  await expect(page.locator("#sidebar")).toHaveJSProperty("inert", true); // out of the tab order and the accessibility tree
+  await expect.poll(async () => (await page.locator("#sidebar").boundingBox())!.width).toBe(0); // and takes no room
 
   await page.reload();
   await expect(page.locator("#sidebar")).toHaveAttribute("data-collapsed", "true", FIRST_PAINT);
-  await page.keyboard.press("ControlOrMeta+b");
+
+  // The whole left edge is one clickable strip, from top to bottom.
+  const show = page.getByRole("button", { name: "Show sidebar" });
+  const box = (await show.boundingBox())!;
+  expect(box.x).toBe(0);
+  expect(box.height).toBeGreaterThan(600);
+  await page.mouse.move(2, 120); // anywhere along it, not only the middle
+  await page.mouse.click(2, 120);
+  await expect(page.locator("#sidebar")).toHaveAttribute("data-collapsed", "false");
+  await expect(page.getByRole("link", { name: "Library" })).toBeVisible();
+
+  // The sidebar's own right edge hides it again.
+  await page.getByTestId("sidebar-rail").click({ position: { x: 6, y: 200 } });
+  await expect(page.locator("#sidebar")).toHaveAttribute("data-collapsed", "true");
+  await page.keyboard.press("ControlOrMeta+b"); // the keyboard does both ways
   await expect(page.locator("#sidebar")).toHaveAttribute("data-collapsed", "false");
 });
 
@@ -56,36 +71,40 @@ test("costs show in rupees", async ({ page }) => {
   await expect(page.getByTestId("tile-cost").first()).toHaveText(/^≈ ₹/, { timeout: 30_000 });
 });
 
-async function makeOne(page: import("@playwright/test").Page, text: string) {
-  await page.goto("/image");
+/** A project of its own, so counts in these tests aren't mixed with the history the other tests leave behind. */
+async function freshProject(request: import("@playwright/test").APIRequestContext) {
+  const res = await request.post("/api/projects", { data: { name: tag("fresh") } });
+  return ((await res.json()) as { id: string }).id;
+}
+
+async function makeOne(page: import("@playwright/test").Page, text: string, project?: string) {
+  await page.goto(project ? `/p/${project}/image` : "/image");
   await expect(page.getByRole("textbox", { name: "Prompt" })).toBeVisible(FIRST_PAINT);
   await page.getByRole("textbox", { name: "Prompt" }).fill(text);
   await page.getByRole("button", { name: /^Generate/ }).click();
   await expect(page.getByTestId("asset-tile").first()).toBeVisible({ timeout: 30_000 });
 }
 
-test("results flow in one grid, the View menu changes size and mode", async ({ page }) => {
-  await makeOne(page, tag("a red door in a white wall, soft light"));
+test("the history is one masonry grid, and the View menu changes its size and mode", async ({ page, request }) => {
+  const project = await freshProject(request);
+  await makeOne(page, tag("a red door in a white wall, soft light"), project);
   await expect(page.getByTestId("batch")).toHaveCount(0); // Grid is the default, with no per-generation groups
-  const grid = page.getByTestId("results").locator("div").first();
+  await expect(page.getByTestId("history-grid")).toBeVisible();
   await expect(page.getByTestId("asset-tile")).toHaveCount(1);
 
+  const width = async () => (await page.getByTestId("asset-tile").first().boundingBox())!.width;
   await page.getByRole("button", { name: "View" }).click();
-  await page.getByRole("radio", { name: "L", exact: true }).click();
-  await expect(page.getByTestId("results").locator('[style*="column-width: 360px"]')).toHaveCount(1);
   await page.getByRole("radio", { name: "S", exact: true }).click();
-  await expect(page.getByTestId("results").locator('[style*="column-width: 150px"]')).toHaveCount(1);
+  await expect.poll(width).toBeLessThan(250);
+  await page.getByRole("radio", { name: "L", exact: true }).click();
+  await expect.poll(width).toBeGreaterThan(300); // the tile grew as the columns did
   await page.getByRole("radio", { name: "Batch" }).click();
   await expect(page.getByTestId("batch")).toHaveCount(1);
-  void grid;
-
-  await page.reload(); // the choice is remembered
-  await expect(page.getByTestId("batch")).toHaveCount(0, { timeout: 5_000 }).catch(() => undefined);
 });
 
-test("each tile has a name from its prompt, a heart, reuse, and a menu with rename and delete", async ({ page }) => {
+test("each tile has a name from its prompt, a heart, reuse, and a menu with rename and delete", async ({ page, request }) => {
   const word = `quokka${Math.random().toString(36).slice(2, 7)}`;
-  await makeOne(page, `[e2e] a ${word} on a beach, golden hour`);
+  await makeOne(page, `[e2e] a ${word} on a beach, golden hour`, await freshProject(request));
   const tile = page.getByTestId("asset-tile").first();
   await expect(tile).toContainText(`Quokka`.toLowerCase() === "" ? "" : word.slice(0, 3), { ignoreCase: true }); // named from its prompt
 
@@ -109,9 +128,9 @@ test("each tile has a name from its prompt, a heart, reuse, and a menu with rena
   await expect(page.getByTestId("asset-tile")).toHaveCount(0);
 });
 
-test("Reuse brings the prompt back into the composer", async ({ page }) => {
+test("Reuse brings the prompt back into the composer", async ({ page, request }) => {
   const text = tag("a quiet harbour at dawn");
-  await makeOne(page, text);
+  await makeOne(page, text, await freshProject(request));
   const tile = page.getByTestId("asset-tile").first();
   await tile.hover();
   await tile.getByRole("link", { name: "Reuse prompt and references" }).click();

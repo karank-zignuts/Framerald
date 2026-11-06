@@ -4,8 +4,14 @@ import { trackAsset } from "./cleanup";
 // Fails any test that hits a page error or a 5xx from the app or its Supabase
 // project, so live bugs surface as text instead of screenshots. Also records
 // uploads so the teardown can delete them.
+/** The project the tests work in, made by global-setup.ts. */
+export const projectId = () => process.env.E2E_PROJECT_ID!;
+
 export const test = base.extend({
   page: async ({ page }, use) => {
+    // The old addresses (/image, /library) open the project you were last in. Tests start in their own.
+    const id = projectId();
+    await page.addInitScript((value) => localStorage.setItem("framerald.project", value), id);
     const problems: string[] = [];
     page.on("pageerror", (e) => problems.push(`pageerror: ${e.message}`));
     page.on("response", async (r) => {

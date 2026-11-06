@@ -1,28 +1,29 @@
 "use client";
 
-import { FolderOpen, LayoutGrid, Search, Star, Video } from "lucide-react";
+import { LayoutGrid, RotateCcw, Search, Star, Trash2, Video } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { AssetDialog } from "@/components/media/asset-dialog";
 import { AssetTile } from "@/components/media/asset-tile";
-import { ProjectsDialog } from "@/components/projects/projects-dialog";
+import { Masonry } from "@/components/media/masonry";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Input } from "@/components/ui/input";
 import { SegmentedControl } from "@/components/ui/ix-segmented-control";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAssetActions, useLibrary } from "@/features/library/queries";
 import { normalizeSearch } from "@/features/library/search";
 import type { AssetDto } from "@/features/library/types";
 import { libraryViewParam, parseLibraryView, type LibraryView as ViewName } from "@/features/library/view";
-import { useProjects } from "@/features/projects/queries";
+import { useProjectId, useScopedHref } from "@/features/projects/context";
+import { UNSORTED } from "@/features/projects/schemas";
+import { useAssetName } from "@/features/view/names";
+import { TILE_WIDTH, useViewSettings } from "@/features/view/settings";
 
 // Fixed column counts use minmax(0, 1fr) tracks, so a wide image can't stretch a column.
-const GRID = "grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-6";
-const ALL_PROJECTS = "__all__";
+const GRID = "grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-6";
 
 export function LibraryView() {
   const router = useRouter();
@@ -30,20 +31,21 @@ export function LibraryView() {
   const params = useSearchParams();
   const { view } = parseLibraryView(params.get("view"));
   const q = normalizeSearch(params.get("q"));
-  const projectId = params.get("project");
+  const projectId = useProjectId();
+  const scoped = useScopedHref();
+  const unsorted = projectId === UNSORTED;
+  const { size } = useViewSettings();
 
-  const projects = useProjects();
-  const query = useLibrary(view, { q, projectId });
+  const query = useLibrary(view, unsorted ? { q, unsorted: true } : { q, projectId });
   const actions = useAssetActions();
   const [openId, setOpenId] = useState<string | null>(null);
   // A copy of the open item. If moving it takes it out of the current filter, the dialog stays open on this copy.
   const [pinned, setPinned] = useState<AssetDto | null>(null);
-  const [managing, setManaging] = useState(false);
   const [search, setSearch] = useState(params.get("q") ?? "");
 
   const items = query.data?.pages.flatMap((p) => p.items) ?? [];
   const openAsset = items.find((a) => a.id === openId) ?? (pinned && pinned.id === openId ? pinned : null);
-  const filtered = Boolean(q || projectId);
+  const filtered = Boolean(q);
 
   const setParam = useCallback(
     (key: string, value: string | null) => {
@@ -92,6 +94,15 @@ export function LibraryView() {
     }
   }
 
+  async function restore(asset: AssetDto) {
+    try {
+      await actions.restore(asset);
+      toast.success("Restored.");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Couldn't restore that item.");
+    }
+  }
+
   async function move(asset: AssetDto, target: string | null) {
     try {
       await actions.move(asset, target);
@@ -105,19 +116,14 @@ export function LibraryView() {
     setSearch("");
     const next = new URLSearchParams(params);
     next.delete("q");
-    next.delete("project");
     router.replace(next.size ? `${pathname}?${next}` : pathname);
   }
 
   return (
     <div className="flex min-h-0 flex-1 flex-col lg:overflow-y-auto">
-      <header className="flex flex-col gap-3 px-5 pb-2 pt-5">
+      <header className="flex flex-col gap-3 px-5 pt-5">
         <div className="flex items-center justify-between gap-3">
           <h1 className="text-lg font-medium text-foreground">Library</h1>
-          <Button variant="ghost" size="sm" onClick={() => setManaging(true)}>
-            <FolderOpen aria-hidden className="size-4" />
-            Projects
-          </Button>
         </div>
         <div className="flex flex-wrap items-center gap-3">
           <div className="relative min-w-48 flex-1 sm:max-w-xs">
@@ -132,21 +138,6 @@ export function LibraryView() {
               className="pl-9"
             />
           </div>
-          <div className="w-44">
-            <Select value={projectId ?? ALL_PROJECTS} onValueChange={(v) => setParam("project", v === ALL_PROJECTS ? null : v)}>
-              <SelectTrigger aria-label="Project">
-                <SelectValue>{projects.data?.find((p) => p.id === projectId)?.name ?? "All projects"}</SelectValue>
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value={ALL_PROJECTS}>All projects</SelectItem>
-                {projects.data?.map((p) => (
-                  <SelectItem key={p.id} value={p.id}>
-                    {p.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
           <div className="w-full max-w-sm">
             <SegmentedControl
               label="Show"
@@ -157,6 +148,7 @@ export function LibraryView() {
                 { value: "images", label: "Images" },
                 { value: "videos", label: "Videos" },
                 { value: "favourites", label: "Favourites" },
+                { value: "trash", label: "Trash" },
               ]}
             />
           </div>
@@ -187,12 +179,18 @@ export function LibraryView() {
               <EmptyState
                 icon={<Search aria-hidden className="size-6" />}
                 title="No matches"
-                description="Nothing fits this search and project. Try different words, or clear the filters."
+                description="Nothing fits this search. Try different words, or clear the search."
                 action={
                   <Button variant="secondary" size="sm" onClick={clearFilters}>
                     Clear filters
                   </Button>
                 }
+              />
+            ) : view === "trash" ? (
+              <EmptyState
+                icon={<Trash2 aria-hidden className="size-6" />}
+                title="The trash is empty"
+                description="Images and clips you delete wait here, and you can bring them back."
               />
             ) : view === "favourites" ? (
               <EmptyState
@@ -207,7 +205,7 @@ export function LibraryView() {
                 description="Clips you make in the Video studio are saved here."
                 action={
                   <Button asChild variant="secondary" size="sm">
-                    <Link href="/video">Open Video</Link>
+                    <Link href={scoped("/video")}>Open Video</Link>
                   </Button>
                 }
               />
@@ -218,7 +216,7 @@ export function LibraryView() {
                 description="Everything you make in the studios is saved here."
                 action={
                   <Button asChild variant="secondary" size="sm">
-                    <Link href="/image">Open Image</Link>
+                    <Link href={scoped("/image")}>Open Image</Link>
                   </Button>
                 }
               />
@@ -226,19 +224,37 @@ export function LibraryView() {
           </div>
         )}
 
-        {items.length > 0 && (
+        {items.length > 0 && view === "trash" && (
+          <div className={GRID} data-testid="trash-grid">
+            {items.map((asset) => (
+              <TrashTile key={asset.id} asset={asset} onRestore={() => restore(asset)} />
+            ))}
+          </div>
+        )}
+
+        {items.length > 0 && view !== "trash" && (
           <>
-            <div className={GRID} data-testid="library-grid">
-              {items.map((asset, index) => (
-                <AssetTile key={asset.id} asset={asset} fit="square" eager={index < 4} onOpen={() => {
-                    setOpenId(asset.id);
-                    setPinned(asset);
-                  }}
-                  onFavorite={(v) => void favorite(asset, v)}
-                  onDelete={() => remove(asset)}
-                  onRename={(name) => actions.rename(asset, name)} />
-              ))}
-            </div>
+            <Masonry
+              data-testid="library-grid"
+              columnWidth={TILE_WIDTH[size]}
+              items={items.map((asset, index) => ({
+                id: asset.id,
+                ratio: asset.width && asset.height ? asset.width / asset.height : asset.kind === "video" ? 16 / 9 : 1,
+                node: (
+                  <AssetTile
+                    asset={asset}
+                    eager={index < 4}
+                    onOpen={() => {
+                      setOpenId(asset.id);
+                      setPinned(asset);
+                    }}
+                    onFavorite={(v) => void favorite(asset, v)}
+                    onDelete={() => remove(asset)}
+                    onRename={(name) => actions.rename(asset, name)}
+                  />
+                ),
+              }))}
+            />
             <div ref={sentinel} className="flex justify-center py-6">
               {hasNextPage && (
                 <Button variant="secondary" size="sm" onClick={() => void fetchNextPage()} disabled={isFetchingNextPage}>
@@ -260,7 +276,26 @@ export function LibraryView() {
           onMove={(target) => move(openAsset, target)}
         />
       )}
-      {managing && <ProjectsDialog onClose={() => setManaging(false)} />}
+    </div>
+  );
+}
+
+/** A deleted item in the trash: a dimmed picture, its name, and Restore. */
+function TrashTile({ asset, onRestore }: { asset: AssetDto; onRestore: () => void }) {
+  const name = useAssetName(asset);
+  return (
+    <div className="flex flex-col gap-2" data-testid="trash-tile">
+      <div className="relative aspect-square overflow-hidden rounded-2xl border border-border bg-card">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={asset.thumbnailUrl} alt="" loading="lazy" decoding="async" className="size-full object-cover opacity-60" />
+      </div>
+      <div className="flex items-center justify-between gap-2">
+        <span className="truncate text-sm text-muted-foreground">{name}</span>
+        <Button variant="secondary" size="sm" onClick={onRestore} aria-label={`Restore ${name}`}>
+          <RotateCcw aria-hidden className="size-3.5" />
+          Restore
+        </Button>
+      </div>
     </div>
   );
 }

@@ -400,14 +400,11 @@ export async function sweepStuckVideos(): Promise<void> {
 }
 
 /** The newest clips (running, finished and failed), so a reload still shows what is in flight. */
-export async function listRecentVideoJobs(limit = 30): Promise<VideoJobDto[]> {
+export async function listRecentVideoJobs(limit = 30, projectId?: string | null): Promise<VideoJobDto[]> {
   await sweepStuckVideos();
-  const { data, error } = await db()
-    .from("generations")
-    .select(JOB_COLUMNS)
-    .eq("owner_id", OWNER_ID)
-    .eq("kind", "video")
-    .is("deleted_at", null)
+  let q = db().from("generations").select(JOB_COLUMNS).eq("owner_id", OWNER_ID).eq("kind", "video").is("deleted_at", null);
+  if (projectId) q = q.eq("project_id", projectId);
+  const { data, error } = await q
     .order("created_at", { ascending: false })
     .limit(Math.min(Math.max(Math.floor(limit), 1), 30));
   if (error) throw new Error(`Couldn't load your clips: ${error.message}`);

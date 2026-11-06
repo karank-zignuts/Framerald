@@ -1,5 +1,5 @@
 import sharp from "sharp";
-import { test, expect } from "./fixtures";
+import { test, expect , projectId } from "./fixtures";
 import type { Page } from "@playwright/test";
 
 // The Video Studio in the browser with the AI mocked (E2E_MOCK_AI=1). A mock clip takes about 2 seconds
@@ -149,7 +149,7 @@ test("presets are added to the prompt when you generate, and you can make your o
 test("animate an image: upload a first frame, pick a last one from the Library", async ({ page }) => {
   const png = await sharp({ create: { width: 64, height: 36, channels: 3, background: "#10b981" } }).png().toBuffer();
   const libraryPrompt = tag("a frame for the library");
-  await page.request.post("/api/generations", { data: { prompt: libraryPrompt } });
+  await page.request.post("/api/generations", { data: { projectId: projectId(), prompt: libraryPrompt } });
 
   await openVideo(page);
   await expect(page.getByRole("button", { name: "From Library" }).nth(1)).toBeDisabled(); // no last frame without a first
@@ -171,7 +171,7 @@ test("animate an image: upload a first frame, pick a last one from the Library",
 
 test("Animate this image from the Library, and re-running a clip's settings", async ({ page }) => {
   const imagePrompt = tag("a still to animate");
-  await page.request.post("/api/generations", { data: { prompt: imagePrompt } });
+  await page.request.post("/api/generations", { data: { projectId: projectId(), prompt: imagePrompt } });
   await page.goto("/library");
   await page.getByRole("button", { name: new RegExp(`^Open image: ${esc(imagePrompt)}$`) }).click(FIRST_PAINT);
   await page.getByRole("link", { name: "Animate this image" }).click();
@@ -200,7 +200,7 @@ test("Refine with agent writes a video-minded prompt, and Undo restores yours", 
 
 test("the Library filters: Images shows no clips, Videos shows no pictures", async ({ page }) => {
   const imageText = tag("only a picture");
-  await page.request.post("/api/generations", { data: { prompt: imageText } });
+  await page.request.post("/api/generations", { data: { projectId: projectId(), prompt: imageText } });
   await page.goto("/library?view=videos");
   await expect(page.getByRole("heading", { name: "Library", level: 1 })).toBeVisible(FIRST_PAINT);
   await expect(page.getByRole("button", { name: new RegExp(`^Open image: ${esc(imageText)}$`) })).toHaveCount(0);
@@ -216,7 +216,7 @@ test("a style preset in the Image studio is added to the prompt when you generat
   await page.goto("/image");
   await expect(page.getByRole("textbox", { name: "Prompt" })).toBeVisible(FIRST_PAINT);
   await expect(page.locator("summary").filter({ hasText: "Camera and look" })).toHaveCount(0); // camera moves are for video
-  await page.getByRole("button", { name: /^Look and project/ }).click(); // opens already expanded
+  await page.getByRole("button", { name: /^Look/ }).click(); // opens already expanded
   await expect(page.getByRole("radio", { name: "Slow dolly in" })).toHaveCount(0);
   await page.getByRole("radio", { name: "35mm film" }).click();
   await page.getByRole("textbox", { name: "Prompt" }).fill(text);

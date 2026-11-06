@@ -1,5 +1,5 @@
 import AxeBuilder from "@axe-core/playwright";
-import { test, expect } from "./fixtures";
+import { test, expect , projectId } from "./fixtures";
 import type { Page } from "@playwright/test";
 
 // An accessibility scan (axe, WCAG 2.0/2.1 A and AA) of every screen in its main states.
@@ -60,16 +60,29 @@ test("Agent, empty and with a shot list", async ({ page }) => {
   await scan(page, "agent, with a shot list");
 });
 
-test("Library, Spend and the projects dialog", async ({ page }) => {
-  await page.request.post("/api/generations", { data: { prompt: tag("for the library") } });
+test("Library, Projects, the switcher, Spend and the new-project dialog", async ({ page }) => {
+  await page.request.post("/api/generations", { data: { projectId: projectId(), prompt: tag("for the library") } });
   await page.goto("/library");
   await expect(page.getByTestId("asset-tile").first()).toBeVisible(FIRST_PAINT);
   await scan(page, "library");
 
-  await page.getByRole("button", { name: "Projects" }).click();
-  await expect(page.getByTestId("projects-dialog")).toBeVisible();
-  await scan(page, "projects dialog");
+  await page.getByRole("radio", { name: "Trash" }).click();
+  await expect(page.getByText("The trash is empty")).toBeVisible(FIRST_PAINT);
+  await scan(page, "library trash");
+
+  await page.locator("#sidebar").getByTestId("project-switcher").click();
+  await expect(page.getByRole("menuitem", { name: "Add project" })).toBeVisible();
+  await scan(page, "project switcher open");
+  await page.getByRole("menuitem", { name: "Add project" }).click();
+  await expect(page.getByRole("textbox", { name: "Project name" })).toBeVisible();
+  await scan(page, "new project dialog");
   await page.keyboard.press("Escape");
+
+  await page.goto("/projects");
+  await expect(page.getByTestId("project-card").first()).toBeVisible(FIRST_PAINT);
+  await scan(page, "projects page");
+  await page.getByRole("button", { name: "Trash" }).click();
+  await scan(page, "projects trash");
 
   await page.goto("/library?q=nothing-matches-this-at-all");
   await expect(page.getByText("No matches")).toBeVisible(FIRST_PAINT);

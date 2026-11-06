@@ -29,6 +29,10 @@ Date: 2026-11-05. State: Phases 0 to 4 done and pushed (latest commit `723d63f`)
 
 The owner confirmed the plan (sidebar kept and made collapsible, docked Image composer, no "How it works") and the work is built and tested. Details, decisions and accepted limits are in `docs/plans/phase-5-layout.md`. Sections 4 and 5 below are the original study and proposal, kept for reference.
 
+## 3c. Phase 6: projects and glass (done 2026-11-06)
+
+Projects now own their work (`/p/<id>/...`), with a switcher, a Projects page and trash. The look is glass over zinc. Details: `docs/plans/phase-6-projects-glass.md`. Open: the owner is choosing a new dark tone from six options; one empty duplicate project ("Nov 06 - 11:44") from a test race should be deleted from the Projects page.
+
 ## 4. The Higgsfield layout study (reference)
 
 The owner asked: study https://higgsfield.ai/ai/ (Image and Video sections) hands-on, assume nothing, and rebuild the same layout. **No layout changes until the owner confirms.**
