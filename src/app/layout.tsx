@@ -21,14 +21,14 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    // suppressHydrationWarning: browser extensions add attributes to <html> and <body> before React loads,
-    // which is a harmless mismatch. It only covers these two elements' own attributes, not anything inside.
+    // suppressHydrationWarning: browser extensions add attributes to <html>, <head> and <body> before React loads,
+    // which is a harmless mismatch. It only covers these three elements' own attributes, not anything inside.
     <html
       lang="en"
       className={`dark ${geistSans.variable} ${geistMono.variable} h-full antialiased`}
       suppressHydrationWarning
     >
-      <head>
+      <head suppressHydrationWarning>
         {/* Runs before the first paint: copies the saved sidebar state onto <html>, so the CSS can draw it hidden from the start. */}
         <script
           dangerouslySetInnerHTML={{
