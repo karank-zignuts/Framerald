@@ -443,7 +443,7 @@ export function VideoComposer({
             {formatCost(estimate)}
           </span>
         </div>
-        <StarBorder className="flex w-full">
+        <StarBorder className="-m-1 flex w-[calc(100%+0.5rem)]">
           <Button
             type="submit"
             size="lg"

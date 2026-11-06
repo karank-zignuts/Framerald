@@ -583,7 +583,7 @@ export function Composer({
             >
               <PenLine aria-hidden className={cn("size-4", refining && "motion-safe:animate-pulse")} />
             </Button>
-            <StarBorder>
+            <StarBorder className="-m-1">
             <Button
               type="submit"
               size="lg"

@@ -387,13 +387,19 @@ html {
   }
 }
 
-/* Star border: two brand-coloured stars run along a button's edge for as long as the button is active. They fade out when it is
-   disabled and back in when it is enabled again. */
+/* Star border: a 1px ring (a faint accent hairline) with two bright stars travelling along it, for as long as the button is active.
+   The ring is the element's padding box minus its content box (a mask), so the stars show only on the ring, and the gap
+   inside it stays dark. It fades out when the button is disabled and back in when it is enabled again. */
 .star-border-stars {
   position: absolute;
   inset: 0;
-  overflow: hidden;
+  padding: 1px;
   border-radius: inherit;
+  background: color-mix(in oklab, var(--brand) 24%, transparent);
+  -webkit-mask: linear-gradient(black 0 0) content-box, linear-gradient(black 0 0);
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(black 0 0) content-box exclude, linear-gradient(black 0 0);
+  overflow: hidden;
   opacity: 1;
   pointer-events: none;
   transition: opacity var(--transition-duration-slow) ease;
@@ -401,46 +407,42 @@ html {
 .star-border:has(:disabled) .star-border-stars {
   opacity: 0;
 }
+/* Each star is a small soft light that crosses the ring end to end and back: one along the top, one along the bottom, in opposite
+   directions. It is centred on the ring's edge, so the ring mask shows exactly the part that sits on it. */
 .star-border-bottom,
 .star-border-top {
   position: absolute;
-  width: 300%;
-  height: 50%;
-  border-radius: 9999px;
-  background: radial-gradient(circle, var(--foreground), transparent 12%);
-  animation-duration: 5s;
-  animation-timing-function: linear;
+  left: 0;
+  width: 100%;
+  height: 24px;
+  background: radial-gradient(circle 44px at 50% 50%, var(--foreground), transparent);
+  animation-duration: 3.2s;
+  animation-timing-function: ease-in-out;
   animation-iteration-count: infinite;
   animation-direction: alternate;
 }
 .star-border-bottom {
-  bottom: -11px;
-  right: -250%;
+  bottom: -12px;
   animation-name: star-movement-bottom;
 }
 .star-border-top {
-  top: -10px;
-  left: -250%;
+  top: -12px;
   animation-name: star-movement-top;
 }
 @keyframes star-movement-bottom {
-  0% {
-    transform: translate(0%, 0%);
-    opacity: 1;
+  from {
+    transform: translateX(120%);
   }
-  100% {
-    transform: translate(-100%, 0%);
-    opacity: 0;
+  to {
+    transform: translateX(-120%);
   }
 }
 @keyframes star-movement-top {
-  0% {
-    transform: translate(0%, 0%);
-    opacity: 1;
+  from {
+    transform: translateX(-120%);
   }
-  100% {
-    transform: translate(100%, 0%);
-    opacity: 0;
+  to {
+    transform: translateX(120%);
   }
 }
 @media (prefers-reduced-motion: reduce) {

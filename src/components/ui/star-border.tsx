@@ -1,12 +1,16 @@
 import { cn } from "@/lib/utils";
 
 /**
- * Wraps a button so two bright "stars" travel along its edge for as long as the button is active, after React Bits' Star Border.
- * A disabled button shows nothing, and the stars fade in when it is enabled. The wrapper's radius is the button's plus its 2px ring.
+ * A thin ring around a button, with a small gap between the two, and two bright "stars" that travel along that ring (after React
+ * Bits' Star Border). The ring and the stars show for as long as the button is active and fade out when it is disabled. The gap is
+ * dark, so the stars read against it instead of blending into the button.
+ *
+ * Geometry: 1px ring, 3px gap, so the wrapper pads the button by 4px and its radius is the button's plus 4px. Pass a negative margin
+ * (`-m-1`) where the ring should hang outside the button's own footprint instead of making its row taller.
  */
 export function StarBorder({ className, children }: { className?: string; children: React.ReactNode }) {
   return (
-    <span className={cn("star-border relative inline-flex overflow-hidden rounded-[0.875rem] p-[2px]", className)}>
+    <span className={cn("star-border relative inline-flex rounded-[1rem] p-1", className)}>
       <span aria-hidden className="star-border-stars">
         <span className="star-border-bottom" />
         <span className="star-border-top" />

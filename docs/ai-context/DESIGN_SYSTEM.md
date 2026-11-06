@@ -110,7 +110,7 @@ The sidebar is a full-height glass panel flush with the top, left and bottom of 
 - Cursors say what a control will do: pointing hand for ordinary controls (set in the base layer, so a utility can override it), a resize arrow for the sidebar edges and its toggle (`w-resize` to hide, `e-resize` to show).
 - The project you are in is highlighted in the switcher and on the Projects page.
 - Every glass surface has a faint accent-tinted edge.
-- Generate has a star border (two bright glints travelling its edge) for as long as it is enabled. It fades out when the button is disabled.
+- Generate has a star border: a 1px accent hairline ring, a 3px dark gap, and two bright glints travelling the ring, for as long as the button is enabled. It fades out when the button is disabled.
 - Loading: a ripple (two rings growing and fading, `src/components/loading/ripple.tsx`) for anything that loads. `PageLoader` fills a page or panel, waits 200 ms before it appears so a quick load never flashes, then fades in. Small waits use `<Ripple />` inline. No skeleton cards and no placeholder boxes.
 - First paint: a script in the page head copies the saved sidebar state onto `<html>` before the first frame, so a hidden sidebar never flashes open. Its animation is off until the page has hydrated.
 
