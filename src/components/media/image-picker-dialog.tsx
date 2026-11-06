@@ -2,9 +2,10 @@
 
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
-import { Skeleton } from "@/components/ui/skeleton";
 import { useLibrary } from "@/features/library/queries";
 import type { AssetDto } from "@/features/library/types";
+import { PageLoader } from "@/components/loading/ripple";
+import { Ripple } from "@/components/loading/ripple";
 
 type Props = {
   onPick: (asset: AssetDto) => void;
@@ -23,11 +24,7 @@ export function ImagePickerDialog({ onPick, onClose }: Props) {
         <DialogDescription className="sr-only">Pick one of the images in your Library.</DialogDescription>
 
         {query.isPending && (
-          <div className="grid grid-cols-3 gap-2 sm:grid-cols-4" role="status" aria-label="Loading images">
-            {Array.from({ length: 8 }, (_, i) => (
-              <Skeleton key={i} className="aspect-square rounded-md" />
-            ))}
-          </div>
+          <PageLoader />
         )}
         {query.isError && (
           <div role="alert" className="flex flex-col items-start gap-2 text-sm">
@@ -58,7 +55,7 @@ export function ImagePickerDialog({ onPick, onClose }: Props) {
         )}
         {query.hasNextPage && (
           <Button variant="secondary" size="sm" className="w-fit" onClick={() => void query.fetchNextPage()} disabled={query.isFetchingNextPage}>
-            {query.isFetchingNextPage ? "Loading" : "Load more"}
+            {query.isFetchingNextPage ? <><Ripple label="Loading more" className="size-4" /> Loading</> : "Load more"}
           </Button>
         )}
       </DialogContent>

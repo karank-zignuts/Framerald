@@ -25,7 +25,7 @@ async function makeImage(page: Page, text: string) {
   await expect(page.getByTestId("asset-tile").first()).toBeVisible({ timeout: 30_000 });
 }
 
-// These tests read the grouped (Batch) layout: its cost line and per-generation alerts. Grid is the default and has its own spec in phase5.spec.ts.
+// These tests read the grouped (Batch) layout: its cost line and per-generation alerts. Masonry is the default and has its own spec in phase5.spec.ts.
 test.beforeEach(async ({ page }) => {
   await page.addInitScript(() => localStorage.setItem("framerald.view", JSON.stringify({ mode: "batch" })));
 });

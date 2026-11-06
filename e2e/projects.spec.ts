@@ -35,9 +35,9 @@ test("the switcher shows the project, lists the others, and keeps you on the sam
   const other = await makeProject(request, tag("second"));
   await page.goto(`/p/${projectId()}/video`);
   await expect(switcher(page)).toContainText("[e2e] studio", FIRST_PAINT);
-  await expect(page.getByRole("navigation", { name: "Breadcrumb" })).toContainText("Video");
-
   await switcher(page).click();
+  await expect(page.locator("[role=menuitem][data-current]")).toContainText("[e2e] studio"); // the project you are in is marked
+  await expect(page.getByRole("navigation", { name: "Breadcrumb" })).toContainText("Video");
   await expect(page.getByRole("menuitem", { name: new RegExp(other.name.replace(/[[\]]/g, "\\$&")) })).toBeVisible();
   await page.getByRole("menuitem", { name: new RegExp(other.name.replace(/[[\]]/g, "\\$&")) }).click();
   await expect(page).toHaveURL(new RegExp(`/p/${other.id}/video$`));

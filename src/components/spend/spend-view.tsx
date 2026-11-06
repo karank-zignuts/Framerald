@@ -1,12 +1,12 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { Skeleton } from "@/components/ui/skeleton";
 import { modelLabel } from "@/lib/ai/models";
 import { formatMoney } from "@/lib/format";
 import type { UsageKind } from "@/features/spend/aggregate";
 import { useSpend } from "@/features/spend/queries";
 import type { SpendDto } from "@/features/spend/server";
+import { PageLoader } from "@/components/loading/ripple";
 
 const KIND_LABEL: Record<UsageKind, string> = { image: "Images", video: "Video", agent: "Agent", other: "Other" };
 
@@ -112,10 +112,7 @@ export function SpendView() {
       </header>
 
       {query.isPending && (
-        <div role="status" aria-label="Loading spend" className="flex flex-col gap-4">
-          <Skeleton className="h-10 w-48" />
-          <Skeleton className="h-40 w-full" />
-        </div>
+        <PageLoader label="Loading spend" />
       )}
 
       {query.isError && (

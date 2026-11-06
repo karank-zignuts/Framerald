@@ -4,7 +4,6 @@ import { Image as ImageIcon, RotateCcw } from "lucide-react";
 import { useEffect, useRef } from "react";
 import type { useLibrary } from "@/features/library/queries";
 import { Button } from "@/components/ui/button";
-import { Skeleton } from "@/components/ui/skeleton";
 import { Masonry, type MasonryItem } from "@/components/media/masonry";
 import { TILE_WIDTH, useViewSettings } from "@/features/view/settings";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -15,6 +14,8 @@ import { formatCost } from "@/lib/format";
 import type { GenerateInput } from "@/features/generations/api";
 import type { GenerationResult } from "@/features/generations/types";
 import type { AssetDto } from "@/features/library/types";
+import { PageLoader } from "@/components/loading/ripple";
+import { Ripple } from "@/components/loading/ripple";
 
 export type Batch = {
   key: string;
@@ -71,14 +72,12 @@ function LoadMore({ query }: { query: Props["history"] }) {
     <div ref={sentinel} className="flex justify-center py-4">
       {hasNextPage && (
         <Button variant="secondary" size="sm" onClick={() => void fetchNextPage()} disabled={isFetchingNextPage}>
-          {isFetchingNextPage ? "Loading" : "Load more"}
+          {isFetchingNextPage ? <><Ripple label="Loading more" className="size-4" /> Loading</> : "Load more"}
         </Button>
       )}
     </div>
   );
 }
-
-const PLACEHOLDER_RATIOS = [1, 0.75, 1.33, 1, 0.8, 1.5, 1, 0.66];
 
 function FailedBatch({ batch, onRetry }: { batch: Batch; onRetry: (batch: Batch) => void }) {
   return (
@@ -100,14 +99,7 @@ export function Results({ history, batches, onOpen, onFavorite, onDelete, onRena
   const historyItems = history.data?.pages.flatMap((p) => p.items) ?? [];
 
   if (view.mode === "grid" && batches.length === 0 && history.isPending) {
-    return (
-      <div className="mx-auto w-full max-w-[110rem] p-5" role="status" aria-label="Loading">
-        <Masonry
-          columnWidth={width}
-          items={PLACEHOLDER_RATIOS.map((ratio, i) => ({ id: `placeholder-${i}`, ratio, node: <Skeleton className="size-full rounded-2xl" /> }))}
-        />
-      </div>
-    );
+    return <PageLoader />;
   }
 
   if (batches.length === 0 && (view.mode === "batch" || historyItems.length === 0)) {

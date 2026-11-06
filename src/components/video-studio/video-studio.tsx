@@ -2,11 +2,11 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { useSearchParams } from "next/navigation";
-import { Skeleton } from "@/components/ui/skeleton";
 import { parseVideoPrefill } from "@/features/agent/prefill";
 import { fetchAsset } from "@/features/generations/api";
 import { fetchVideoReRunSettings } from "@/features/videos/api";
 import { VideoWorkspace, type VideoInitial } from "./video-workspace";
+import { PageLoader } from "@/components/loading/ripple";
 
 /**
  * Reads `?from=<clip>` (re-run its settings), `?first=<image>` (animate that image)
@@ -44,12 +44,7 @@ export function VideoStudio() {
   });
 
   if ((from || first) && initialQuery.isPending) {
-    return (
-      <div className="flex flex-1 flex-col gap-4 p-5" role="status" aria-label="Loading settings">
-        <Skeleton className="h-6 w-24" />
-        <Skeleton className="h-32 w-full max-w-sm rounded-lg" />
-      </div>
-    );
+    return <PageLoader label="Loading settings" />;
   }
 
   const notice = initialQuery.isError

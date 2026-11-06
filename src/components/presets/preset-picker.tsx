@@ -13,6 +13,7 @@ import { createPresetRequest, deletePresetRequest } from "@/features/presets/api
 import { presetKeys, usePresets } from "@/features/presets/queries";
 import type { PresetGroup, PresetKind, PresetTemplate } from "@/features/presets/templates";
 import { cn } from "@/lib/utils";
+import { Ripple } from "@/components/loading/ripple";
 
 type Props = {
   kind: PresetKind;
@@ -95,7 +96,7 @@ export function PresetPicker({ kind, selected, onChange, defaultOpen }: Props) {
         </span>
       </summary>
       <div className="flex flex-col gap-3 border-t border-border p-3">
-      {query.isPending && <p className="text-xs text-muted-foreground">Loading presets</p>}
+      {query.isPending && <Ripple label="Loading presets" className="size-5" />}
       {query.isError && (
         <p role="alert" className="text-xs">
           Couldn&apos;t load presets.{" "}

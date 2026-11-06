@@ -18,4 +18,5 @@ Server: project list with counts and a cover, project and image trash with Resto
 - The digit shortcut stops at 9 and only works while the switcher is open, because browsers keep Cmd+1 to 9 for tabs.
 - The project list counts and covers read at most 5,000 items in total.
 - Unsorted has only a Library.
-- The dark tone is being reviewed: six options were shown to the owner.
+- The theme is Void black with a Cool white accent, defined once in globals.css and guarded by src/theme.test.ts. A change of tone or accent is a change to one block.
+- The reference page for the sliding tabs only describes the effect in text ("pill indicator follows the active tab"), so the timing is this app's own spring, matched to the segmented control.

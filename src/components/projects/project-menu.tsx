@@ -21,7 +21,7 @@ export function ProjectMenu({ project, className, afterDelete }: { project: Proj
       <DropdownMenu>
         <DropdownMenuTrigger
           aria-label={`Actions for ${project.name}`}
-          className={cn("flex size-8 items-center justify-center rounded-md text-muted-foreground transition-colors duration-fast hover:bg-secondary hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring", className)}
+          className={cn("flex size-8 items-center justify-center rounded-md text-muted-foreground transition-colors duration-fast hover:bg-[var(--wash-hover)] hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring", className)}
         >
           <MoreVertical aria-hidden className="size-4" />
         </DropdownMenuTrigger>

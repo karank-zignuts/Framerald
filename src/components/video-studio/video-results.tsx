@@ -5,11 +5,11 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
-import { Skeleton } from "@/components/ui/skeleton";
 import { useScopedHref } from "@/features/projects/context";
 import { GeneratingBackdrop, GeneratingCorners } from "@/components/media/generating";
 import { downloadUrl, extensionFor, formatCost } from "@/lib/format";
 import type { VideoJobDto } from "@/features/videos/types";
+import { PageLoader } from "@/components/loading/ripple";
 
 type Props = {
   jobs: VideoJobDto[] | undefined;
@@ -125,11 +125,7 @@ function JobCard({ job, onTryAgain, retrying }: { job: VideoJobDto; onTryAgain: 
 
 export function VideoResults({ jobs, isPending, error, onRetryLoad, onTryAgain, retryingIds }: Props) {
   if (isPending) {
-    return (
-      <div className="flex flex-col gap-4 p-5" role="status" aria-label="Loading clips">
-        <Skeleton className="aspect-video w-full max-w-2xl rounded-lg" />
-      </div>
-    );
+    return <PageLoader label="Loading clips" />;
   }
   if (error) {
     return (

@@ -92,8 +92,8 @@ export function ModelPickerPanel({ value, onChange, onClose }: { value: ImageMod
                   onClose();
                 }}
                 className={cn(
-                  "flex items-center gap-3 rounded-xl px-2 py-2 text-left transition-colors duration-fast hover:bg-accent/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-                  selected && "bg-secondary",
+                  "flex items-center gap-3 rounded-xl px-2 py-2 text-left transition-colors duration-fast hover:bg-[var(--wash-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                  selected && "bg-[var(--wash-active)]",
                 )}
               >
                 <ProviderTile active={selected} />

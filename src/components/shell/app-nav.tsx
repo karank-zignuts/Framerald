@@ -25,7 +25,7 @@ function NavLink({ item, compact, collapsed }: { item: Item; compact?: boolean; 
         "flex items-center gap-2.5 rounded-lg px-3 text-sm transition-colors duration-fast",
         collapsed && "justify-center px-0",
         compact ? "h-9 shrink-0" : "h-10",
-        item.active ? "bg-secondary text-foreground" : "text-muted-foreground hover:bg-secondary/60 hover:text-foreground",
+        item.active ? "bg-[var(--wash-active)] text-foreground" : "text-muted-foreground hover:bg-[var(--wash-hover)] hover:text-foreground",
         focusRing,
       )}
     >
@@ -54,7 +54,7 @@ function SignOut({ compact, collapsed }: { compact?: boolean; collapsed?: boolea
       }}
       title={collapsed ? "Sign out" : undefined}
       className={cn(
-        "flex items-center gap-2.5 rounded-lg px-3 text-sm text-muted-foreground transition-colors duration-fast hover:bg-secondary/60 hover:text-foreground",
+        "flex items-center gap-2.5 rounded-lg px-3 text-sm text-muted-foreground transition-colors duration-fast hover:bg-[var(--wash-hover)] hover:text-foreground",
         compact ? "h-9 shrink-0" : "h-10",
         collapsed && "justify-center px-0",
         focusRing,
@@ -94,6 +94,14 @@ function useItems(): { project: Item[]; global: Item[] } {
 export function AppNav() {
   const collapsed = useCollapsed();
   const items = useItems();
+
+  // The page-head script turned animation off for the first frame (data-boot). From here on the sidebar animates as normal.
+  useEffect(() => {
+    const frame = requestAnimationFrame(() => {
+      delete document.documentElement.dataset.boot;
+    });
+    return () => cancelAnimationFrame(frame);
+  }, []);
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
@@ -151,14 +159,14 @@ export function AppNav() {
       </aside>
 
       {/* With the sidebar hidden, the whole left edge of the screen is one strip: it lights up top to bottom on hover, and a click anywhere on it brings the sidebar back. */}
-      {collapsed && (
+      {(
         <button
           type="button"
           data-testid="sidebar-edge"
           onClick={() => setCollapsed(false)}
           aria-label="Show sidebar"
           title="Show sidebar (Ctrl+B)"
-          className="group/edge fixed inset-y-0 left-0 z-40 hidden w-5 cursor-e-resize focus-visible:outline-none lg:block"
+          className="group/edge fixed inset-y-0 left-0 z-40 hidden w-5 cursor-e-resize focus-visible:outline-none lg:[html[data-sidebar=collapsed]_&]:block"
         >
           <span aria-hidden className="absolute inset-0 bg-gradient-to-r from-brand/0 to-transparent opacity-0 transition-[opacity,background-color] duration-base group-hover/edge:from-brand/20 group-hover/edge:opacity-100 group-focus-visible/edge:from-brand/20 group-focus-visible/edge:opacity-100" />
           <span

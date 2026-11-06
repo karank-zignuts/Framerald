@@ -16,7 +16,7 @@ import { cn } from "@/lib/utils";
 
 const focusRing = "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
 const iconButton = cn(
-  "flex size-8 items-center justify-center rounded-md text-foreground transition-colors duration-fast hover:bg-secondary",
+  "flex size-8 items-center justify-center rounded-md text-foreground transition-colors duration-fast hover:bg-[var(--wash-hover)]",
   focusRing,
 );
 // Shown on hover or keyboard focus; always on touch screens, which have no hover.

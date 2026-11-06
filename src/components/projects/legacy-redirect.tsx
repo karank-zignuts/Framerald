@@ -3,10 +3,10 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useRef } from "react";
-import { Skeleton } from "@/components/ui/skeleton";
 import { createProjectRequest } from "@/features/projects/api";
 import { defaultProjectName } from "@/features/projects/name";
 import { lastProjectId, projectKeys, useProjectsData } from "@/features/projects/queries";
+import { PageLoader } from "@/components/loading/ripple";
 
 /**
  * The old addresses (/image, /video, /agent, /library) and the home page. They send you to the same page inside the project you
@@ -35,10 +35,5 @@ export function LegacyRedirect({ section }: { section: "image" | "video" | "agen
     });
   }, [projects.isSuccess, projects.data, params, router, section, qc]);
 
-  return (
-    <div className="flex flex-1 flex-col gap-4 p-5" role="status" aria-label="Loading">
-      <Skeleton className="h-6 w-32" />
-      <Skeleton className="h-32 w-full max-w-sm rounded-lg" />
-    </div>
-  );
+  return <PageLoader />;
 }

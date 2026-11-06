@@ -7,7 +7,7 @@ Date: 2026-11-05. State: Phases 0 to 4 done and pushed (latest commit `723d63f`)
 - Phases 0 to 3: Image Studio, Agent, Video Studio, presets, Library. Verified with a few real Vertex calls (images about $0.04, one 4 s Veo clip about $0.12).
 - Phase 4: Spend page, projects, Library search, password gate (`src/proxy.ts`), `/api/cron/videos`, signed direct uploads, axe accessibility spec, copy pass, `docs/DEPLOY.md`. No real model calls.
 - Checks at the last run: lint, typecheck, 160 unit tests, 83 browser tests passed (1 skipped: the screenshot spec, which needs `E2E_SHOTS=1`), production build clean.
-- Brand accent is green `#7ad950` (the owner's change; do not revert).
+- Brand accent is Cool white `#E8F0FB` on the Void black ladder (the owner's choice; do not revert). See `docs/ai-context/DESIGN_SYSTEM.md`.
 - Plans and outcomes: `docs/plans/phase-*.md`. Roadmap: `docs/ai-context/ROADMAP.md`.
 
 ## 2. Owner steps still open
@@ -117,7 +117,7 @@ Real routes: `/ai/` is a 404. Use `/ai/image?model=gpt_image_2` and `/ai/video` 
 1. Image Studio: one full-width canvas; results above, composer docked bottom-centre; chips open small upward menus; a searchable model popover; View and help at top-right.
 2. Video Studio: 320 px left control panel plus a right stage (History | How it works); presets open in the right stage.
 3. Shell: a slim top bar instead of the sidebar. Biggest decision.
-4. Keep our own: green `#7ad950`, our copy, BorderBeam on the prompt box only, and the Library, Spend, Agent and Projects pages. Copy layout patterns only, not assets, branding or text.
+4. Keep our own: Cool white, our copy, BorderBeam on the prompt box only, and the Library, Spend, Agent and Projects pages. Copy layout patterns only, not assets, branding or text.
 5. Mobile: keep our working phone layout (Higgsfield has none).
 
 Open questions for the owner: replace the sidebar with a top bar? Dock the Image composer at the bottom? Anything to change before starting?

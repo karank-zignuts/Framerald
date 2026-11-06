@@ -4,7 +4,7 @@
 
 Status: **v1.0**, 2026-11-05
 
-Source: **Cinematic Dark** (`https://better-design.com/design-systems/cinematic-dark`), installed as source from its shadcn registry. The only thing taken from **Beam Lib** (`https://better-design.com/design-systems/beam-lib`) is the rainbow border beam. The brand accent is **green `#7ad950`** (the owner's pick; it started as emerald).
+Source: **Cinematic Dark** (`https://better-design.com/design-systems/cinematic-dark`), installed as source from its shadcn registry. The only thing taken from **Beam Lib** (`https://better-design.com/design-systems/beam-lib`) is the rainbow border beam. The brand accent is **Cool white `#E8F0FB`** (the owner's pick, after emerald, green and mint) on a **Void black** dark tone.
 
 ---
 
@@ -27,34 +27,42 @@ npx shadcn@4.23.0 add https://better-design.com/registry/cinematic-dark/<name>.j
 
 The full list is in `https://better-design.com/registry/cinematic-dark/all.json`. We installed a core set in Phase 0 and add more as screens need them.
 
-## 2. Tokens
+## 2. Tokens (the theme)
 
-The surface tokens in `globals.css` started as Cinematic Dark and were retuned on 2026-11-05 to the zinc steps below, so panels, menus and chips read as separate layers instead of one flat dark. Our additions sit around it: a Hallmark stamp and waivers on top, the brand tokens and the page-level rules (overflow clip, themed scrollbar, reduced-motion pulse) below.
+The theme is one block at the top of `globals.css`. It is the only place colours are chosen. Everything else, in CSS and in components, uses tokens: Tailwind classes such as `bg-card` and `text-muted-foreground`, or the variables below. `src/theme.test.ts` fails if a loose hex, `rgb()` or `oklch()` appears in app code, if two neighbouring dark steps get closer than 3 lightness points, or if text or the accent stop being readable on them.
 
-| Token | Value | Use |
-|---|---|---|
-| `background` | `#131316`, `oklch(0.1881 0.006 285.81)` | Page. Zinc, not pure black |
-| `card` | `#18181B` (zinc-900) | Sidebar, panels |
-| `popover` | `#1F1F23` | Composer, menus, dialogs |
-| `secondary` / `muted` | `#27272A` (zinc-800) | Chips, inputs, placeholders |
-| `accent` | `#323236` | **Hover surface**, not the brand color |
-| `border` | `#3F3F46` (zinc-700) at 70% | Hairlines you can see |
-| `foreground` / `primary` | white | Text, primary buttons |
-| `muted-foreground` | `#A1A1AA` (zinc-400) | Secondary text (passes AA on every surface above) |
-| `radius` | `0.75rem` | Base radius |
+### Void black, the dark ladder
 
-## 3. Brand accent: green #7ad950
+Seven steps about 4 lightness points apart, so a surface is never the same dark as the one beneath it.
 
-Cinematic Dark's `accent` is a hover surface, so the brand color has its own tokens: `bg-brand`, `text-brand`, `bg-brand-muted`, `text-brand-foreground`.
+| Step | Value | Used for | Semantic token |
+|---|---|---|---|
+| `tone-0` | `#060607` | The page | `background` |
+| `tone-1` | `#0F0F11` | Panels: sidebar, cards, tiles | `card` |
+| `tone-2` | `#171719` | Floating: menus, popovers, the dock, dialogs | `popover` |
+| `tone-3` | `#1F1F22` | Controls: inputs, chips | `secondary`, `input` |
+| `tone-4` | `#27272B` | Raised fills, skeletons, selected rows | `muted` |
+| `tone-5` | `#313136` | Hover surface | `accent` (the DS hover surface, not the brand) |
+| `tone-6` | `#46464C` | Hairlines, at 70% | `border` |
+| `tone-text` | near white | Text | `foreground` |
+| `tone-text-muted` | `#A6A6AD` | Secondary text | `muted-foreground` |
+
+States are washes laid over any surface, so a state always reads as one step up: `--wash-hover` 7%, `--wash-active` 12%, `--wash-selected` 16% of the text colour. Use `hover:bg-[var(--wash-hover)]` and `bg-[var(--wash-active)]`.
+
+Other tokens: `radius` is `0.75rem` (the base). The destructive colour is a red kept out of the ladder. Shadows use `--shadow-ink`.
+
+## 3. Brand accent: Cool white
+
+Cinematic Dark's `accent` is a hover surface, so the brand colour has its own tokens: `bg-brand`, `text-brand`, `bg-brand-muted`, `text-brand-foreground`.
 
 | Token | Value |
 |---|---|
-| `brand` | `#7ad950`, which is `oklch(0.7985 0.1953 137.46)` |
-| `brand-strong` | `oklch(0.73 0.18 137.46)`, a step darker (hover / pressed) |
+| `brand` | `accent-white`, `#E8F0FB`, `oklch(0.9523 0.0171 256.28)` |
+| `brand-strong` | `accent-white-strong`, `#D1D8E2`, for hover and pressed |
 | `brand-muted` | the brand at 14% (tinted chips, selected states) |
-| `brand-foreground` | the page background (dark text on the brand, about 14:1 contrast) |
+| `brand-foreground` | `tone-0`, the page colour (text on the brand, above 15:1) |
 
-Use the brand color for: the one main action on a screen (Generate), the active nav item, progress of a running job, the logo. Never as a big fill or for decoration.
+Use the brand colour for: the one main action on a screen (Generate), the active nav icon, the project tile, the star border and the edge highlights. Never as a big fill or for decoration. Because it is white, state can't rest on colour alone: active rows also get a wash.
 
 ## 3b. Spacing
 
@@ -93,6 +101,18 @@ Every glass surface has a 1 px hairline (`--glass-border`), a 1 px top highlight
 - Floating glass fades in from a 10 px blur and out to an 8 px blur. Pages fade in from a blur. Nothing cuts.
 
 The sidebar is a full-height glass panel flush with the top, left and bottom of the screen. It hides completely (button in the header, Ctrl or Cmd + B, or a click on its right edge, which glows with the accent on hover). While hidden, the whole left edge of the screen is one strip that glows top to bottom and brings it back on click.
+
+## 3d. Motion and interaction details
+
+- Tabs have one pill that follows the active tab (`src/components/sliding-tabs.tsx`, and the segmented control). It glides and resizes to the new tab in one spring, and its label colours fade with it. With reduced motion it just appears.
+- The chip strip's arrows float over its ends and take no room, so nothing moves when they appear. The attach button is pinned and never scrolls.
+- The dock has a faint flowing gradient (white, from the accent tokens) while it isn't focused. It fades out when you click into it and back when you leave. Its edge is lit slightly from the accent, a little more while focused.
+- Cursors say what a control will do: pointing hand for ordinary controls (set in the base layer, so a utility can override it), a resize arrow for the sidebar edges and its toggle (`w-resize` to hide, `e-resize` to show).
+- The project you are in is highlighted in the switcher and on the Projects page.
+- Every glass surface has a faint accent-tinted edge.
+- Generate has a star border (two bright glints travelling its edge) for as long as it is enabled. It fades out when the button is disabled.
+- Loading: a ripple (two rings growing and fading, `src/components/loading/ripple.tsx`) for anything that loads. `PageLoader` fills a page or panel, waits 200 ms before it appears so a quick load never flashes, then fades in. Small waits use `<Ripple />` inline. No skeleton cards and no placeholder boxes.
+- First paint: a script in the page head copies the saved sidebar state onto `<html>` before the first frame, so a hidden sidebar never flashes open. Its animation is off until the page has hydrated.
 
 ## 4. BorderBeam (not used)
 

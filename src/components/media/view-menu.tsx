@@ -35,16 +35,16 @@ export function ViewMenu({
               value={view.mode}
               onValueChange={(v) => updateView({ mode: v as "grid" | "batch" })}
               options={[
-                { value: "grid", label: "Grid" },
+                { value: "grid", label: "Masonry" },
                 { value: "batch", label: "Batch" },
               ]}
             />
           </div>
         )}
         <div className="flex flex-col gap-2">
-          <span className="text-sm text-muted-foreground">Grid size</span>
+          <span className="text-sm text-muted-foreground">Size</span>
           <SegmentedControl
-            label="Grid size"
+            label="Size"
             value={view.size}
             onValueChange={(v) => updateView({ size: v as "s" | "m" | "l" })}
             options={[

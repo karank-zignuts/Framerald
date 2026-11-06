@@ -2,10 +2,10 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { useSearchParams } from "next/navigation";
-import { Skeleton } from "@/components/ui/skeleton";
 import { parsePrefill } from "@/features/agent/prefill";
 import { fetchAsset, fetchReRunSettings } from "@/features/generations/api";
 import { StudioWorkspace, type StudioInitial } from "./studio-workspace";
+import { PageLoader } from "@/components/loading/ripple";
 
 /**
  * Reads `?from=<generation>` (re-run its settings), `?edit=<asset>` (use it as
@@ -29,13 +29,7 @@ export function ImageStudio() {
   });
 
   if ((from || edit) && initialQuery.isPending) {
-    return (
-      <div className="flex flex-1 flex-col gap-4 p-5" role="status" aria-label="Loading settings">
-        <Skeleton className="h-6 w-24" />
-        <Skeleton className="h-32 w-full max-w-sm rounded-lg" />
-        <Skeleton className="h-10 w-full max-w-sm rounded-lg" />
-      </div>
-    );
+    return <PageLoader label="Loading settings" />;
   }
 
   const notice = initialQuery.isError ? `Couldn't load those settings: ${initialQuery.error.message}` : null;

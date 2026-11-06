@@ -19,6 +19,7 @@ test("the sidebar hides completely, stays hidden after a reload, and comes back 
 
   // The whole left edge is one clickable strip, from top to bottom.
   const show = page.getByRole("button", { name: "Show sidebar" });
+  await expect(show).toHaveCSS("cursor", "e-resize"); // a direction, not the pointing hand
   const box = (await show.boundingBox())!;
   expect(box.x).toBe(0);
   expect(box.height).toBeGreaterThan(600);
@@ -27,7 +28,9 @@ test("the sidebar hides completely, stays hidden after a reload, and comes back 
   await expect(page.locator("#sidebar")).toHaveAttribute("data-collapsed", "false");
   await expect(page.getByRole("link", { name: "Library" })).toBeVisible();
 
-  // The sidebar's own right edge hides it again.
+  // The sidebar's own right edge hides it again, and says which way it will go.
+  await expect(page.getByTestId("sidebar-rail")).toHaveCSS("cursor", "w-resize");
+  await expect(page.getByRole("button", { name: "Collapse sidebar" })).toHaveCSS("cursor", "w-resize");
   await page.getByTestId("sidebar-rail").click({ position: { x: 6, y: 200 } });
   await expect(page.locator("#sidebar")).toHaveAttribute("data-collapsed", "true");
   await page.keyboard.press("ControlOrMeta+b"); // the keyboard does both ways
@@ -88,7 +91,7 @@ async function makeOne(page: import("@playwright/test").Page, text: string, proj
 test("the history is one masonry grid, and the View menu changes its size and mode", async ({ page, request }) => {
   const project = await freshProject(request);
   await makeOne(page, tag("a red door in a white wall, soft light"), project);
-  await expect(page.getByTestId("batch")).toHaveCount(0); // Grid is the default, with no per-generation groups
+  await expect(page.getByTestId("batch")).toHaveCount(0); // Masonry is the default, with no per-generation groups
   await expect(page.getByTestId("history-grid")).toBeVisible();
   await expect(page.getByTestId("asset-tile")).toHaveCount(1);
 
@@ -193,20 +196,29 @@ test("the media picker offers uploads, generations and favourites, with sorting,
   await expect(page.getByTestId("reference")).toHaveCount(1);
 });
 
-test("when the chips don't fit, arrows appear beside them (not on top) and scroll the strip", async ({ page }) => {
+test("when the chips don't fit, arrows float over the strip and nothing moves or resizes", async ({ page }) => {
   await page.setViewportSize({ width: 1000, height: 760 });
   await page.goto("/image");
   const right = page.getByRole("button", { name: "Scroll options right" });
   await expect(right).toBeVisible(FIRST_PAINT);
-  const plus = page.getByRole("button", { name: "Add reference images" });
+  await page.waitForTimeout(800); // the page has finished fading in
   const left = page.getByRole("button", { name: "Scroll options left" });
+  const strip = page.getByTestId("chip-strip");
+  const plus = page.getByRole("button", { name: "Add reference images" });
+  const before = { strip: (await strip.boundingBox())!, plus: (await plus.boundingBox())! };
   await expect(left).toBeHidden(); // at the start there is nothing to the left
+
   await right.click();
   await expect(left).toBeVisible();
-  // The arrow sits beside the strip, never over it: the strip starts where the arrow ends.
-  const strip = plus.locator("xpath=..");
-  const [arrowBox, stripBox] = [await left.boundingBox(), await strip.boundingBox()];
-  expect(stripBox!.x).toBeGreaterThanOrEqual(arrowBox!.x + arrowBox!.width - 1);
+  await page.waitForTimeout(600); // the smooth scroll settles
+  const after = { strip: (await strip.boundingBox())!, plus: (await plus.boundingBox())! };
+  // The arrows took no room: the strip and the attach button are exactly where they were.
+  expect(after.strip).toEqual(before.strip);
+  expect(after.plus).toEqual(before.plus);
+  // And they sit on top of the strip, at its ends.
+  const arrow = (await left.boundingBox())!;
+  expect(arrow.x).toBeGreaterThanOrEqual(after.strip.x);
+  expect(arrow.x + arrow.width).toBeLessThanOrEqual(after.strip.x + after.strip.width);
 });
 
 test("renaming goes through the API: a bad name is refused, a good one is saved or says what is missing", async ({ request }) => {
@@ -224,4 +236,80 @@ test("renaming goes through the API: a bad name is refused, a good one is saved 
     const got = (await (await request.get(`/api/assets/${assetId}`)).json()) as { name: string | null };
     expect(got.name).toBe("Harbour at dawn");
   }
+});
+
+
+test("the dock's flowing gradient shows when it isn't focused and fades out when you click into it", async ({ page }) => {
+  await page.goto("/image");
+  const gradient = page.getByTestId("dock-gradient");
+  await expect(gradient).toBeAttached(FIRST_PAINT);
+  await expect.poll(async () => Number(await gradient.evaluate((el) => getComputedStyle(el).opacity))).toBeGreaterThan(0.3);
+
+  await page.getByRole("textbox", { name: "Prompt" }).focus();
+  await expect.poll(async () => Number(await gradient.evaluate((el) => getComputedStyle(el).opacity))).toBe(0);
+
+  await page.getByRole("heading", { name: "Image", level: 1 }).evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
+  await expect.poll(async () => Number(await gradient.evaluate((el) => getComputedStyle(el).opacity))).toBeGreaterThan(0.3);
+});
+
+test("the picker's tabs have one pill that glides to the active tab", async ({ page }) => {
+  await page.goto("/image");
+  await page.getByRole("button", { name: "Add reference images" }).click();
+  const tablist = page.getByRole("tablist", { name: "Where to pick from" });
+  await expect(tablist).toBeVisible(FIRST_PAINT);
+  const pill = tablist.getByTestId("sliding-pill");
+  const centre = async (loc: import("@playwright/test").Locator) => {
+    const b = (await loc.boundingBox())!;
+    return b.x + b.width / 2;
+  };
+  await expect(pill).toHaveCount(1);
+  expect(Math.abs((await centre(pill)) - (await centre(page.getByRole("tab", { name: "Uploads" }))))).toBeLessThan(2);
+
+  await page.getByRole("tab", { name: "Favourites" }).click();
+  await expect(pill).toHaveCount(1); // the same pill moves, a second one never appears
+  await expect.poll(async () => Math.abs((await centre(pill)) - (await centre(page.getByRole("tab", { name: "Favourites" }))))).toBeLessThan(2);
+  await expect(page.getByRole("tab", { name: "Favourites" })).toHaveAttribute("aria-selected", "true");
+});
+
+test("focusing the prompt shows no ring or box around it", async ({ page }) => {
+  await page.goto("/image");
+  const prompt = page.getByRole("textbox", { name: "Prompt" });
+  await prompt.focus();
+  await expect(prompt).toHaveCSS("outline-style", "none");
+  const shadow = await prompt.evaluate((el) => getComputedStyle(el).boxShadow);
+  expect((shadow.match(/-?[\d.]+px/g) ?? []).every((v) => parseFloat(v) === 0)).toBe(true); // only empty zero-size layers, no ring
+  await expect(prompt).toHaveCSS("border-top-width", "0px");
+});
+
+test("a hidden sidebar is hidden from the first frame, with no flash of it open", async ({ page }) => {
+  await page.addInitScript(() => localStorage.setItem("framerald.sidebar", "collapsed"));
+  const seen: number[] = [];
+  await page.exposeFunction("report", (w: number) => seen.push(w));
+  await page.addInitScript(() => {
+    const check = () => {
+      const el = document.getElementById("sidebar");
+      if (el) (window as unknown as { report: (w: number) => void }).report(el.getBoundingClientRect().width);
+    };
+    new MutationObserver(check).observe(document, { childList: true, subtree: true });
+    document.addEventListener("DOMContentLoaded", check);
+  });
+  await page.goto("/image");
+  await expect(page.locator("#sidebar")).toHaveAttribute("data-collapsed", "true", FIRST_PAINT);
+  expect(seen.length).toBeGreaterThan(0);
+  expect(Math.max(...seen)).toBe(0); // every time it was measured, from its first appearance, it took no room
+});
+
+test("the Generate button's star border shows while it is active and fades out when it is disabled", async ({ page }) => {
+  await page.goto("/image");
+  const prompt = page.getByRole("textbox", { name: "Prompt" });
+  await expect(prompt).toBeVisible(FIRST_PAINT);
+  const stars = page.locator(".star-border-stars").first();
+  const opacity = async () => Number(await stars.evaluate((el) => getComputedStyle(el).opacity));
+  await expect(page.getByRole("button", { name: /^Generate/ })).toBeDisabled(); // nothing written yet
+  await expect.poll(opacity).toBe(0);
+  await prompt.fill("[e2e] star border");
+  await expect(page.getByRole("button", { name: /^Generate/ })).toBeEnabled();
+  await expect.poll(opacity).toBe(1);
+  await prompt.fill("");
+  await expect.poll(opacity).toBe(0);
 });

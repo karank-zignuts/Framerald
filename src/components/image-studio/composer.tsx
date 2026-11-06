@@ -16,6 +16,7 @@ import {
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { useScopedHref } from "@/features/projects/context";
+import { DockGradient } from "./dock-gradient";
 import { MediaPickerPanel } from "@/components/media/media-picker";
 import { ModelPickerPanel, ModelTrigger } from "./model-picker";
 import { Anchor as PopoverAnchor } from "@radix-ui/react-popover";
@@ -124,28 +125,24 @@ function Chip({
 }
 
 /**
- * One row of chips that scrolls sideways when they don't all fit. Arrow buttons sit beside it. They take their space only
- * while the chips overflow, and then always, so scrolling never changes the strip's width (that made it jump). The edges
- * fade instead of cutting a chip in half, and a mouse wheel scrolls it sideways.
+ * One row of chips that scrolls sideways when they don't all fit. The arrows float over the strip's two ends, so showing or hiding
+ * them never moves or resizes anything, and the edges fade under them so they read as buttons. A `leading` item (the attach button)
+ * stays put and never scrolls. A mouse wheel scrolls the strip sideways.
  */
-function ChipScroller({ children }: { children: React.ReactNode }) {
-  const outer = useRef<HTMLDivElement>(null);
+function ChipScroller({ leading, children }: { leading?: React.ReactNode; children: React.ReactNode }) {
   const strip = useRef<HTMLDivElement>(null);
-  const [state, setState] = useState({ overflowing: false, left: false, right: false });
+  const [edges, setEdges] = useState({ left: false, right: false });
 
   useEffect(() => {
-    const box = outer.current;
     const el = strip.current;
-    if (!box || !el) return;
+    if (!el) return;
     const update = () => {
-      // Content wider than the whole row, measured without the arrow slots, so showing the slots can't flip it back.
-      const overflowing = el.scrollWidth > box.clientWidth + 1;
-      const left = overflowing && el.scrollLeft > 2;
-      const right = overflowing && el.scrollLeft + el.clientWidth < el.scrollWidth - 2;
-      setState((prev) => (prev.overflowing === overflowing && prev.left === left && prev.right === right ? prev : { overflowing, left, right }));
+      const left = el.scrollLeft > 2;
+      const right = el.scrollLeft + el.clientWidth < el.scrollWidth - 2;
+      setEdges((prev) => (prev.left === left && prev.right === right ? prev : { left, right }));
     };
     const observer = new ResizeObserver(update); // also runs once when observing starts
-    observer.observe(box);
+    observer.observe(el);
     for (const child of Array.from(el.children)) observer.observe(child);
     el.addEventListener("scroll", update, { passive: true });
     const onWheel = (e: WheelEvent) => {
@@ -166,31 +163,42 @@ function ChipScroller({ children }: { children: React.ReactNode }) {
     strip.current?.scrollBy({ left: direction * 240, behavior: reduce ? "auto" : "smooth" });
   }
 
-  const arrow = (active: boolean) =>
+  const arrow = (side: "left" | "right", shown: boolean) =>
     cn(
-      "glass-chip flex size-9 shrink-0 items-center justify-center rounded-xl text-foreground transition-opacity duration-base motion-reduce:transition-none",
-      !state.overflowing && "hidden",
-      active ? "opacity-100" : "pointer-events-none opacity-0",
+      "glass-chip absolute top-1/2 z-10 flex size-8 -translate-y-1/2 items-center justify-center rounded-xl bg-[var(--tone-3)] text-foreground transition-opacity duration-base motion-reduce:transition-none",
+      side === "left" ? "left-1" : "right-1",
+      shown ? "opacity-100" : "pointer-events-none opacity-0",
       focusRing,
     );
-  // Fade the strip's edges only where there is more to reach.
-  const fade = state.left && state.right ? "linear-gradient(to right, transparent, #000 24px, #000 calc(100% - 24px), transparent)" : state.left ? "linear-gradient(to right, transparent, #000 24px)" : state.right ? "linear-gradient(to left, transparent, #000 24px)" : undefined;
+  // The strip's ends fade where there is more to reach, so a chip slides under an arrow instead of being cut.
+  const fade =
+    edges.left && edges.right
+      ? "linear-gradient(to right, transparent, black 44px, black calc(100% - 44px), transparent)"
+      : edges.left
+        ? "linear-gradient(to right, transparent, black 44px)"
+        : edges.right
+          ? "linear-gradient(to left, transparent, black 44px)"
+          : undefined;
 
   return (
-    <div ref={outer} className="flex min-w-0 flex-1 items-center gap-1.5">
-      <button type="button" aria-label="Scroll options left" aria-hidden={!state.left} tabIndex={state.left ? 0 : -1} disabled={!state.left} onClick={() => scroll(-1)} className={arrow(state.left)}>
-        <ChevronLeft aria-hidden className="size-4" />
-      </button>
-      <div
-        ref={strip}
-        style={fade ? { maskImage: fade, WebkitMaskImage: fade } : undefined}
-        className="flex min-w-0 flex-1 touch-pan-x items-center gap-2 overflow-x-auto overscroll-x-contain [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-      >
-        {children}
+    <div className="flex min-w-0 flex-1 items-center gap-2">
+      {leading && <span className="flex shrink-0">{leading}</span>}
+      <div className="relative min-w-0 flex-1">
+        <div
+          ref={strip}
+          data-testid="chip-strip"
+          style={fade ? { maskImage: fade, WebkitMaskImage: fade } : undefined}
+          className="flex min-w-0 touch-pan-x items-center gap-2 overflow-x-auto overscroll-x-contain [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        >
+          {children}
+        </div>
+        <button type="button" aria-label="Scroll options left" aria-hidden={!edges.left} tabIndex={edges.left ? 0 : -1} disabled={!edges.left} onClick={() => scroll(-1)} className={arrow("left", edges.left)}>
+          <ChevronLeft aria-hidden className="size-4" />
+        </button>
+        <button type="button" aria-label="Scroll options right" aria-hidden={!edges.right} tabIndex={edges.right ? 0 : -1} disabled={!edges.right} onClick={() => scroll(1)} className={arrow("right", edges.right)}>
+          <ChevronRight aria-hidden className="size-4" />
+        </button>
       </div>
-      <button type="button" aria-label="Scroll options right" aria-hidden={!state.right} tabIndex={state.right ? 0 : -1} disabled={!state.right} onClick={() => scroll(1)} className={arrow(state.right)}>
-        <ChevronRight aria-hidden className="size-4" />
-      </button>
     </div>
   );
 }
@@ -269,7 +277,7 @@ export function Composer({
           onAddFiles([...e.dataTransfer.files]);
         }}
         className={cn(
-          "glass-strong relative isolate flex w-full flex-col gap-3 p-4 transition-[border-radius,background-color,border-color] duration-slow",
+          "glass-strong glass-dock group/dock relative isolate flex w-full flex-col gap-3 p-4 transition-[border-radius,background-color,border-color] duration-slow",
           agentMode ? "rounded-[1.75rem]" : "rounded-2xl",
         )}
       >
@@ -284,6 +292,7 @@ export function Composer({
         {agentMode && sweep > 0 && (
           <span key={sweep} aria-hidden className="dock-sweep pointer-events-none absolute inset-0 -z-10 rounded-[inherit]" />
         )}
+        <DockGradient />
         {notice && (
           <p
             role="status"
@@ -371,28 +380,32 @@ export function Composer({
             rows={3}
             maxLength={4000}
             readOnly={refining} // typing during a refine would be overwritten by the result
-            className="field-sizing-content max-h-56 min-h-28 resize-none border-0 bg-transparent px-1 py-1 shadow-none focus-visible:ring-0"
+            className="field-sizing-content max-h-56 min-h-28 resize-none border-0 bg-transparent px-1 py-1 shadow-none focus-visible:ring-0 hover:border-transparent focus-visible:border-transparent focus-visible:shadow-none"
           />
         </div>
 
         <div className="flex items-center gap-3">
-          <ChipScroller>
-            <button
-              type="button"
-              aria-label="Add reference images"
-              aria-expanded={panel === "media"}
-              aria-haspopup="dialog"
-              data-panel-trigger
-              onClick={() => setPanel(panel === "media" ? null : "media")}
-              title={
-                values.references.length
-                  ? "Describe what to change or keep. The prompt edits these images."
-                  : "Add images to edit them or to guide the result."
-              }
-              className={cn(chipClass, "w-9 justify-center px-0")}
-            >
-              <Plus aria-hidden className="size-4" />
-            </button>
+          <ChipScroller
+            leading={
+        <button
+          type="button"
+          aria-label="Add reference images"
+          aria-expanded={panel === "media"}
+          aria-haspopup="dialog"
+          data-panel-trigger
+          onClick={() => setPanel(panel === "media" ? null : "media")}
+          title={
+            values.references.length
+              ? "Describe what to change or keep. The prompt edits these images."
+              : "Add images to edit them or to guide the result."
+          }
+          className={cn(chipClass, "w-9 justify-center px-0")}
+        >
+          <Plus aria-hidden className="size-4" />
+        </button>
+            }
+          >
+
             <input
               ref={fileInput}
               type="file"
@@ -449,8 +462,8 @@ export function Composer({
                       aria-label={`Aspect ratio ${r}`}
                       onClick={() => onChange({ aspectRatio: r })}
                       className={cn(
-                        "flex h-10 items-center gap-3 rounded-lg px-2 text-sm text-foreground transition-colors duration-fast hover:bg-secondary",
-                        selected && "bg-secondary",
+                        "flex h-10 items-center gap-3 rounded-lg px-2 text-sm text-foreground transition-colors duration-fast hover:bg-[var(--wash-hover)]",
+                        selected && "bg-[var(--wash-active)]",
                         focusRing,
                       )}
                     >
@@ -486,8 +499,8 @@ export function Composer({
                         disabled={!supported}
                         onClick={() => onChange({ imageSize: size })}
                         className={cn(
-                          "flex items-center gap-3 rounded-lg px-2 py-2 text-left text-sm text-foreground transition-colors duration-fast hover:bg-accent/60 disabled:opacity-40",
-                          selected && "bg-secondary",
+                          "flex items-center gap-3 rounded-lg px-2 py-2 text-left text-sm text-foreground transition-colors duration-fast hover:bg-[var(--wash-hover)] disabled:opacity-40",
+                          selected && "bg-[var(--wash-active)]",
                           focusRing,
                         )}
                       >

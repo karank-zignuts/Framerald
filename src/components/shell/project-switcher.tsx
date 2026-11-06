@@ -101,8 +101,13 @@ export function ProjectSwitcher({ collapsed = false, compact = false }: { collap
         >
           <DropdownMenuLabel className="px-2 text-xs font-normal text-muted-foreground">Projects</DropdownMenuLabel>
           {projects.map((p, i) => (
-            <DropdownMenuItem key={p.id} onSelect={() => go(p.id)} className="gap-3 py-2">
-              <Tile className="size-7 rounded-md [&>svg]:size-3.5" />
+            <DropdownMenuItem
+              key={p.id}
+              onSelect={() => go(p.id)}
+              data-current={p.id === current.id || undefined}
+              className={cn("gap-3 py-2", p.id === current.id && "bg-[var(--wash-active)] font-medium")}
+            >
+              <Tile className={cn("size-7 rounded-md [&>svg]:size-3.5", p.id === current.id && "ring-2 ring-brand/70 ring-offset-2 ring-offset-transparent")} />
               <span className="min-w-0 flex-1 truncate">{p.name}</span>
               {p.id === current.id ? <Check aria-hidden className="size-4 text-brand" /> : i < 9 && <DropdownMenuShortcut>{i + 1}</DropdownMenuShortcut>}
             </DropdownMenuItem>

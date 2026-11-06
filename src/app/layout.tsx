@@ -28,6 +28,15 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       className={`dark ${geistSans.variable} ${geistMono.variable} h-full antialiased`}
       suppressHydrationWarning
     >
+      <head>
+        {/* Runs before the first paint: copies the saved sidebar state onto <html>, so the CSS can draw it hidden from the start. */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html:
+              "try{var d=document.documentElement;d.dataset.boot='';if(localStorage.getItem('framerald.sidebar')==='collapsed')d.dataset.sidebar='collapsed'}catch(e){}",
+          }}
+        />
+      </head>
       <body className="min-h-full flex flex-col" suppressHydrationWarning>
         <Providers>{children}</Providers>
         <Toaster />

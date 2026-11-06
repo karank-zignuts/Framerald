@@ -7,33 +7,64 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
-  --background: oklch(0.1881 0.006 285.81); /* zinc, #131316 */
-  --foreground: oklch(1 0 0);
+  /* ─── THE THEME ──────────────────────────────────────────────────────────────────────────────────────────────
+     This block is the only place colours are chosen. Everything else, in CSS and in components, uses these tokens.
 
-  --card: oklch(0.2103 0.0059 285.89); /* zinc-900, #18181B */
-  --card-foreground: oklch(0.9848 0 0);
+     Dark tone: Void black. A ladder of seven steps, about 4 lightness points apart, so a surface is never the same
+     dark as the one beneath it (the sidebar against the page, a menu against the sidebar, a chip against the menu, the
+     hover against the chip). Which step each thing uses:
+       tone-0  the page                       tone-4  raised fills, skeletons, selected rows
+       tone-1  panels (sidebar, cards)        tone-5  hover surface
+       tone-2  floating (menus, dock)         tone-6  hairlines
+       tone-3  controls (inputs, chips)
+     src/theme.test.ts checks the steps keep their distance and that text and the accent stay readable on them. */
+  --tone-0: oklch(0.1228 0.0029 285.97); /* #060607 */
+  --tone-1: oklch(0.1693 0.0041 285.95); /* #0F0F11 */
+  --tone-2: oklch(0.2055 0.0039 286.05); /* #171719 */
+  --tone-3: oklch(0.2405 0.0057 285.97); /* #1F1F22 */
+  --tone-4: oklch(0.2744 0.0073 285.91); /* #27272B */
+  --tone-5: oklch(0.3151 0.0088 285.88); /* #313136 */
+  --tone-6: oklch(0.3964 0.01 285.93); /* #46464C */
+  --tone-text: oklch(0.985 0 0);
+  --tone-text-muted: oklch(0.7273 0.01 286.15); /* #A6A6AD */
 
-  --popover: oklch(0.241 0.0076 285.82); /* #1F1F23 */
-  --popover-foreground: oklch(1 0 0);
+  /* Accent: Cool white, with a pressed step. The same family gives the soft wash. */
+  --accent-white: oklch(0.9523 0.0171 256.28); /* #E8F0FB */
+  --accent-white-strong: oklch(0.8798 0.0157 257.2); /* #D1D8E2 */
 
-  --primary: oklch(1 0 0);
-  --primary-foreground: oklch(0.1881 0.006 285.81);
+  /* Washes: the lightening laid over any surface for hover, pressed and selected, so a state always reads as one step up. */
+  --wash-hover: color-mix(in oklab, var(--tone-text) 7%, transparent);
+  --wash-active: color-mix(in oklab, var(--tone-text) 12%, transparent);
+  --wash-selected: color-mix(in oklab, var(--tone-text) 16%, transparent);
+  --shadow-ink: oklch(0 0 0);
 
-  --secondary: oklch(0.2739 0.0055 286.03); /* zinc-800, #27272A */
-  --secondary-foreground: oklch(0.7652 0 0);
+  --background: var(--tone-0);
+  --foreground: var(--tone-text);
 
-  --muted: oklch(0.2739 0.0055 286.03);
-  --muted-foreground: oklch(0.7118 0.0129 286.07); /* zinc-400 */
+  --card: var(--tone-1);
+  --card-foreground: var(--tone-text);
 
-  --accent: oklch(0.3187 0.007 285.99); /* #323236 */
-  --accent-foreground: oklch(0.9848 0 0);
+  --popover: var(--tone-2);
+  --popover-foreground: var(--tone-text);
+
+  --primary: var(--accent-white);
+  --primary-foreground: var(--tone-0);
+
+  --secondary: var(--tone-3);
+  --secondary-foreground: var(--tone-text-muted);
+
+  --muted: var(--tone-4);
+  --muted-foreground: var(--tone-text-muted);
+
+  --accent: var(--tone-5);
+  --accent-foreground: var(--tone-text);
 
   --destructive: oklch(0.5786 0.2137 27.17);
   --destructive-foreground: oklch(1 0 0);
 
-  --border: oklch(0.3703 0.0119 285.81 / 0.7); /* zinc-700 */
-  --input: oklch(0.2739 0.0055 286.03);
-  --ring: oklch(1 0 0);
+  --border: color-mix(in oklab, var(--tone-6) 70%, transparent);
+  --input: var(--tone-3);
+  --ring: var(--accent-white);
   --radius: 0.75rem;
 
   /* ─── Chart palette: tonal ramp of the DS primary (one hue, five shades) ─── */
@@ -191,15 +222,14 @@
   --layout-card-padding: calc(var(--spacing, 0.25rem) * 5);
 }
 
-/* ─── Framerald brand accent: green #7ad950 ───
-   Added on top of Cinematic Dark. `--accent` stays the DS hover surface,
-   so the brand color has its own token. Use it for the main call to action
-   (Generate), active states and the brand mark. Never as a large fill. */
+/* ─── Framerald brand accent: Cool white ───
+   Added on top of Cinematic Dark. `--accent` stays the DS hover surface, so the brand colour has its own token. Use it for the
+   main call to action (Generate), active states and the brand mark. Never as a large fill. */
 :root {
-  --brand: oklch(0.7985 0.1953 137.46); /* #7ad950 */
-  --brand-strong: oklch(0.73 0.18 137.46); /* a step darker, for hover and pressed */
-  --brand-muted: oklch(0.7985 0.1953 137.46 / 0.14); /* tinted surfaces */
-  --brand-foreground: oklch(0.1881 0.006 285.81); /* = --background */
+  --brand: var(--accent-white);
+  --brand-strong: var(--accent-white-strong); /* hover and pressed */
+  --brand-muted: color-mix(in oklab, var(--accent-white) 14%, transparent); /* tinted surfaces */
+  --brand-foreground: var(--tone-0); /* text on the brand colour */
 }
 
 @theme inline {
@@ -229,30 +259,32 @@ html {
   }
 }
 
-/* Clickable things show a pointer (Tailwind 4's reset leaves buttons on the default arrow). Disabled ones don't. */
-a[href],
-button:not(:disabled),
-summary,
-select:not(:disabled),
-label[for],
-[role="button"]:not([aria-disabled="true"]),
-[role="tab"]:not([aria-disabled="true"]),
-[role="radio"]:not([aria-disabled="true"]):not([data-disabled]),
-[role="menuitem"]:not([data-disabled]),
-[role="menuitemcheckbox"]:not([data-disabled]),
-[role="option"]:not([data-disabled]),
-[role="combobox"]:not(:disabled),
-[role="switch"]:not(:disabled),
-input[type="checkbox"]:not(:disabled),
-input[type="file"]:not(:disabled) {
-  cursor: pointer;
-}
+@layer base {
+  /* Clickable things show a pointer. In the base layer, so a utility such as cursor-e-resize on a particular control wins (Tailwind 4's reset leaves buttons on the default arrow). Disabled ones don't. */
+  a[href],
+  button:not(:disabled),
+  summary,
+  select:not(:disabled),
+  label[for],
+  [role="button"]:not([aria-disabled="true"]),
+  [role="tab"]:not([aria-disabled="true"]),
+  [role="radio"]:not([aria-disabled="true"]):not([data-disabled]),
+  [role="menuitem"]:not([data-disabled]),
+  [role="menuitemcheckbox"]:not([data-disabled]),
+  [role="option"]:not([data-disabled]),
+  [role="combobox"]:not(:disabled),
+  [role="switch"]:not(:disabled),
+  input[type="checkbox"]:not(:disabled),
+  input[type="file"]:not(:disabled) {
+    cursor: pointer;
+  }
 
-button:disabled,
-[aria-disabled="true"],
-[role="radio"][data-disabled],
-[role="option"][data-disabled] {
-  cursor: not-allowed;
+  button:disabled,
+  [aria-disabled="true"],
+  [role="radio"][data-disabled],
+  [role="option"][data-disabled] {
+    cursor: not-allowed;
+  }
 }
 
 /* Loading placeholders shimmer: a soft highlight sweeps across. Reduced motion gets a still block. */
@@ -316,13 +348,13 @@ button:disabled,
 }
 .dock-glow {
   box-shadow:
-    inset 0 0 28px -8px color-mix(in oklab, var(--brand) 38%, transparent),
+    inset 0 0 28px -8px color-mix(in oklab, var(--brand) 20%, transparent),
     inset 0 1px 0 0 color-mix(in oklab, var(--brand) 22%, transparent);
   background: radial-gradient(120% 90% at 50% 120%, color-mix(in oklab, var(--brand) 12%, transparent), transparent 70%);
 }
 .dock-sweep {
   padding: 1.5px;
-  background: conic-gradient(from var(--dock-angle), transparent 0deg, transparent 250deg, color-mix(in oklab, var(--brand) 90%, white) 320deg, transparent 360deg);
+  background: conic-gradient(from var(--dock-angle), transparent 0deg, transparent 250deg, color-mix(in oklab, var(--brand) 90%, var(--foreground)) 320deg, transparent 360deg);
   -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
   -webkit-mask-composite: xor;
   mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
@@ -355,22 +387,19 @@ button:disabled,
   }
 }
 
-/* Star border: two brand-coloured stars run along a button's edge while it is hovered or focused. Hidden at rest and when disabled. */
+/* Star border: two brand-coloured stars run along a button's edge for as long as the button is active. They fade out when it is
+   disabled and back in when it is enabled again. */
 .star-border-stars {
   position: absolute;
   inset: 0;
   overflow: hidden;
   border-radius: inherit;
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity var(--transition-duration-base) ease;
-}
-.star-border:hover .star-border-stars,
-.star-border:focus-within .star-border-stars {
   opacity: 1;
+  pointer-events: none;
+  transition: opacity var(--transition-duration-slow) ease;
 }
 .star-border:has(:disabled) .star-border-stars {
-  display: none;
+  opacity: 0;
 }
 .star-border-bottom,
 .star-border-top {
@@ -378,7 +407,7 @@ button:disabled,
   width: 300%;
   height: 50%;
   border-radius: 9999px;
-  background: radial-gradient(circle, var(--brand), transparent 10%);
+  background: radial-gradient(circle, var(--foreground), transparent 12%);
   animation-duration: 5s;
   animation-timing-function: linear;
   animation-iteration-count: infinite;
@@ -429,9 +458,9 @@ button:disabled,
    Every glass surface has a hairline border, a 1px top highlight and a soft drop shadow. Text colours are never changed on glass:
    --foreground and --muted-foreground are both above 7:1 against the darkest and lightest the blurred background can be. */
 :root {
-  --glass-border: color-mix(in oklab, var(--foreground) 11%, transparent);
-  --glass-highlight: color-mix(in oklab, var(--foreground) 12%, transparent);
-  --glass-shadow: 0 10px 32px -10px rgb(0 0 0 / 0.55), 0 2px 6px -2px rgb(0 0 0 / 0.4);
+  --glass-border: color-mix(in oklab, var(--brand) 16%, transparent);
+  --glass-highlight: color-mix(in oklab, var(--brand) 11%, transparent);
+  --glass-shadow: 0 10px 32px -10px color-mix(in oklab, var(--shadow-ink) 55%, transparent), 0 2px 6px -2px color-mix(in oklab, var(--shadow-ink) 40%, transparent);
 }
 .glass,
 .glass-strong,
@@ -443,14 +472,14 @@ button:disabled,
 }
 .glass {
   background:
-    linear-gradient(180deg, color-mix(in oklab, var(--foreground) 5%, transparent), transparent 55%),
+    linear-gradient(180deg, color-mix(in oklab, var(--foreground) 3%, transparent), transparent 50%),
     color-mix(in oklab, var(--card) 62%, transparent);
   -webkit-backdrop-filter: blur(24px) saturate(1.5);
   backdrop-filter: blur(24px) saturate(1.5);
 }
 .glass-strong {
   background:
-    linear-gradient(180deg, color-mix(in oklab, var(--foreground) 6%, transparent), transparent 60%),
+    linear-gradient(180deg, color-mix(in oklab, var(--foreground) 4%, transparent), transparent 55%),
     color-mix(in oklab, var(--popover) 84%, transparent);
   -webkit-backdrop-filter: blur(28px) saturate(1.6);
   backdrop-filter: blur(28px) saturate(1.6);
@@ -473,7 +502,7 @@ button:disabled,
   .glass-chip { background: var(--secondary); }
 }
 
-/* The ambient light behind everything: soft neutral light on the zinc page, so the glass has depth to refract. No colour. */
+/* The ambient light behind everything: soft neutral light on the page, so the glass has depth to refract. No colour. */
 .ambient {
   background:
     radial-gradient(60% 50% at 18% 6%, color-mix(in oklab, var(--foreground) 5%, transparent), transparent 70%),
@@ -531,9 +560,63 @@ button:disabled,
    These come after .glass so they win on border width and shadow. */
 .glass-sidebar {
   border-width: 0 1px 0 0;
-  box-shadow: inset -1px 0 0 var(--glass-highlight), 12px 0 32px -16px rgb(0 0 0 / 0.5);
+  box-shadow: inset -1px 0 0 var(--glass-highlight), 12px 0 32px -16px color-mix(in oklab, var(--shadow-ink) 50%, transparent);
 }
 .glass-bar {
   border-width: 0 0 1px 0;
   box-shadow: inset 0 -1px 0 var(--glass-highlight);
+}
+
+/* The dock: floating glass with a premium rim. The edge and its top highlight are lit slightly from the accent, a little more when
+   you are typing in it, and the blur is lighter than other floating glass so the gradient inside stays visible. */
+.glass-dock {
+  border-color: color-mix(in oklab, var(--brand) 22%, transparent);
+  box-shadow:
+    inset 0 1px 0 color-mix(in oklab, var(--brand) 36%, transparent),
+    inset 0 0 0 1px color-mix(in oklab, var(--brand) 5%, transparent),
+    var(--glass-shadow);
+  -webkit-backdrop-filter: blur(18px) saturate(1.6);
+  backdrop-filter: blur(18px) saturate(1.6);
+  transition: border-color var(--transition-duration-slow) ease, box-shadow var(--transition-duration-slow) ease;
+}
+.glass-dock:focus-within {
+  border-color: color-mix(in oklab, var(--brand) 38%, transparent);
+  box-shadow:
+    inset 0 1px 0 color-mix(in oklab, var(--brand) 52%, transparent),
+    inset 0 0 0 1px color-mix(in oklab, var(--brand) 8%, transparent),
+    0 0 0 3px color-mix(in oklab, var(--brand) 9%, transparent),
+    var(--glass-shadow);
+}
+
+/* A loader waits a moment before it appears, so a quick load never flashes it, then fades in. */
+@keyframes loader-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+.loader-in {
+  animation: loader-in 300ms ease-out 200ms both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .loader-in {
+    animation-duration: 1ms;
+  }
+}
+
+/* First paint. A script in the page head copies the saved sidebar state onto <html> before anything is drawn (see src/app/layout.tsx),
+   so a hidden sidebar is hidden from the first frame and never flashes open then closes. data-boot also turns the animation off
+   until the page has hydrated. */
+html[data-sidebar="collapsed"] #sidebar {
+  width: 0;
+  opacity: 0;
+}
+html[data-sidebar="collapsed"] #sidebar-fallback {
+  display: none;
+}
+html[data-boot] #sidebar,
+html[data-boot] #sidebar-fallback {
+  transition: none !important;
 }

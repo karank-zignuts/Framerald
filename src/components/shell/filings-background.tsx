@@ -1,21 +1,13 @@
 "use client";
 
 import { MagneticFilings, Shader } from "shaders/react";
-import { useSyncExternalStore } from "react";
+import { useMemo } from "react";
+import { useMotionOk } from "@/lib/use-motion-ok";
+import { mixTokensHex, tokenHex } from "@/lib/theme";
 
-// Shader colours can't read CSS variables, so these mirror the zinc tokens: resting filings are zinc-700 (`border`) and they
-// brighten toward zinc-500 as they swing. No accent colour here on purpose: with the magnet's default position the aligned
-// filings gather in two soft pools, and in green those read as a glow over the page.
-const REST = "#3f3f46";
-const FLASH = "#71717a";
-
-// Not drawn at all for people who asked for less motion.
-const reduced = () => window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-function subscribe(cb: () => void) {
-  const query = window.matchMedia("(prefers-reduced-motion: reduce)");
-  query.addEventListener("change", cb);
-  return () => query.removeEventListener("change", cb);
-}
+// A WebGPU shader can't read CSS variables, so the colours are read from the theme tokens once, here: resting filings are the
+// hairline step (--tone-6), and they brighten toward the muted text colour as they swing. No accent colour: with the magnet's
+// default position the aligned filings gather in two soft pools, and in a bright colour those read as a glow over the page.
 
 /**
  * Iron filings behind the whole app that lean toward the cursor. Kept faint and loose on purpose: low opacity, a weak and
@@ -23,12 +15,13 @@ function subscribe(cb: () => void) {
  * clicked or hovered, and it never blocks the page. Without WebGPU it simply stays empty.
  */
 export function FilingsBackground() {
-  const hide = useSyncExternalStore(subscribe, reduced, () => true);
-  if (hide) return null;
+  const ok = useMotionOk();
+  const colors = useMemo(() => (!ok ? null : { rest: tokenHex("--tone-6"), flash: mixTokensHex("--tone-6", "--tone-text-muted") }), [ok]);
+  if (!colors) return null;
   return (
     <div aria-hidden className="pointer-events-none absolute inset-0 -z-10 opacity-35">
       <Shader className="size-full">
-        <MagneticFilings colorA={REST} colorB={FLASH} shape="dot" count={4500} size={1} fieldType="dipole" strength={0.6} reach={0.3} response={0.25} />
+        <MagneticFilings colorA={colors.rest} colorB={colors.flash} shape="dot" count={4500} size={1} fieldType="dipole" strength={0.6} reach={0.3} response={0.25} />
       </Shader>
     </div>
   );

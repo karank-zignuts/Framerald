@@ -7,14 +7,15 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
-import { Skeleton } from "@/components/ui/skeleton";
 import { useDeletedProjects, useProjectsData } from "@/features/projects/queries";
 import { UNSORTED, type ProjectDto } from "@/features/projects/schemas";
 import { formatCount } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { NewProjectDialog } from "./project-dialogs";
+import { useCurrentProject } from "@/components/shell/use-current-project";
 import { ProjectMenu } from "./project-menu";
 import { useProjectActions } from "./use-project-actions";
+import { PageLoader } from "@/components/loading/ripple";
 
 const GRID = "grid grid-cols-[repeat(auto-fill,minmax(15rem,1fr))] gap-4";
 const focusRing = "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
@@ -22,9 +23,9 @@ const focusRing = "focus-visible:outline-none focus-visible:ring-2 focus-visible
 const about = (p: Pick<ProjectDto, "images" | "videos">) =>
   p.images + p.videos === 0 ? "Empty" : `${formatCount(p.images, "image")}, ${formatCount(p.videos, "clip")}`;
 
-function Cover({ url, dimmed }: { url: string | null; dimmed?: boolean }) {
+function Cover({ url, dimmed, current }: { url: string | null; dimmed?: boolean; current?: boolean }) {
   return (
-    <div className="relative aspect-[4/3] glass overflow-hidden rounded-2xl">
+    <div className={cn("relative aspect-[4/3] glass overflow-hidden rounded-2xl", current && "ring-2 ring-brand/70")}>
       {url ? (
         // eslint-disable-next-line @next/next/no-img-element
         <img src={url} alt="" loading="lazy" decoding="async" className={cn("size-full object-cover transition-transform duration-slow group-hover:scale-[1.03]", dimmed && "opacity-60")} />
@@ -46,6 +47,7 @@ export function ProjectsView() {
   const data = useProjectsData();
   const deleted = useDeletedProjects();
   const actions = useProjectActions();
+  const currentId = useCurrentProject().id;
   const [creating, setCreating] = useState(false);
 
   const setTrash = (on: boolean) => router.replace(on ? `${pathname}?trash=1` : pathname);
@@ -54,7 +56,7 @@ export function ProjectsView() {
     <div className="flex min-h-0 flex-1 flex-col gap-5 p-5 lg:overflow-y-auto">
       <div className="flex items-center justify-between gap-3">
         <h1 className="text-lg font-medium text-foreground">Projects</h1>
-        <Button variant="ghost" size="sm" aria-pressed={trash} onClick={() => setTrash(!trash)} className={cn(trash && "bg-secondary")}>
+        <Button variant="ghost" size="sm" aria-pressed={trash} onClick={() => setTrash(!trash)} className={cn(trash && "bg-[var(--wash-active)]")}>
           <Trash2 aria-hidden className="size-4" />
           Trash
         </Button>
@@ -62,13 +64,7 @@ export function ProjectsView() {
 
       {!trash && (
         <>
-          {data.isPending && (
-            <div className={GRID} role="status" aria-label="Loading">
-              {Array.from({ length: 4 }, (_, i) => (
-                <Skeleton key={i} className="aspect-[4/3] w-full rounded-2xl" />
-              ))}
-            </div>
-          )}
+          {data.isPending && <PageLoader />}
           {data.isError && (
             <div role="alert" className="flex max-w-md flex-col items-start gap-3 rounded-lg border border-destructive/50 p-4">
               <p className="text-sm">Couldn&apos;t load your projects: {data.error.message}</p>
@@ -80,9 +76,9 @@ export function ProjectsView() {
           {data.isSuccess && (
             <ul className={GRID} data-testid="project-grid">
               {data.data.projects.map((p) => (
-                <li key={p.id} className="group relative flex flex-col gap-2" data-testid="project-card">
+                <li key={p.id} className="group relative flex flex-col gap-2" data-testid="project-card" data-current={p.id === currentId || undefined}>
                   <Link href={`/p/${p.id}/image`} className={cn("flex flex-col gap-2 rounded-2xl", focusRing)}>
-                    <Cover url={p.coverUrl} />
+                    <Cover url={p.coverUrl} current={p.id === currentId} />
                     <span className="flex flex-col px-1">
                       <span className="truncate text-sm font-medium text-foreground">{p.name}</span>
                       <span className="text-xs text-muted-foreground">{about(p)}</span>
@@ -121,7 +117,7 @@ export function ProjectsView() {
 
       {trash && (
         <>
-          {deleted.isPending && <Skeleton className="h-24 w-full max-w-md rounded-2xl" role="status" aria-label="Loading" />}
+          {deleted.isPending && <PageLoader />}
           {deleted.isError && (
             <p role="alert" className="text-sm">
               Couldn&apos;t load the trash: {deleted.error.message}

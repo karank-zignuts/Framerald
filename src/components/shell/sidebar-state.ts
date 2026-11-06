@@ -20,6 +20,8 @@ export function setCollapsed(value: boolean) {
   } catch {
     /* private mode: the toggle still works for this page view */
   }
+  // The page-head script and the CSS read this attribute, so keep it in step.
+  document.documentElement.dataset.sidebar = value ? "collapsed" : "open";
   listeners.forEach((l) => l());
 }
 

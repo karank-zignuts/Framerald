@@ -34,7 +34,7 @@ export function AppHeader() {
         aria-expanded={!collapsed}
         aria-controls="sidebar"
         title={`Toggle sidebar (Ctrl+B)`}
-        className="hidden size-8 items-center justify-center rounded-md text-muted-foreground transition-colors duration-fast hover:bg-secondary hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring lg:flex"
+        className={cn("hidden size-8 items-center justify-center rounded-md text-muted-foreground transition-colors duration-fast hover:bg-[var(--wash-hover)] hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring lg:flex", collapsed ? "cursor-e-resize" : "cursor-w-resize")}
       >
         <Toggle aria-hidden className="size-4" />
       </button>

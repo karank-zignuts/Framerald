@@ -2,10 +2,10 @@
 
 import { useParams, usePathname, useRouter } from "next/navigation";
 import { useEffect } from "react";
-import { Skeleton } from "@/components/ui/skeleton";
 import { ProjectProvider } from "@/features/projects/context";
 import { rememberProject, useProjectsData } from "@/features/projects/queries";
 import { UNSORTED } from "@/features/projects/schemas";
+import { PageLoader } from "@/components/loading/ripple";
 
 /** Checks the project in the address, remembers it as the last one, and shares it with the page below. */
 export function ProjectScope({ children }: { children: React.ReactNode }) {
@@ -31,12 +31,7 @@ export function ProjectScope({ children }: { children: React.ReactNode }) {
   }, [projects.isSuccess, valid, isUnsorted, projectId, router]);
 
   if (!projects.isSuccess || !valid) {
-    return (
-      <div className="flex flex-1 flex-col gap-4 p-5" role="status" aria-label="Loading">
-        <Skeleton className="h-6 w-32" />
-        <Skeleton className="h-32 w-full max-w-sm rounded-lg" />
-      </div>
-    );
+    return <PageLoader />;
   }
   return <ProjectProvider id={projectId}>{children}</ProjectProvider>;
 }

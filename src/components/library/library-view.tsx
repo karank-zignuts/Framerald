@@ -12,7 +12,6 @@ import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Input } from "@/components/ui/input";
 import { SegmentedControl } from "@/components/ui/ix-segmented-control";
-import { Skeleton } from "@/components/ui/skeleton";
 import { useAssetActions, useLibrary } from "@/features/library/queries";
 import { normalizeSearch } from "@/features/library/search";
 import type { AssetDto } from "@/features/library/types";
@@ -21,6 +20,8 @@ import { useProjectId, useScopedHref } from "@/features/projects/context";
 import { UNSORTED } from "@/features/projects/schemas";
 import { useAssetName } from "@/features/view/names";
 import { TILE_WIDTH, useViewSettings } from "@/features/view/settings";
+import { PageLoader } from "@/components/loading/ripple";
+import { Ripple } from "@/components/loading/ripple";
 
 // Fixed column counts use minmax(0, 1fr) tracks, so a wide image can't stretch a column.
 const GRID = "grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-6";
@@ -156,13 +157,7 @@ export function LibraryView() {
       </header>
 
       <div className="flex flex-1 flex-col p-5">
-        {query.isPending && (
-          <div className={GRID} role="status" aria-label="Loading">
-            {Array.from({ length: 12 }, (_, i) => (
-              <Skeleton key={i} className="aspect-square w-full rounded-lg" />
-            ))}
-          </div>
-        )}
+        {query.isPending && <PageLoader />}
 
         {query.isError && (
           <div role="alert" className="flex max-w-md flex-col items-start gap-3 rounded-lg border border-destructive/50 p-4">
@@ -258,7 +253,7 @@ export function LibraryView() {
             <div ref={sentinel} className="flex justify-center py-6">
               {hasNextPage && (
                 <Button variant="secondary" size="sm" onClick={() => void fetchNextPage()} disabled={isFetchingNextPage}>
-                  {isFetchingNextPage ? "Loading" : "Load more"}
+                  {isFetchingNextPage ? <><Ripple label="Loading more" className="size-4" /> Loading</> : "Load more"}
                 </Button>
               )}
             </div>

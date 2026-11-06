@@ -8,7 +8,6 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Input } from "@/components/ui/input";
-import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
 import { createThread, deleteThread, renameThread, streamMessage } from "@/features/agent/api";
 import { useProjectId } from "@/features/projects/context";
@@ -16,6 +15,7 @@ import { agentKeys, useMessages, useThreads } from "@/features/agent/queries";
 import { titleFromMessage, type AgentMessageDto, type Shot, type ThreadDto } from "@/features/agent/schemas";
 import { MessageList, type LiveReply } from "./message-list";
 import { ThreadList, ThreadSelect } from "./thread-list";
+import { PageLoader } from "@/components/loading/ripple";
 
 const EXAMPLES = [
   "Plan a six-frame storyboard for a night chase in the rain",
@@ -209,10 +209,7 @@ export function AgentView() {
 
         <div className="min-h-0 flex-1 overflow-y-auto px-5 py-5">
           {threadId && messages.isPending && (
-            <div role="status" aria-label="Loading messages" className="flex flex-col gap-6">
-              <Skeleton className="ml-auto h-12 w-2/3 rounded-lg" />
-              <Skeleton className="h-24 w-full max-w-xl rounded-lg" />
-            </div>
+            <PageLoader label="Loading messages" />
           )}
 
           {threadId && messages.isError && (

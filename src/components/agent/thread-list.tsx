@@ -3,9 +3,9 @@
 import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Skeleton } from "@/components/ui/skeleton";
 import type { ThreadDto } from "@/features/agent/schemas";
 import { cn } from "@/lib/utils";
+import { Ripple } from "@/components/loading/ripple";
 
 type Props = {
   threads: ThreadDto[] | undefined;
@@ -29,11 +29,7 @@ export function ThreadList({ threads, isPending, error, onRetry, activeId, onSel
 
       <nav aria-label="Your chats" className="flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto">
         {isPending && (
-          <div role="status" aria-label="Loading chats" className="flex flex-col gap-2">
-            {Array.from({ length: 5 }, (_, i) => (
-              <Skeleton key={i} className="h-8 w-full rounded-md" />
-            ))}
-          </div>
+          <Ripple label="Loading chats" className="mx-auto my-4 size-6" />
         )}
         {error && (
           <div role="alert" className="flex flex-col items-start gap-2 text-sm">

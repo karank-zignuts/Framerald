@@ -2,12 +2,15 @@
 
 import { ArrowDownUp, Check, UploadCloud, X } from "lucide-react";
 import { useState } from "react";
+import { SlidingTabs } from "@/components/sliding-tabs";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuRadioGroup, DropdownMenuRadioItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useLibrary, type LibraryFilters } from "@/features/library/queries";
 import type { AssetDto } from "@/features/library/types";
 import { titleFromPrompt } from "@/features/view/title";
 import { cn } from "@/lib/utils";
+import { PageLoader } from "@/components/loading/ripple";
+import { Ripple } from "@/components/loading/ripple";
 
 type Tab = "uploads" | "generations" | "favourites";
 const TABS: { id: Tab; label: string }[] = [
@@ -46,24 +49,12 @@ export function MediaPickerPanel({ selectedIds, room, onPick, onUnpick, onUpload
   return (
     <div className="flex flex-col">
         <div className="flex items-center gap-2 border-b border-border px-4 py-3">
-          <div role="tablist" aria-label="Where to pick from" className="flex items-center gap-1">
-            {TABS.map((t) => (
-              <button
-                key={t.id}
-                type="button"
-                role="tab"
-                aria-selected={tab === t.id}
-                onClick={() => setTab(t.id)}
-                className={cn(
-                  "h-9 rounded-full px-4 text-sm transition-colors duration-fast",
-                  tab === t.id ? "bg-foreground text-background" : "text-muted-foreground hover:bg-secondary hover:text-foreground",
-                  focusRing,
-                )}
-              >
-                {t.label}
-              </button>
-            ))}
-          </div>
+          <SlidingTabs
+            label="Where to pick from"
+            value={tab}
+            onValueChange={(v) => setTab(v as Tab)}
+            options={TABS.map((t) => ({ value: t.id, label: t.label }))}
+          />
           <Button type="button" variant="ghost" size="icon" className="ml-auto" aria-label="Close" onClick={onClose}>
             <X aria-hidden className="size-4" />
           </Button>
@@ -71,23 +62,17 @@ export function MediaPickerPanel({ selectedIds, room, onPick, onUnpick, onUpload
 
         <div className="flex items-center gap-2 border-b border-border px-4 py-2">
           {tab === "uploads" && (
-            <div role="group" aria-label="How much to show" className="flex items-center gap-1">
-              {(["recent", "all"] as const).map((s) => (
-                <button
-                  key={s}
-                  type="button"
-                  aria-pressed={scope === s}
-                  onClick={() => setScope(s)}
-                  className={cn(
-                    "h-8 rounded-full px-3 text-sm capitalize transition-colors duration-fast",
-                    scope === s ? "bg-secondary text-foreground" : "text-muted-foreground hover:text-foreground",
-                    focusRing,
-                  )}
-                >
-                  {s}
-                </button>
-              ))}
-            </div>
+            <SlidingTabs
+              label="How much to show"
+              semantics="toggle"
+              size="sm"
+              value={scope}
+              onValueChange={(v) => setScope(v as "recent" | "all")}
+              options={[
+                { value: "recent", label: "Recent" },
+                { value: "all", label: "All" },
+              ]}
+            />
           )}
           <DropdownMenu>
             <DropdownMenuTrigger className={cn("ml-auto inline-flex h-8 items-center gap-2 rounded-lg px-3 text-sm text-muted-foreground transition-colors duration-fast hover:bg-secondary hover:text-foreground", focusRing)}>
@@ -111,7 +96,7 @@ export function MediaPickerPanel({ selectedIds, room, onPick, onUnpick, onUpload
                 onClick={onUploadClick}
                 disabled={room - uploading <= 0}
                 className={cn(
-                  "flex aspect-square flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-border bg-background/50 text-sm text-foreground transition-colors duration-fast hover:bg-secondary/70 disabled:opacity-50",
+                  "flex aspect-square flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-border bg-background/50 text-sm text-foreground transition-colors duration-fast hover:bg-[var(--wash-hover)] disabled:opacity-50",
                   focusRing,
                 )}
               >
@@ -152,7 +137,7 @@ export function MediaPickerPanel({ selectedIds, room, onPick, onUnpick, onUpload
               );
             })}
           </div>
-          {query.isPending && <p role="status" className="p-4 text-center text-sm text-muted-foreground">Loading</p>}
+          {query.isPending && <PageLoader className="min-h-[6rem]" />}
           {query.isError && (
             <p role="alert" className="p-4 text-center text-sm">
               Couldn&apos;t load these. <button type="button" className="underline" onClick={() => void query.refetch()}>Try again</button>
@@ -166,7 +151,7 @@ export function MediaPickerPanel({ selectedIds, room, onPick, onUnpick, onUpload
           {canLoadMore && (
             <div className="flex justify-center pt-3">
               <Button type="button" variant="secondary" size="sm" onClick={() => void query.fetchNextPage()} disabled={query.isFetchingNextPage}>
-                {query.isFetchingNextPage ? "Loading" : "Load more"}
+                {query.isFetchingNextPage ? <><Ripple label="Loading more" className="size-4" /> Loading</> : "Load more"}
               </Button>
             </div>
           )}

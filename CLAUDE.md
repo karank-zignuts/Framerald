@@ -8,7 +8,7 @@ A personal AI studio for making images and video. You write a prompt (or let the
 - `PROJECT_CONTEXT.md`: what we're building, scope, what it is not
 - `TECH_DECISIONS.md`: the stack, pinned versions, how to pick new tech
 - `ENGINEERING_STANDARDS.md`: structure, naming, data, AI calls, security, testing
-- `DESIGN_SYSTEM.md`: Cinematic Dark tokens, the green accent
+- `DESIGN_SYSTEM.md`: the theme (Void black ladder, Cool white accent), glass, spacing
 - `AI_WORKFLOW.md`: the development pipeline and which skill runs when
 - `ROADMAP.md`: phases and what's next
 <!-- /context-index -->
@@ -32,6 +32,6 @@ Do NOT drive the browser click by click with screenshots.
 - Google and Supabase keys live in `.env.local` (and Vercel env). Never in the repo, the browser bundle or chat.
 - All Vertex AI and Supabase calls run on the server (`import "server-only"`). The browser only talks to our own API routes and server actions.
 - Every table row has `owner_id`. Deletes are soft (`deleted_at`). Every paid model call writes a `usage_events` row.
-- UI uses only Cinematic Dark tokens plus `brand` (green #7ad950). Never invent colors. No BorderBeam (the owner removed it).
+- UI uses only Cinematic Dark tokens plus `brand` (Cool white #E8F0FB) on the Void black ladder. Colours are chosen only in the theme block of `globals.css`; components use tokens, never a hex, `rgb()` or `oklch()` (`src/theme.test.ts` enforces it). Never invent colors. No BorderBeam (the owner removed it).
 - Every user-facing string goes through the `humanizer` skill. No AI-sounding copy.
 - Pin exact versions (`.npmrc` has `save-exact=true`). New dependency = ask first.
